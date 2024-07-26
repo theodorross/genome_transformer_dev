@@ -1,0 +1,9 @@
+name: tensorflow
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - tensorflow=2.14
+  - wandb=0.16.6
+  - pandas=2.2.2
