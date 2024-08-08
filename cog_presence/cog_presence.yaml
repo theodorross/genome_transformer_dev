@@ -10,7 +10,7 @@ spec:
       - name: contig-embedding-cog-presence
         image: "docker pull tensorflow/tensorflow:2.14.0-gpu"
         command: ["python cog_presence-test.py"]
-        args: ["--embedding-dim",1024,"--label-column","Vancomycin_res"]
+        args: ["--platform","Springfield","--embedding-dim",1024,"--label-column","Vancomycin_res"]
         workingDir: /storage/genome_embedding/cog_presence
         volumeMounts:
         - name: storage

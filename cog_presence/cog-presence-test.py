@@ -22,6 +22,7 @@ if __name__ == "__main__":
 
     '''Parse the input arguments'''
     parser = argparse.ArgumentParser()
+    parser.add_argument("--platform", default="Springfield", type=str, help="Hardware platform used for job training", required=True)
     parser.add_argument("--embedding-dim", "-z", default=1024, type=int, help="Dimensionality of the contig embedding vectors.", required=False)
     parser.add_argument("--label-column", "-y", default="Vancomycin_res", type=str, help="Data column to use as labels for training.", required=False)
     parser.add_argument("--batch-size", "-b", default=4, type=int, help="Batch size for training.", required=False)
@@ -49,33 +50,48 @@ if __name__ == "__main__":
             "suffle-contigs":args.shuffle_contigs,
             "learning-rate":args.lr,
             "patience":args.patience,
-            "val-split":args.val_split
+            "val-split":args.val_split,
+            "platform":args.platform
         }, 
         
         sync_tensorboard=True
     )
 
+    '''Define data directories'''
+    if args.platform == "local":
+        contig_path = "../data/contig-gene-presence-absence.csv"
+        labels_path = "../data/labels.csv"
+        splits_path = "../data/sequence-splits.csv"
+
+    elif args.platform == "Springfield":
+        contig_path = "~/data/e_faecium/contig-gene-presence-absence.csv"
+        labels_path = "~/data/e_faecium/labels.csv"
+        splits_path = "~/data/e_faecium/sequence-splits.csv"
+
+    elif args.platform == "LUMI":
+        raise("I HAVEN'T ACCOUNTED FOR RUNNING ON LUMI YET")
+
 
     '''Load data'''
     ## Load the data splits information
-    splits_df = pd.read_csv("../data/sequence-splits.csv", index_col="ID")
+    splits_df = pd.read_csv(splits_path, index_col="ID")
     training_seqs = splits_df[splits_df["split"] == "training"].index.tolist()
     validation_seqs = splits_df[splits_df["split"] == "validation"].index.tolist()
 
     ## Load and process the contig data
-    contig_df = pd.read_csv("../data/contig-gene-presence-absence.csv", nrows=1e3)    ## For debugging
-    # contig_df = pd.read_csv("data/contig-gene-presence-absence.csv", index_col="scaffold")        ## For running
+    # contig_df = pd.read_csv("../data/contig-gene-presence-absence.csv", nrows=1e3)    ## For debugging
+    contig_df = pd.read_csv(contig_path, index_col="scaffold")        ## For running
     contig_df["sequence"] = contig_df["sequence"].astype('string')
     sequences = contig_df["sequence"].unique()
     contig_df.set_index(["sequence","scaffold"], inplace=True)
     genes = contig_df.columns.to_numpy()
     
     ## Load and process the labels
-    labels = pd.read_csv("../data/labels.csv", index_col="ID")[args.label_column]
-    labels = labels.loc[sequences]      ## for debugging
-    labels.loc["2016_199"] = "yes"      ## for debugging (randomly chosen)
+    labels = pd.read_csv(labels_path, index_col="ID")[args.label_column]
+    # labels = labels.loc[sequences]      ## for debugging
+    # labels.loc["2016_199"] = "yes"      ## for debugging (randomly chosen)
     
-    # If the labels are resistance
+    # If the labels are resistance data
     if "res" in args.label_column:
         label_mapper = {"no":0, "yes":1}
 
@@ -100,8 +116,6 @@ if __name__ == "__main__":
     '''Define model hyperparameters'''
     z_dim = args.embedding_dim
     x_dim = len(genes)
-    # max_contigs = contig_df["sequence"].value_counts().max()
-    # max_contigs = args.max_contigs
 
 
     '''Define the model'''
@@ -124,20 +138,11 @@ if __name__ == "__main__":
     model.compile(optimizer=Adam(learning_rate=args.lr), loss="categorical_crossentropy", 
                   metrics=model_metrics)
 
-    # print(model.summary())
-
-    # print("\nDEBUGGING")
-    # print(len(val_generator))
-    # print(val_generator.num_batches)
-    # for x,y in val_generator:
-    #     pass
-    #     # print(x.shape, y.shape)
-
 
     '''Define callbacks'''
     ## Wandb callbacks
-    # wandb_logger = WandbMetricsLogger()
-    # wandb_chkpt = WandbModelCheckpoint("models")
+    wandb_logger = WandbMetricsLogger()
+    wandb_chkpt = WandbModelCheckpoint("models")
 
     ## Early stopping callback
     earlystop = EarlyStopping(monitor="val_loss", patience=args.patience)
