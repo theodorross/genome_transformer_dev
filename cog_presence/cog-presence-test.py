@@ -47,7 +47,7 @@ if __name__ == "__main__":
             "label-column":args.label_column,
             "batch-size":args.batch_size,
             "max-contigs":args.max_contigs,
-            "suffle-contigs":args.shuffle_contigs,
+            "shuffle-contigs":args.shuffle_contigs,
             "learning-rate":args.lr,
             "patience":args.patience,
             "val-split":args.val_split,
@@ -58,15 +58,16 @@ if __name__ == "__main__":
     )
 
     '''Define data directories'''
+    print("Defining data directories")
     if args.platform == "local":
         contig_path = "../data/contig-gene-presence-absence.csv"
         labels_path = "../data/labels.csv"
         splits_path = "../data/sequence-splits.csv"
 
     elif args.platform == "Springfield":
-        contig_path = "~/data/e_faecium/contig-gene-presence-absence.csv"
-        labels_path = "~/data/e_faecium/labels.csv"
-        splits_path = "~/data/e_faecium/sequence-splits.csv"
+        contig_path = "/storage/data/e_faecium/contig-gene-presence-absence.csv"
+        labels_path = "/storage/data/e_faecium/labels.csv"
+        splits_path = "/storage/data/e_faecium/sequence-splits.csv"
 
     elif args.platform == "LUMI":
         raise("I HAVEN'T ACCOUNTED FOR RUNNING ON LUMI YET")
@@ -74,19 +75,22 @@ if __name__ == "__main__":
 
     '''Load data'''
     ## Load the data splits information
+    print("Loading data splits...")
     splits_df = pd.read_csv(splits_path, index_col="ID")
     training_seqs = splits_df[splits_df["split"] == "training"].index.tolist()
     validation_seqs = splits_df[splits_df["split"] == "validation"].index.tolist()
 
     ## Load and process the contig data
+    print("Loading contig data...")
     # contig_df = pd.read_csv("../data/contig-gene-presence-absence.csv", nrows=1e3)    ## For debugging
-    contig_df = pd.read_csv(contig_path, index_col="scaffold")        ## For running
+    contig_df = pd.read_csv(contig_path, index_col="scaffold", low_memory=False)        ## For running
     contig_df["sequence"] = contig_df["sequence"].astype('string')
     sequences = contig_df["sequence"].unique()
     contig_df.set_index(["sequence","scaffold"], inplace=True)
     genes = contig_df.columns.to_numpy()
     
     ## Load and process the labels
+    print("Loading labels...")
     labels = pd.read_csv(labels_path, index_col="ID")[args.label_column]
     # labels = labels.loc[sequences]      ## for debugging
     # labels.loc["2016_199"] = "yes"      ## for debugging (randomly chosen)
@@ -105,6 +109,7 @@ if __name__ == "__main__":
     # validation_seqs = [s for s in validation_seqs if s in sequences]    ## for debugging
 
     ## Define the data generator
+    print("Defining data generators...")
     training_generator = ContigPA_Generator(contig_df.loc[training_seqs], labels.loc[training_seqs],
                                             batch_size=args.batch_size, max_contigs=args.max_contigs, 
                                             shuffle_contigs=args.shuffle_contigs)
@@ -149,7 +154,7 @@ if __name__ == "__main__":
 
 
     '''Test it out'''
-    H = model.fit(x=training_generator, validation_data=val_generator, epochs=10, 
+    H = model.fit(x=training_generator, validation_data=val_generator, epochs=100, 
                   callbacks=[earlystop])
     # H = model.fit(x=training_generator, validation_data=val_generator, epochs=10, 
     #               callbacks=[earlystop, wandb_logger, wandb_chkpt])

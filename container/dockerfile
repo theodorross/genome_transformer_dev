@@ -1,0 +1,6 @@
+FROM --platform=linux/amd64 tensorflow/tensorflow:2.14.0-gpu
+RUN pip install wandb==0.16.6 && \
+    pip install pandas==2.2.2
+
+ENTRYPOINT [ "/bin/bash" ]
+VOLUME [ "/storage" ]
