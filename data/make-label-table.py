@@ -50,4 +50,4 @@ out_df["Gentamicin_res"] = out_df["Gentamicin_res"].str.lower()
 out_df["Linezolid_res"] = out_df["Linezolid_res"].str.lower()
 
 print(out_df)
-out_df.to_csv("labels.csv", index=True)
+out_df.to_csv("sequence-labels.csv", index=True)

@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 tensorflow/tensorflow:2.14.0-gpu
+FROM --platform=linux/amd64 rocm/tensorflow:rocm6.2-py3.9-tf2.14-runtime
 RUN pip install wandb==0.16.6 && \
     pip install pandas==2.2.2
 

@@ -1,0 +1,30 @@
+2024-08-15 16:15:45.487529: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/usr/lib/python3/dist-packages/requests/__init__.py:89: RequestsDependencyWarning: urllib3 (2.2.2) or chardet (3.0.4) doesn't match a supported version!
+  warnings.warn("urllib3 ({}) or chardet ({}) doesn't match a supported "
+2024-08-15 16:17:25.039957: E tensorflow/compiler/xla/stream_executor/rocm/rocm_driver.cc:1294] failed to query device memory info: HIP_ERROR_InvalidValue
+Traceback (most recent call last):
+  File "/scratch/project_465000263/rosstheo/genome_transformer_dev/cog_presence/cog-presence-test.py", line 140, in <module>
+    emb = embedding_layer(inp)
+  File "/usr/local/lib/python3.9/dist-packages/keras/src/utils/traceback_utils.py", line 70, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/usr/local/lib/python3.9/dist-packages/tensorflow/python/autograph/impl/api.py", line 693, in wrapper
+    raise e.ag_error_metadata.to_exception(e)
+tensorflow.python.framework.errors_impl.UnknownError: Exception encountered when calling layer "contig_pa__linear_encoding" (type ContigPA_LinearEncoding).
+
+in user code:
+
+    File "/scratch/project_465000263/rosstheo/genome_transformer_dev/cog_presence/utils/ContigPA_LinearEncoding.py", line 33, in call  *
+        return(self.dense(x))
+    File "/usr/local/lib/python3.9/dist-packages/keras/src/utils/traceback_utils.py", line 70, in error_handler  **
+        raise e.with_traceback(filtered_tb) from None
+    File "/usr/local/lib/python3.9/dist-packages/keras/src/backend.py", line 2102, in random_uniform
+        return tf.random.stateless_uniform(
+
+    UnknownError: Failed to query available memory for GPU 0
+
+
+Call arguments received by layer "contig_pa__linear_encoding" (type ContigPA_LinearEncoding):
+  • x=tf.Tensor(shape=(None, None, 11194), dtype=float32)
+srun: error: nid006566: task 0: Exited with exit code 1
+srun: launch/slurm: _step_signal: Terminating StepId=7978028.0

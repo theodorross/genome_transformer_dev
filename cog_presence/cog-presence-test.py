@@ -9,8 +9,8 @@ from keras.utils import to_categorical
 from keras.optimizers import Adam
 from keras.metrics import AUC, Precision, Recall
 
-import wandb
-from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint
+# import wandb
+# from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint
 
 from utils.ContigPA_LinearEncoding import ContigPA_LinearEncoding
 from utils.AssemblyTransformer import TransformerBlock
@@ -33,44 +33,49 @@ if __name__ == "__main__":
     parser.add_argument("--val-split", default=0.2, type=float, help="Fraction of the training data to use for validation", required=False)
     args = parser.parse_args()
 
+    print("Looking for GPUs...")
+    print(tf.config.list_physical_devices('GPU'))
+
 
     '''Initialize wandb'''
-    wandb.init(
-        project="genome-transformer",
+    # wandb.init(
+    #     project="genome-transformer",
         
-        config={
-            "gene-representation":"binary P/A",
-            "gene-embedding-type":"none",
-            "contig-representation":"binary gene P/A vector",
-            "contig-embedding-type":"linear",
-            "embedding-dim":args.embedding_dim,
-            "label-column":args.label_column,
-            "batch-size":args.batch_size,
-            "max-contigs":args.max_contigs,
-            "shuffle-contigs":args.shuffle_contigs,
-            "learning-rate":args.lr,
-            "patience":args.patience,
-            "val-split":args.val_split,
-            "platform":args.platform
-        }, 
+    #     config={
+    #         "gene-representation":"binary P/A",
+    #         "gene-embedding-type":"none",
+    #         "contig-representation":"binary gene P/A vector",
+    #         "contig-embedding-type":"linear",
+    #         "embedding-dim":args.embedding_dim,
+    #         "label-column":args.label_column,
+    #         "batch-size":args.batch_size,
+    #         "max-contigs":args.max_contigs,
+    #         "shuffle-contigs":args.shuffle_contigs,
+    #         "learning-rate":args.lr,
+    #         "patience":args.patience,
+    #         "val-split":args.val_split,
+    #         "platform":args.platform
+    #     }, 
         
-        sync_tensorboard=True
-    )
+    #     sync_tensorboard=True
+    # )
 
     '''Define data directories'''
     print("Defining data directories")
     if args.platform == "local":
         contig_path = "../data/contig-gene-presence-absence.csv"
-        labels_path = "../data/labels.csv"
+        labels_path = "../data/sequence-labels.csv"
         splits_path = "../data/sequence-splits.csv"
 
     elif args.platform == "Springfield":
         contig_path = "/storage/data/e_faecium/contig-gene-presence-absence.csv"
-        labels_path = "/storage/data/e_faecium/labels.csv"
+        labels_path = "/storage/data/e_faecium/sequence-labels.csv"
         splits_path = "/storage/data/e_faecium/sequence-splits.csv"
 
     elif args.platform == "LUMI":
-        raise("I HAVEN'T ACCOUNTED FOR RUNNING ON LUMI YET")
+        contig_path = "/scratch/project_465000263/rosstheo/genome_transformer_dev/data/contig-gene-presence-absence.csv"
+        labels_path = "/scratch/project_465000263/rosstheo/genome_transformer_dev/data/sequence-labels.csv"
+        splits_path = "/scratch/project_465000263/rosstheo/genome_transformer_dev/data/sequence-splits.csv"
 
 
     '''Load data'''
@@ -83,7 +88,7 @@ if __name__ == "__main__":
     ## Load and process the contig data
     print("Loading contig data...")
     # contig_df = pd.read_csv("../data/contig-gene-presence-absence.csv", nrows=1e3)    ## For debugging
-    contig_df = pd.read_csv(contig_path, index_col="scaffold", low_memory=False)        ## For running
+    contig_df = pd.read_csv(contig_path, low_memory=False)                              ## For running
     contig_df["sequence"] = contig_df["sequence"].astype('string')
     sequences = contig_df["sequence"].unique()
     contig_df.set_index(["sequence","scaffold"], inplace=True)
@@ -124,6 +129,7 @@ if __name__ == "__main__":
 
 
     '''Define the model'''
+    print("Defining model...")
     ## Define the embedding and transformer layers
     embedding_layer = ContigPA_LinearEncoding(input_dim=x_dim, embedding_dim=z_dim, use_bias=False)
     transformer_layer = TransformerBlock(z_dim, z_dim, num_heads=5, dropout_rate=0.1, key_dim=255)
@@ -145,15 +151,17 @@ if __name__ == "__main__":
 
 
     '''Define callbacks'''
+    print("Define callbacks...")
     ## Wandb callbacks
-    wandb_logger = WandbMetricsLogger()
-    wandb_chkpt = WandbModelCheckpoint("models")
+    # wandb_logger = WandbMetricsLogger()
+    # wandb_chkpt = WandbModelCheckpoint("models")
 
     ## Early stopping callback
     earlystop = EarlyStopping(monitor="val_loss", patience=args.patience)
 
 
     '''Test it out'''
+    print("Train model...")
     H = model.fit(x=training_generator, validation_data=val_generator, epochs=100, 
                   callbacks=[earlystop])
     # H = model.fit(x=training_generator, validation_data=val_generator, epochs=10, 
@@ -164,3 +172,4 @@ if __name__ == "__main__":
     # print(test_seqs.shape, test_labels.shape)
     # test_out = model.predict(test_seqs)
     # print(test_out)
+    print("Done.")

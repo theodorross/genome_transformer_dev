@@ -52,7 +52,7 @@ class ContigPA_Generator(keras.utils.Sequence):
             zero_arr = np.zeros((pad_width, arr.shape[1]))
             arr = np.concatenate([arr, zero_arr], axis=0)
         elif arr.shape[0] > self.max_contigs:
-            raise("OOPSIE DOODLE NEED TO INCREASE 'max_contigs'")
+            raise(f"OOPSIE DOODLE NEED TO INCREASE 'max_contigs', found one that has {arr.shape[0]}")
         
         return arr
 

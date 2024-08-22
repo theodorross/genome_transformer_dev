@@ -1,9 +1,13 @@
-name: tensorflow
+name: ml
 channels:
   - conda-forge
+  - apple
   - bioconda
-  - defaults
 dependencies:
   - tensorflow=2.14.0
   - wandb=0.16.6
   - pandas=2.2.2
+  - altair=5.4.0
+  - scikit-learn=1.5.1
+  - xgboost=2.0.3
+  - matplotlib=3.9.2
