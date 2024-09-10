@@ -1,0 +1,26 @@
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Data files #
+######################
+*.csv
+*.fasta
+*.txt
+*.zip
+
+# Specific Directories #
+######################
+cog_presence/wandb
+cog_presence/utils/__pycache__
+gene_embedding/wandb
+gene_embedding/utils/__pycache__
+data/__pycache__
+data/blast
+data/gene_sequences
