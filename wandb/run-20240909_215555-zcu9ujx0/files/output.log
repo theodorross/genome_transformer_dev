@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/theodorross/Library/CloudStorage/OneDrive-UiTOffice365/Documents/code/Github/genome_transformer_dev/gene_embedding/train_gene_autoencoder.py", line 109, in <module>
+    wandb_callback = wandb.integration.keras.WandbMetricsLogger()
+                     ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'wandb.integration' has no attribute 'keras'

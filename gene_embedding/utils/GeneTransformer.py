@@ -1,15 +1,10 @@
 import tensorflow as tf
-# from utils.TransformerBlock import TransformerBlock
 from keras.models import Model
 from keras import layers
-from keras.utils import to_categorical
-from keras import callbacks
+# from keras.utils import to_categorical
 import itertools
-from tqdm import tqdm
 import numpy as np
-import wandb
-
-from matplotlib import pyplot as plt
+import nltk
 
 
 class GeneTransformer(Model):
@@ -17,7 +12,6 @@ class GeneTransformer(Model):
     Transformer model for embedding gene sequences
     - default values taken from "Attention is All You Need": https://arxiv.org/pdf/1706.03762
     '''
-    ### TODO add loss, optimizer, and training stuff --> INCLUDING MASKING
 
     def __init__(self, tokenization_method:str, 
                        embedding_dim:int=512, 
@@ -67,6 +61,18 @@ class GeneTransformer(Model):
         self.embedding_layer = PositionalEmbedding(self.vocab_size, embedding_dim, max_length=max_length)
 
 
+        ## Define a lookup table for converting back to sequences
+        self.lookup_table = tf.lookup.StaticHashTable(
+            tf.lookup.KeyValueTensorInitializer(
+                keys=range(self.vocab_size),
+                values=self.vocabulary,
+                key_dtype="int32",
+                value_dtype=tf.string
+            ),
+            default_value=self.vocabulary[0]
+        )
+
+
         ## Define the layers
         self.encoder_layers = [
             TransformerBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
@@ -114,7 +120,14 @@ class GeneTransformer(Model):
 
         ## Compile the model
         opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        self.autoencoder.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["mse"])
+        # track_metrics = [tf.metrics.Accuracy(), 
+        #                  tf.metrics.Precision(),
+        #                  tf.metrics.Recall()]
+        track_metrics = ["acc",
+                         self.distance_metric()]
+        self.autoencoder.compile(optimizer=opt, loss="categorical_crossentropy", metrics=track_metrics)
+
+        self.build(input_shape=input_sequence.shape)
 
 
     @tf.function
@@ -143,14 +156,26 @@ class GeneTransformer(Model):
         else:
             return tokens
         
-    def untokenize(self, x, one_hot=True):
+    def untokenize(self, x, one_hot=True, join=True):
         ## Convert a sequence of tokens to a DNA sequence
         if one_hot:
             x = tf.argmax(x, axis=-1, output_type="int32")
-        x = np.asarray(x)
-        v = np.asarray(self.vocabulary)
-        seqs = ["".join(v[x[ix]]) for ix in range(x.shape[0])]
-        return seqs
+        genes = self.lookup_table.lookup(x)
+        if join:
+            genes = tf.strings.reduce_join(genes, axis=-1)
+        return genes
+    
+
+    def distance_metric(self):
+        ## Create a function for computing Levenshtein distance 
+        def levenshtein_dist(y_true, y_pred):
+            tokens_true = self.untokenize(y_true, one_hot=True, join=False)
+            tokens_pred = self.untokenize(y_pred, one_hot=True, join=False)
+            sparse_true = tf.sparse.from_dense(tokens_true)
+            sparse_pred = tf.sparse.from_dense(tokens_pred)
+            dists = tf.edit_distance(sparse_pred, sparse_true)
+            return dists
+        return levenshtein_dist
     
 
     def call(self, x):
@@ -187,14 +212,10 @@ class GeneTransformer(Model):
         val_x = tf.data.Dataset.zip(val_data, y_val)
         val_x = val_x.padded_batch(batch_size)
         val_x = val_x.prefetch(tf.data.AUTOTUNE)
-
             
         ## Train the model
-        # H = self.autoencoder.fit(x, epochs=epochs, callbacks=callbacks) 
-        H = self.autoencoder.fit(x, validation_data=val_x, epochs=epochs, callbacks=callbacks) 
+        H = self.autoencoder.fit(x, validation_data=val_x, epochs=epochs, callbacks=callbacks)
         return H
-    
-
 
 
 

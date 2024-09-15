@@ -1,10 +1,10 @@
 import numpy as np
 import tensorflow as tf
 import keras
-from matplotlib import pyplot as plt
 import wandb
 import argparse
 import datetime
+import json
 
 from utils.GeneTransformer import GeneTransformer
 
@@ -26,8 +26,8 @@ if __name__ == "__main__":
     '''
     parser = argparse.ArgumentParser()
     ## System parameters
-    parser.add_argument("--platform", default="local", type=str, help="Hardware platform used for job training", required=False)
-    parser.add_argument("--dataset", default="full", type=str, help="which datset to use", required=False)
+    parser.add_argument("--platform", default="local", type=str, help="Hardware platform used for job training.", required=False)
+    parser.add_argument("--dataset", default="full", choices=["dev","full"], type=str, help="Which datset to use.", required=False)
 
     ## Model architecture hyperparameters
     parser.add_argument("--tokenization", default="nucleotide", choices=["nucleotide","codon"], type=str, help="Units to tokenize for processiing.", required=False)
@@ -41,12 +41,12 @@ if __name__ == "__main__":
 
     ## Training hyperparameters
     parser.add_argument("--masking-rate", default=0.05, type=float, help="Probability of masking each input token during training.")
-    parser.add_argument("--learning-rate", default=1e-3, type=float, help="Learning rate for the optimizer.", required=False)
+    parser.add_argument("--learning-rate", default=1e-6, type=float, help="Learning rate for the optimizer.", required=False)
     parser.add_argument("--batch-size", "-b", default=4, type=int, help="Batch size for training.", required=False)
-    parser.add_argument("--epochs", default=100, type=int, help="Maximum number of training epochs to perform", required=False)
+    parser.add_argument("--epochs", default=100, type=int, help="Maximum number of training epochs to perform.", required=False)
     parser.add_argument("--patience", default=25, type=int, help="Patience for early stopping.", required=False)
-    parser.add_argument("--cross-folds", default=5, type=int, help="number of cross-folds for validation of training", required=False)
-    parser.add_argument("--max-seq-length", default=5000, type=int, help="Maximum sequence length to use during training")
+    parser.add_argument("--cross-folds", default=5, type=int, help="Number of cross-folds for validation of training.", required=False)
+    parser.add_argument("--max-seq-length", default=5000, type=int, help="Maximum sequence length to use during training.")
     args = parser.parse_args()
 
     '''
@@ -96,8 +96,9 @@ if __name__ == "__main__":
         datapath = f"{data_dir}/train_unique_gene_seqs.txt"
 
 
-    ## Load the dataset
+    ## Load the dataset and remove genes over the max sequence length
     gene_dataset = tf.data.TextLineDataset(datapath)
+    gene_dataset = gene_dataset.filter(lambda x: tf.strings.length(x) <= args.max_seq_length)
 
     ## Cut the dataset into k cross-folds
     dataset_cuts = [gene_dataset.shard(args.cross_folds, k) for k in range(args.cross_folds)]
@@ -106,7 +107,7 @@ if __name__ == "__main__":
     '''
     Define training callbacks
     '''
-    wandb_callback = wandb.integration.keras.WandbMetricsLogger()
+    wandb_callback = wandb.keras.WandbMetricsLogger()
     early_stopper = keras.callbacks.EarlyStopping(monitor="val_loss",
                                                   patience=args.patience,
                                                   restore_best_weights=True)
@@ -116,6 +117,8 @@ if __name__ == "__main__":
     '''
     Define a new model to train for each cross-validation fold
     '''
+    training_histories = {}
+
     for k in range(args.cross_folds):
 
         ## Define the training and test datsets
@@ -127,9 +130,20 @@ if __name__ == "__main__":
         gene_ae = GeneTransformer(**model_config)
 
         ## Train the model
-        gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs)
+        # gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs)
+        # break
+        # fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs)
+        fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
+
+        ## Store the training history
+        training_histories[f"Fold {k}"] = fold_history.history
 
         ## Save the model
         now_str = datetime.datetime.now().strftime("%d.%m.%Y_%H.%M")
         gene_ae.save(f"models/geneAE_fold{k}_{now_str}.keras")
 
+
+    ## Save the histories
+    now_str = datetime.datetime.now().strftime("%d.%m.%Y_%H.%M")
+    with open(f"training_metrics/geneAE_{now_str}.json","w") as f:
+        json.dump(training_histories, f)

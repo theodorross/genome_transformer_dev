@@ -1,23 +1,32 @@
 kind: Job
 apiVersion: batch/v1
 metadata:
-  name: contig-embedding-cog-presence
+  name: gene-embedding
 spec:
   template:
     spec:
       hostIPC: true
       containers:
-      - name: contig-embedding-cog-presence
-        image: "theodorross/tensorflow-experiments:latest"
+      - name: gene-embedding
+        image: "theodorross/tensorflow-experiments:cuda-v0.3"
         command: ["python"]
-        args: ["cog-presence-test.py", "--platform", "Springfield", "--embedding-dim", "1024", "--label-column", "Vancomycin_res"]
-        workingDir: /storage/genome_transformer_dev/cog_presence
+        args:
+        - "train_gene_autoencoder.py"
+        - "--platform=springfield"
+        - "--dataset=dev"
+        - "--embedding-dim=32"
+        - "--encoder-layers=2"
+        - "--decoder-layers=2"
+        - "--key-dim=16"
+        - "--num-heads=4"
+        - "--ff-dim=128"
+        workingDir: /storage/genome_transformer_dev/gene_embedding
         volumeMounts:
         - name: storage
           mountPath: /storage
         resources:
           limits:
-            memory: "32Gi"
+            memory: "16Gi"
         env: 
         - name: WANDB_API_KEY
           valueFrom: 

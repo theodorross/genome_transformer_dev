@@ -1,0 +1,49 @@
+{
+    "os": "macOS-14.6.1-arm64-arm-64bit",
+    "python": "3.11.9",
+    "heartbeatAt": "2024-09-10T00:55:56.732107",
+    "startedAt": "2024-09-10T00:55:55.809305",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/Users/theodorross/Library/CloudStorage/OneDrive-UiTOffice365/Documents/code/Github/genome_transformer_dev/gene_embedding/train_gene_autoencoder.py",
+    "codePathLocal": "gene_embedding/train_gene_autoencoder.py",
+    "codePath": "gene_embedding/train_gene_autoencoder.py",
+    "git": {
+        "remote": "https://github.com/theodorross/genome_transformer_dev.git",
+        "commit": "4f5e96e7a0ccade8f1ebd8b9dcdeeb4a883cc95b"
+    },
+    "email": "theodor.a.ross@uit.no",
+    "root": "/Users/theodorross/Library/CloudStorage/OneDrive-UiTOffice365/Documents/code/Github/genome_transformer_dev",
+    "host": "Theodors-MacBook-Pro.local",
+    "username": "theodorross",
+    "executable": "/Users/theodorross/mambaforge/envs/ml/bin/python",
+    "cpu_count": 8,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 3204,
+        "min": 600,
+        "max": 3204
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3204,
+            "min": 600,
+            "max": 3204
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 460.4317207336426,
+            "used": 422.00548934936523
+        }
+    },
+    "gpuapple": {
+        "type": "arm",
+        "vendor": "Apple"
+    },
+    "memory": {
+        "total": 16.0
+    }
+}

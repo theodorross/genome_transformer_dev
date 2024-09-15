@@ -1,0 +1,81 @@
+wandb_version: 1
+
+platform:
+  desc: null
+  value: local
+dataset:
+  desc: null
+  value: full
+tokenization_method:
+  desc: null
+  value: nucleotide
+embedding_dim:
+  desc: null
+  value: 512
+encoder_layers:
+  desc: null
+  value: 6
+decoder_layers:
+  desc: null
+  value: 6
+key_dim:
+  desc: null
+  value: 64
+num_heads:
+  desc: null
+  value: 8
+dropout_rate:
+  desc: null
+  value: 0.1
+ff_dim:
+  desc: null
+  value: 2048
+batch_size:
+  desc: null
+  value: 4
+max_length:
+  desc: null
+  value: 5000
+masking_rate:
+  desc: null
+  value: 0.05
+learning_rate:
+  desc: null
+  value: 0.001
+patience:
+  desc: null
+  value: 25
+cross_folds:
+  desc: null
+  value: 5
+epochs:
+  desc: null
+  value: 100
+_wandb:
+  desc: null
+  value:
+    python_version: 3.11.9
+    cli_version: 0.16.6
+    framework: keras
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1725929755.0
+    t:
+      1:
+      - 2
+      - 3
+      - 55
+      2:
+      - 2
+      - 3
+      - 55
+      3:
+      - 16
+      - 23
+      - 35
+      4: 3.11.9
+      5: 0.16.6
+      8:
+      - 4
+      - 5
+      13: darwin-arm64

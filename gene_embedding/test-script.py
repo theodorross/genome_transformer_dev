@@ -3,7 +3,6 @@ from utils import GeneSeq_Generator
 import numpy as np
 import tensorflow as tf
 import keras
-from matplotlib import pyplot as plt
 from tqdm import tqdm
 import itertools
 import datetime
@@ -22,21 +21,6 @@ def concatenate_datasets(*datasets) -> tf.data.Dataset:
 
 
 if __name__=="__main__":
-
-    datapath = "../data/gene_data.csv"
-
-    # with open(datapath,"r") as f:
-    #     for l in f.readlines():
-    #         print(l)
-
-    test = tf.data.TextLineDataset(datapath).map(isolate_nucleotides)
-
-    c = 0
-    for a in test:
-        print(a)
-        c += 1
-        if c > 50:
-            break
 
     '''
     Load the unique gene sequences and get rid of genes longer than 5 kb
