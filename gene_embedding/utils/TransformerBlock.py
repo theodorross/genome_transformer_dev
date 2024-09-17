@@ -4,18 +4,27 @@ from keras.layers import Layer, Dense, MultiHeadAttention, LayerNormalization, D
 import pandas as pd
 
 
+@tf.keras.saving.register_keras_serializable()
 class TransformerBlock(Layer):
     '''
     Transformer model for whole genome assemblies.
     '''
-    def __init__(self, output_dim:int, ff_dim:int, num_heads:int, key_dim:int, dropout_rate:float=0.1, **kwargs):
+    def __init__(self, output_dim:int, 
+                       ff_dim:int, 
+                       num_heads:int, 
+                       key_dim:int, 
+                       dropout_rate:float=0.1, 
+                       activation="relu",
+                       **kwargs):
         super().__init__(**kwargs)
         
         ## Define needed paramters
         self.output_dim = output_dim
-        self.num_heads = num_heads
-        self.dropout_rate = dropout_rate
         self.ff_dim = ff_dim
+        self.num_heads = num_heads
+        self.key_dim = key_dim
+        self.dropout_rate = dropout_rate
+        self.activation = activation
 
         ## Attention layer
         self.attn = MultiHeadAttention(num_heads=num_heads, key_dim=key_dim)
@@ -25,7 +34,7 @@ class TransformerBlock(Layer):
         self.norm2 = LayerNormalization()
 
         ## Feed forward layers
-        self.ff1 = Dense(ff_dim, activation="leaky_relu")
+        self.ff1 = Dense(ff_dim, activation=activation)
         self.ff2 = Dense(output_dim)
 
         ## Dropout layers
@@ -41,27 +50,33 @@ class TransformerBlock(Layer):
             attn_output = self.dropout1(attn_output)
 
         ## Add and norm
-        # print(inputs.shape, attn_output.shape)
         out1 = self.norm1(inputs + attn_output)
-        # print(out1.shape)
 
         ## Feed-forward
         ffn_output = self.ff1(out1)
         if self.dropout_rate != 0:
             ffn_output = self.dropout2(ffn_output)
         ffn_output = self.ff2(ffn_output)
-        # print(out1.shape, ffn_output.shape)
         out2 = self.norm2(out1 + ffn_output)
-        # print(out2.shape)
         
         return out2
-
-    def build(self, input_shape):
-        return
     
     def compute_output_shape(self, input_shape):
-        b,s,_ = input_shape
-        return (b, s, self.ff_dim)
+        # b,s,_ = input_shape
+        # return (b, s, self.output_dim)
+        return input_shape
     
+    def get_config(self):
+        base_config = super().get_config()
+        config = {
+            "output_dim":self.output_dim,
+            "ff_dim":self.ff_dim,
+            "num_heads":self.num_heads,
+            "key_dim":self.key_dim,
+            "dropout_rate":self.dropout_rate,
+            "activation":self.activation
+        }
+        return {**base_config, **config}
+
 
 

@@ -5,8 +5,10 @@ import wandb
 import argparse
 import datetime
 import json
+import os
+import pickle
 
-from utils.GeneTransformer import GeneTransformer
+from utils import GeneTransformer
 
 
 
@@ -132,18 +134,35 @@ if __name__ == "__main__":
         ## Train the model
         # gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs)
         # break
-        # fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs)
-        fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
+        fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs)
+        # fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
 
         ## Store the training history
         training_histories[f"Fold {k}"] = fold_history.history
 
         ## Save the model
-        now_str = datetime.datetime.now().strftime("%d.%m.%Y_%H.%M")
-        gene_ae.save(f"models/geneAE_fold{k}_{now_str}.keras")
+        # now_str = datetime.datetime.now().strftime("%d.%m.%Y_%H.%M")
+        # gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}_{now_str}.keras")
+        # os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}_{now_str}")
+        # gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}_{now_str}")
+        os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
+        gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}")
+
+        custom_objs = {"TransformerBlock":TransformerBlock,
+                       "LevenshteinDistance":LevenshteinDistance,
+                       "PositionalEmbedding":PositionalEmbedding}
+        testload = tf.keras.models.load_model(f"models/geneAE_{wandb.run.name}_fold{k}", 
+                                              custom_objects=custom_objs)
+        
+        test_in = next(validation_fold.batch(4).as_numpy_iterator())
+        print(test_in)
+        test_pred = testload.predict(test_in)
+        print(test_pred)
 
 
     ## Save the histories
-    now_str = datetime.datetime.now().strftime("%d.%m.%Y_%H.%M")
-    with open(f"training_metrics/geneAE_{now_str}.json","w") as f:
+    # now_str = datetime.datetime.now().strftime("%d.%m.%Y_%H.%M")
+    # with open(f"training_metrics/geneAE_{wandb.run.name}_{now_str}.json","w") as f:
+    #     json.dump(training_histories, f)
+    with open(f"training_metrics/geneAE_{wandb.run.name}.json","w") as f:
         json.dump(training_histories, f)
