@@ -21,7 +21,7 @@ class LevenshteinDistance(tf.keras.metrics.Metric):
         )
 
         ## Define the distance variables
-        self.levenshtein_dist = self.add_variable(
+        self.levenshtein_dist = self.add_weight(
             shape=(),
             initializer='zeros',
             name='levenshtein_distance'

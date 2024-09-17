@@ -2,10 +2,13 @@ import tensorflow as tf
 from keras import layers
 from keras import models
 
-import PositionalEmbedding
-import TransformerBlock
-import DNATokenizer
-import LevenshteinDistance
+# from utils import PositionalEmbedding, TransformerBlock, DNATokenizer, LevenshteinDistance
+# from utils.PositionalEmbedding import PositionalEmbedding
+# from utils.TransformerBlock import TransformerBlock
+# from utils.DNATokenizer import DNATokenizer
+from utils.LevenshteinDistance import LevenshteinDistance
+from utils.SequenceEncoder import SequenceEncoder
+from utils.SequenceDecoder import SequenceDecoder
 
 
 @tf.keras.saving.register_keras_serializable()
@@ -43,42 +46,54 @@ class GeneTransformer(models.Model):
         self.learning_rate = learning_rate
 
         ## Define the tokenizing and positional embedding
-        self.tokenizing_layer = DNATokenizer(tokenization_method=tokenization_method)
-        vocab_size = len(self.tokenizing_layer.vocabulary)
-        self.token_masker = layers.Dropout(rate=masking_rate)
-        self.embedding_layer = PositionalEmbedding(vocab_size, embedding_dim, max_length=max_length)
+        # self.tokenizing_layer = DNATokenizer(tokenization_method=tokenization_method)
+        # self.vocabulary = self.tokenizing_layer.vocabulary
+        # self.vocab_size = len(self.vocabulary)
+
+        # self.token_masker = layers.Dropout(rate=masking_rate)
+        # self.embedding_layer = PositionalEmbedding(self.vocab_size, embedding_dim, max_length=max_length)
 
         ## Define the compute layers
-        self.encoder_layers = [
-            TransformerBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
-                             key_dim=key_dim, dropout_rate=dropout_rate) 
-            for _ in range(encoder_layers)
-        ]
-        self.decoder_layers = [
-            TransformerBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
-                            key_dim=key_dim, dropout_rate=dropout_rate)
-            for _ in range(decoder_layers)
-        ]
+        # self.encoder_layers = [
+        #     TransformerBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
+        #                      key_dim=key_dim, dropout_rate=dropout_rate) 
+        #     for _ in range(encoder_layers)
+        # ]
+        # self.decoder_layers = [
+        #     TransformerBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
+        #                     key_dim=key_dim, dropout_rate=dropout_rate)
+        #     for _ in range(decoder_layers)
+        # ]
 
-        self.final_layer = layers.Dense(vocab_size, activation="softmax")
+        # self.final_layer = layers.Dense(self.vocab_size, activation="softmax")
 
         ## Build the sub-models
         # Encoder
-        input_sequence = layers.Input(shape=(), dtype="string")
-        tokens = self.tokenizing_layer(input_sequence)
-        float_tokens = tf.cast(tokens, "float32")
-        masked_tokens = self.token_masker(float_tokens)
-        enc_z = self.embedding_layer(masked_tokens)
-        for enc_layer in self.encoder_layers:
-            enc_z = enc_layer(enc_z)
-        self.encoder = models.Model(inputs=[input_sequence], outputs=[enc_z], name="encoder")
+        # input_sequence = layers.Input(shape=(), dtype="string")
+        # tokens = self.tokenizing_layer(input_sequence)
+        # float_tokens = tf.cast(tokens, "float32")
+        # masked_tokens = self.token_masker(float_tokens)
+        # enc_z = self.embedding_layer(masked_tokens)
+        # for enc_layer in self.encoder_layers:
+        #     enc_z = enc_layer(enc_z)
+        # self.encoder = models.Model(inputs=[input_sequence], outputs=[enc_z], name="encoder")
+
+        self.encoder = SequenceEncoder(tokenization_method, encoder_layers, embedding_dim,
+                                       key_dim, num_heads, dropout_rate, ff_dim,
+                                       masking_rate, max_length)
+        
+        self.vocab_size = self.encoder.vocab_size
+        self.vocabulary = self.encoder.vocabulary
 
         # Decoder
-        input_latent = layers.Input(shape=(None, embedding_dim))
-        dec_z = layers.Identity()(input_latent)
-        for dec_layer in self.decoder_layers:
-            dec_z = dec_layer(dec_z)
-        self.decoder = models.Model(inputs=[input_latent], outputs=[dec_z], name="decoder")
+        # input_latent = layers.Input(shape=(None, embedding_dim))
+        # dec_z = layers.Identity()(input_latent)
+        # for dec_layer in self.decoder_layers:
+        #     dec_z = dec_layer(dec_z)
+        # self.decoder = models.Model(inputs=[input_latent], outputs=[dec_z], name="decoder")
+
+        self.decoder = SequenceDecoder(decoder_layers, embedding_dim, key_dim, num_heads,
+                                       dropout_rate, ff_dim, self.vocab_size)
 
         ## Compile the model
         self.opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -87,19 +102,30 @@ class GeneTransformer(models.Model):
                          self.levenshtein_metric]
 
         # self.autoencoder.compile(optimizer=opt, loss="categorical_crossentropy", metrics=track_metrics)
-        self.build(input_shape=input_sequence.shape)
+        # self.build(input_shape=input_sequence.shape)
+        self.build(input_shape=(None,1))
         self.compile(optimizer=self.opt, loss="categorical_crossentropy", metrics=track_metrics)
 
     def call(self, x):
         z = self.encoder(x)
         y = self.decoder(z)
-        return self.final_layer(y)
+        return y
 
     def encode(self, x):
         return self.encoder(x)
 
     def decode(self, x):
         return self.decoder(x)
+    
+    def tokenize(self, x, one_hot=True):
+        ## Convert a DNA sequence to a sequence of tokens, optionally one-hot encoded
+        # tokens = self.tokenizer(x)
+        # tokens = self.tokenizing_layer(x)
+        tokens = self.encoder.tokenizing_layer(x)
+        if one_hot:
+            return tf.one_hot(tokens, depth=self.vocab_size)
+        else:
+            return tokens
     
     def train(self, 
               data:tf.data.Dataset, 

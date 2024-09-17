@@ -32,8 +32,6 @@ class PositionalEmbedding(layers.Layer):
         self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim, mask_zero=True) 
         self.pos_encoding = positional_encoding(length=max_length, depth=embedding_dim)
 
-    # def compute_mask(self, *args, **kwargs):
-    #     return self.embedding.compute_mask(*args, **kwargs)
 
     def call(self, x):
         length = tf.shape(x)[1]
