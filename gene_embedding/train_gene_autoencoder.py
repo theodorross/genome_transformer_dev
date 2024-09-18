@@ -145,6 +145,8 @@ if __name__ == "__main__":
         # os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}_{now_str}")
         # gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}_{now_str}")
 
+        break
+
 
 
     ## Save the histories

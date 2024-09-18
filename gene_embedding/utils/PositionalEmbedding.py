@@ -5,16 +5,21 @@ from keras import layers
 
 @tf.function
 def positional_encoding(length, depth):
-    depth = depth/2
+    # depth = depth/2
 
-    positions = np.arange(length)[:, None]     # (seq, 1)
-    depths = np.arange(depth)[None, :]/depth   # (1, depth)
+    positions = np.arange(length)[:, None]              # (seq, 1)
+    
+    # depths = np.arange(depth)[None, :]/depth    # (1, depth)
+    sin_depths = np.arange(depth/2)                     # (1, floor(depth/2))
+    sin_angle_rates = 10000**sin_depths                 # (1, floor(depth/2))
+    sin_angle_rads = positions / sin_angle_rates        # (pos, floor(depth/2))
 
-    angle_rates = 1 / (10000**depths)         # (1, depth)
-    angle_rads = positions * angle_rates      # (pos, depth)
+    cos_depths = np.arange(depth//2)                    # (1, floor(depth/2) - 1)
+    cos_angle_rates = 10000**cos_depths                 # (1, floor(depth/2) - 1)
+    cos_angle_rads = positions / cos_angle_rates        # (pos, floor(depth/2) - 1)
 
     pos_encoding = np.concatenate(
-        [np.sin(angle_rads), np.cos(angle_rads)],
+        [np.sin(sin_angle_rads), np.cos(cos_angle_rads)],
         axis=-1) 
 
     return tf.cast(pos_encoding, dtype=tf.float32)
@@ -31,7 +36,7 @@ class PositionalEmbedding(layers.Layer):
 
         self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim, mask_zero=True) 
         self.pos_encoding = positional_encoding(length=max_length, depth=embedding_dim)
-
+        print("DEBUG:", self.pos_encoding.shape, (max_length, embedding_dim))
 
     def call(self, x):
         length = tf.shape(x)[1]

@@ -15,14 +15,15 @@ spec:
         - "--platform=springfield"
         - "--dataset=dev"
         - "--learning-rate=1e-3"
-        - "--epochs=5"
-        - "--batch-size=4"
-        - "--embedding-dim=10"
-        - "--encoder-layers=2"
-        - "--decoder-layers=2"
+        - "--batch-size=8"
+        - "--epochs=50"
+        - "--patience=5"
+        - "--embedding-dim=3"
+        - "--encoder-layers=1"
+        - "--decoder-layers=1"
         - "--key-dim=16"
         - "--num-heads=4"
-        - "--ff-dim=128"
+        - "--ff-dim=32"
         workingDir: /storage/genome_transformer_dev/gene_embedding
         volumeMounts:
         - name: storage
