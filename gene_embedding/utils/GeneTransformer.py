@@ -6,9 +6,10 @@ from keras import models
 # from utils.PositionalEmbedding import PositionalEmbedding
 # from utils.TransformerBlock import TransformerBlock
 # from utils.DNATokenizer import DNATokenizer
-from utils.LevenshteinDistance import LevenshteinDistance
+from utils.TrainingUtils import *
 from utils.SequenceEncoder import SequenceEncoder
 from utils.SequenceDecoder import SequenceDecoder
+
 
 
 @tf.keras.saving.register_keras_serializable()
@@ -16,6 +17,11 @@ class GeneTransformer(models.Model):
     '''
     Transformer model for embedding gene sequences
     - default values taken from "Attention is All You Need": https://arxiv.org/pdf/1706.03762
+    
+    @TODO: 
+        - try to fix accuracy and Levenshtein distance metrics
+            - I think this has to do with masking/padding (accuracy and loss done)
+        - test with various embedding dimmensionalities
     '''
 
     def __init__(self, tokenization_method:str, 
@@ -45,39 +51,8 @@ class GeneTransformer(models.Model):
         self.masking_rate = masking_rate
         self.learning_rate = learning_rate
 
-        ## Define the tokenizing and positional embedding
-        # self.tokenizing_layer = DNATokenizer(tokenization_method=tokenization_method)
-        # self.vocabulary = self.tokenizing_layer.vocabulary
-        # self.vocab_size = len(self.vocabulary)
-
-        # self.token_masker = layers.Dropout(rate=masking_rate)
-        # self.embedding_layer = PositionalEmbedding(self.vocab_size, embedding_dim, max_length=max_length)
-
-        ## Define the compute layers
-        # self.encoder_layers = [
-        #     TransformerBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
-        #                      key_dim=key_dim, dropout_rate=dropout_rate) 
-        #     for _ in range(encoder_layers)
-        # ]
-        # self.decoder_layers = [
-        #     TransformerBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
-        #                     key_dim=key_dim, dropout_rate=dropout_rate)
-        #     for _ in range(decoder_layers)
-        # ]
-
-        # self.final_layer = layers.Dense(self.vocab_size, activation="softmax")
-
         ## Build the sub-models
         # Encoder
-        # input_sequence = layers.Input(shape=(), dtype="string")
-        # tokens = self.tokenizing_layer(input_sequence)
-        # float_tokens = tf.cast(tokens, "float32")
-        # masked_tokens = self.token_masker(float_tokens)
-        # enc_z = self.embedding_layer(masked_tokens)
-        # for enc_layer in self.encoder_layers:
-        #     enc_z = enc_layer(enc_z)
-        # self.encoder = models.Model(inputs=[input_sequence], outputs=[enc_z], name="encoder")
-
         self.encoder = SequenceEncoder(tokenization_method, encoder_layers, embedding_dim,
                                        key_dim, num_heads, dropout_rate, ff_dim,
                                        masking_rate, max_length)
@@ -86,30 +61,28 @@ class GeneTransformer(models.Model):
         self.vocabulary = self.encoder.vocabulary
 
         # Decoder
-        # input_latent = layers.Input(shape=(None, embedding_dim))
-        # dec_z = layers.Identity()(input_latent)
-        # for dec_layer in self.decoder_layers:
-        #     dec_z = dec_layer(dec_z)
-        # self.decoder = models.Model(inputs=[input_latent], outputs=[dec_z], name="decoder")
-
         self.decoder = SequenceDecoder(decoder_layers, embedding_dim, key_dim, num_heads,
                                        dropout_rate, ff_dim, self.vocab_size)
 
         ## Compile the model
-        self.opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        self.levenshtein_metric = LevenshteinDistance(self.vocabulary)
-        track_metrics = ["acc",
-                         self.levenshtein_metric]
+        # Define the optimizer
+        opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
-        # self.autoencoder.compile(optimizer=opt, loss="categorical_crossentropy", metrics=track_metrics)
-        # self.build(input_shape=input_sequence.shape)
+        # Define the objective function
+        loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
+
+        # Define performance metrics to track
+        levenshtein_metric = LevenshteinDistance(self.vocabulary)
+        masked_accuracy = MaskedAccuracy(mask_category=0)
+        track_metrics = [masked_accuracy,
+                         levenshtein_metric]
+
         self.build(input_shape=(None,1))
-        self.compile(optimizer=self.opt, loss="categorical_crossentropy", metrics=track_metrics)
+        self.compile(optimizer=opt, loss=loss, metrics=track_metrics)
 
     def call(self, x):
         z = self.encoder(x)
-        y = self.decoder(z)
-        return y
+        return self.decoder(z)
 
     def encode(self, x):
         return self.encoder(x)
@@ -117,7 +90,7 @@ class GeneTransformer(models.Model):
     def decode(self, x):
         return self.decoder(x)
     
-    def tokenize(self, x, one_hot=True):
+    def tokenize(self, x, one_hot=False):
         ## Convert a DNA sequence to a sequence of tokens, optionally one-hot encoded
         # tokens = self.tokenizer(x)
         # tokens = self.tokenizing_layer(x)
@@ -127,6 +100,7 @@ class GeneTransformer(models.Model):
         else:
             return tokens
     
+
     def train(self, 
               data:tf.data.Dataset, 
               val_data:tf.data.Dataset,
@@ -154,6 +128,7 @@ class GeneTransformer(models.Model):
         H = self.fit(x, validation_data=val_x, epochs=epochs, callbacks=callbacks)
         return H
     
+
     def get_config(self):
         base_config = super().get_config()
         config = {
@@ -170,3 +145,44 @@ class GeneTransformer(models.Model):
             "learning_rate":self.learning_rate
         }
         return {**base_config, **config}
+    
+
+
+
+def masked_categorical_crossentropy(label, pred):
+    ## Compute the loss
+    # loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False, reduction='none')
+    # loss = loss_object(label, pred)
+    loss = tf.keras.losses.sparse_categorical_crossentropy(label, pred, from_logits=False)
+
+    ## Mask the computed loss
+    mask = tf.not_equal(label, 0)
+    mask = tf.cast(mask, dtype=loss.dtype)
+    loss = tf.multiply(loss, mask)
+
+    ## Compute the mean of the loss across the masked values
+    loss = tf.reduce_sum(loss)/tf.reduce_sum(mask)
+    return loss
+
+
+# def masked_accuracy(label, pred):
+#     ## Compute the predicted categories 
+#     pred = tf.argmax(pred, axis=2)
+#     # label = tf.argmax(label, axis=2)
+#     label = tf.cast(label, pred.dtype)
+
+#     ## Check for matches between predictions and labels
+#     # match = label == pred
+#     match = tf.equal(label, pred)
+
+#     ## Mask the matches based
+#     # mask = label != 0
+#     mask = tf.not_equal(label, 0)
+#     # match = match & mask
+#     match = tf.logical_and(match, mask)
+
+#     ## Compute the accuracy 
+#     match = tf.cast(match, dtype=tf.float32)
+#     mask = tf.cast(mask, dtype=tf.float32)
+#     return tf.reduce_sum(match)/tf.reduce_sum(mask)
+

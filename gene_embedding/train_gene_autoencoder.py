@@ -3,10 +3,10 @@ import tensorflow as tf
 import keras
 import wandb
 import argparse
-import datetime
 import json
 import os
-import pickle
+# import datetime
+# import pickle
 
 from utils import *
 
@@ -130,45 +130,28 @@ if __name__ == "__main__":
         ## Initialize the model
         gene_ae = GeneTransformer(**model_config)
 
-        print(gene_ae.summary())
-        # break
-
         ## Train the model
-        # gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs)
-        # break
-        fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs)
-        # fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
+        fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
 
         ## Store the training history
         training_histories[f"Fold {k}"] = fold_history.history
 
         ## Save the model
+        os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
+        gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}")
+
         # now_str = datetime.datetime.now().strftime("%d.%m.%Y_%H.%M")
         # gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}_{now_str}.keras")
         # os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}_{now_str}")
         # gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}_{now_str}")
-        os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
-        gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}")
 
-        
-        # ## Test loading the model
-        # custom_objs = {"GeneTransformer":GeneTransformer,
-        #                "TransformerBlock":TransformerBlock,
-        #                "LevenshteinDistance":LevenshteinDistance,
-        #                "PositionalEmbedding":PositionalEmbedding}
-        # testload = tf.keras.models.load_model(f"models/geneAE_{wandb.run.name}_fold{k}", 
-        #                                       custom_objects=custom_objs)
-        # test_in = next(validation_fold.batch(1).as_numpy_iterator())
-        # print(test_in)
-        # test_pred = testload.predict(test_in)
-        # print(np.argmax(test_pred, axis=-1))
-        # break
 
 
     ## Save the histories
-    with open(f"training_metrics/geneAE_{wandb.run.name}.json","w") as f:
+    with open(f"training_histories/geneAE_{wandb.run.name}.json","w") as f:
         json.dump(training_histories, f)
+
     # now_str = datetime.datetime.now().strftime("%d.%m.%Y_%H.%M")
-    # with open(f"training_metrics/geneAE_{wandb.run.name}_{now_str}.json","w") as f:
+    # with open(f"training_histories/geneAE_{wandb.run.name}_{now_str}.json","w") as f:
     #     json.dump(training_histories, f)
 

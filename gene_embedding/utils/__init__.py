@@ -1,5 +1,5 @@
 from utils.GeneTransformer import GeneTransformer
-from utils.LevenshteinDistance import LevenshteinDistance
+from utils.TrainingUtils import LevenshteinDistance, MaskedAccuracy, MaskedSparseCategoricalCrossentropy
 from utils.PositionalEmbedding import PositionalEmbedding
 from utils.TransformerBlock import TransformerBlock
 from utils.SequenceDecoder import SequenceDecoder
