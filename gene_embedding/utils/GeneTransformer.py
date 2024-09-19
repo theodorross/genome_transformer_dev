@@ -19,9 +19,7 @@ class GeneTransformer(models.Model):
     - default values taken from "Attention is All You Need": https://arxiv.org/pdf/1706.03762
     
     @TODO: 
-        - try to fix accuracy and Levenshtein distance metrics
-            - I think this has to do with masking/padding (accuracy and loss done)
-        - test with various embedding dimmensionalities
+        - codon tokenization doesn't quite work right, not sure why
     '''
 
     def __init__(self, tokenization_method:str, 
@@ -81,7 +79,7 @@ class GeneTransformer(models.Model):
         self.compile(optimizer=opt, loss=loss, metrics=track_metrics)
 
     def call(self, x):
-        z = self.encoder(x)
+        z,_ = self.encoder(x)
         return self.decoder(z)
 
     def encode(self, x):

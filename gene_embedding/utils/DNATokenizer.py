@@ -26,7 +26,7 @@ class DNATokenizer(layers.Layer):
 
         ## Define the layer
         self.tokenizing_layer = layers.TextVectorization(split=split_method, vocabulary=vocab)
-        self.vocabulary = self.tokenizing_layer.get_vocabulary()
+        # self.vocabulary = self.tokenizing_layer.get_vocabulary()
 
 
     def call(self, x):
@@ -51,7 +51,10 @@ class DNATokenizer(layers.Layer):
 
         # Initialize arrays defining codon start indices
         _range = tf.range(0,maxlen,3, dtype="int32")[:,None]
-        _pos = tf.repeat(_range, repeats=tf.shape(x), axis=1)
+        if x._rank() != 0:
+            _pos = tf.repeat(_range, repeats=tf.shape(x), axis=1)
+        else:
+            _pos = _range
 
         # Mask out positions and lengths greater than a given sequence length
         mask = tf.less(_pos, _str_lens)

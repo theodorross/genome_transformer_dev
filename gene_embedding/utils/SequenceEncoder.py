@@ -35,7 +35,7 @@ class SequenceEncoder(models.Model):
 
         ## Define the tokenizing and positional embedding
         self.tokenizing_layer = DNATokenizer(tokenization_method=tokenization_method)
-        self.vocabulary = self.tokenizing_layer.vocabulary
+        self.vocabulary = self.tokenizing_layer.tokenizing_layer.get_vocabulary()
         self.vocab_size = len(self.vocabulary)
 
         self.token_masker = layers.Dropout(rate=masking_rate)
@@ -48,6 +48,9 @@ class SequenceEncoder(models.Model):
             for _ in range(encoder_layers)
         ]
 
+        ## Define the optional pooling layer
+        self.pooling_layer = layers.GlobalAveragePooling1D()
+
 
     def call(self, x):
         tokens = self.tokenizing_layer(x)
@@ -56,7 +59,9 @@ class SequenceEncoder(models.Model):
         enc_z = self.embedding_layer(masked_tokens)
         for enc_layer in self.transformer_layers:
             enc_z = enc_layer(enc_z)
-        return enc_z
+
+        pooled_z = self.pooling_layer(enc_z)
+        return enc_z, pooled_z
 
     def get_config(self):
         base_config = super().get_config()
