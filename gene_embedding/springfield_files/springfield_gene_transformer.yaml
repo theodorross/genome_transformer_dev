@@ -16,7 +16,7 @@ spec:
         - "--dataset=dev"
         - "--learning-rate=5e-4"
         - "--batch-size=8"
-        - "--epochs=150"
+        - "--epochs=50"
         - "--patience=5"
         - "--embedding-dim=2"
         - "--encoder-layers=1"

@@ -20,6 +20,7 @@ class GeneTransformer(models.Model):
     
     @TODO: 
         - codon tokenization doesn't quite work right, not sure why
+        - try to figure out why embeddings seem to lay on hyperplanes
     '''
 
     def __init__(self, tokenization_method:str, 

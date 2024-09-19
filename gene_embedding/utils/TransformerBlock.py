@@ -57,6 +57,8 @@ class TransformerBlock(Layer):
         if self.dropout_rate != 0:
             ffn_output = self.dropout2(ffn_output)
         ffn_output = self.ff2(ffn_output)
+
+        ## Add and norm
         out2 = self.norm2(out1 + ffn_output)
         
         return out2

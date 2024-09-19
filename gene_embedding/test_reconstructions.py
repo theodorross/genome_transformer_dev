@@ -33,13 +33,13 @@ if __name__ == "__main__":
     # gene_ae = keras.models.load_model("models/geneAE_super-salad-79_fold0", custom_objects=custom_objs)    ## Masked Levenshtein
     # gene_ae = keras.models.load_model("models/geneAE_smart-disco-122_fold0", custom_objects=custom_objs)    ## Codons
     # gene_ae = keras.models.load_model("models/geneAE_honest-field-133_fold0", custom_objects=custom_objs)   
-    gene_ae = keras.models.load_model("models/geneAE_treasured-frog-128_fold0", custom_objects=custom_objs)   
+    gene_ae = keras.models.load_model("models/geneAE_major-brook-134_fold0", custom_objects=custom_objs)   
 
     # gene_ae = GeneTransformer("nucleotide", embedding_dim=32, encoder_layers=2, decoder_layers=2,
     #                           key_dim=8, num_heads=4, ff_dim=256)
-    # print(gene_ae.encoder.summary())
+    print(gene_ae.encoder.summary())
     # print(gene_ae.decoder.summary())
-    # print(gene_ae.summary())
+    print(gene_ae.summary())
 
     vocab_arr = np.array(gene_ae.vocabulary)
 
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     # test_in = np.random.random((1,64))
     # test_out = test_model.predict(test_in)
     # print(test_out)
-    print(gene_ae.vocabulary)
+    # print(gene_ae.vocabulary)
     lev_dist = LevenshteinDistance(gene_ae.vocabulary)
     
 
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     gene_dataset = gene_dataset = tf.data.TextLineDataset("../data/gene_sequences/unique_dna_seqs_dev.txt")
 
     df = pd.DataFrame(columns=["distance","length"])
-    embedding_arr = np.zeros((300, 3))
+    embedding_arr = np.zeros((300, 2))
 
     for ix,x in tqdm(gene_dataset.padded_batch(1).enumerate(), total=300):
         # print()
@@ -73,14 +73,16 @@ if __name__ == "__main__":
         # print(zv == np.mean(zs, axis=1))
         embedding_arr[ix,:] = zv
 
-        # fig = plt.figure()
+        fig = plt.figure()
         # ax = fig.add_subplot(projection="3d")
-        # tokens = gene_ae.tokenize(x)
-        # for t in np.unique(tokens):
-        #     m = np.squeeze(tokens == t)
-        #     ax.scatter(zs[0,m,0], zs[0,m,1], zs[0,m,2], label=vocab_arr[t])
-        # plt.legend()
-        # plt.show()
+        ax = fig.add_subplot()
+        tokens = gene_ae.tokenize(x)
+        for t in np.unique(tokens):
+            m = np.squeeze(tokens == t)
+            # ax.scatter(zs[0,m,0], zs[0,m,1], zs[0,m,2], label=vocab_arr[t])
+            ax.scatter(zs[0,m,0], zs[0,m,1], label=vocab_arr[t])
+        plt.legend()
+        plt.show()
         
 
         ## Parse the input
