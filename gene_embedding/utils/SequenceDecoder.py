@@ -38,10 +38,17 @@ class SequenceDecoder(models.Model):
         self.final_layer = Dense(vocab_size, activation="softmax")
 
 
-    def call(self, x):
-        z = Identity()(x)
-        for dec_layer in self.transformer_layers:
-            z = dec_layer(z)
+    def call(self, x, attention_mask=None):
+        ## First layer with potential attention mask
+        if attention_mask is not None:
+            causal = True
+        else:
+            causal = False
+        z = self.transformer_layers[0](x, attention_mask=attention_mask, use_causal_mask=False)
+        ## Subsequent layers with no attention mask
+        if self.decoder_layers > 1:
+            for dec_layer in self.transformer_layers[1:]:
+                z = dec_layer(z)
         return self.final_layer(z)
     
 

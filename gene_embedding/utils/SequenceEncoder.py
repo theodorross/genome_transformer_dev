@@ -19,6 +19,7 @@ class SequenceEncoder(models.Model):
                        dropout_rate:float,
                        ff_dim:int,
                        masking_rate:float,
+                       sequence_token=None,
                        max_length:int=5000,
                        **kwargs):
         super().__init__(**kwargs)
@@ -31,10 +32,12 @@ class SequenceEncoder(models.Model):
         self.dropout_rate = dropout_rate
         self.ff_dim = ff_dim
         self.masking_rate = masking_rate
+        self.sequence_token = sequence_token
         self.max_length = max_length
 
         ## Define the tokenizing and positional embedding
-        self.tokenizing_layer = DNATokenizer(tokenization_method=tokenization_method)
+        self.tokenizing_layer = DNATokenizer(tokenization_method=tokenization_method,
+                                             sequence_token=sequence_token)
         self.vocabulary = self.tokenizing_layer.tokenizing_layer.get_vocabulary()
         self.vocab_size = len(self.vocabulary)
 
@@ -48,20 +51,23 @@ class SequenceEncoder(models.Model):
             for _ in range(encoder_layers)
         ]
 
-        ## Define the optional pooling layer
-        self.pooling_layer = layers.GlobalAveragePooling1D()
+        # ## Define the optional pooling layer
+        # self.pooling_layer = layers.GlobalAveragePooling1D()
 
 
     def call(self, x):
+        ## Convert the input strings to tokens
         tokens = self.tokenizing_layer(x)
         float_tokens = tf.cast(tokens, "float32")
+        ## Randomly mask the tokens for training
         masked_tokens = self.token_masker(float_tokens)
+        ## Compute positional embeddings
         enc_z = self.embedding_layer(masked_tokens)
+        ## Pass through transformer layers
         for enc_layer in self.transformer_layers:
             enc_z = enc_layer(enc_z)
-
-        pooled_z = self.pooling_layer(enc_z)
-        return enc_z, pooled_z
+        return enc_z
+    
 
     def get_config(self):
         base_config = super().get_config()
@@ -74,6 +80,7 @@ class SequenceEncoder(models.Model):
             'dropout_rate' : self.dropout_rate,
             'ff_dim' : self.ff_dim,
             'masking_rate' : self. masking_rate,
+            'sequence_token' : self.sequence_token,
             'max_length' : self.max_length
         }
         return {**base_config, **config}

@@ -130,6 +130,10 @@ if __name__ == "__main__":
         ## Initialize the model
         gene_ae = GeneTransformer(**model_config)
 
+        ## Preprocess the genes
+        training_fold = gene_ae.preprocess_genes(training_fold)
+        validation_fold = gene_ae.preprocess_genes(validation_fold)
+
         ## Train the model
         fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
 
@@ -140,11 +144,6 @@ if __name__ == "__main__":
         os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
         gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}")
 
-        # now_str = datetime.datetime.now().strftime("%d.%m.%Y_%H.%M")
-        # gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}_{now_str}.keras")
-        # os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}_{now_str}")
-        # gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}_{now_str}")
-
         break
 
 
@@ -152,8 +151,4 @@ if __name__ == "__main__":
     ## Save the histories
     with open(f"training_histories/geneAE_{wandb.run.name}.json","w") as f:
         json.dump(training_histories, f)
-
-    # now_str = datetime.datetime.now().strftime("%d.%m.%Y_%H.%M")
-    # with open(f"training_histories/geneAE_{wandb.run.name}_{now_str}.json","w") as f:
-    #     json.dump(training_histories, f)
 

@@ -14,23 +14,23 @@ spec:
         - "train_gene_autoencoder.py"
         - "--platform=springfield"
         - "--dataset=dev"
-        - "--learning-rate=5e-4"
-        - "--batch-size=8"
+        - "--learning-rate=1e-3"
+        - "--batch-size=4"
         - "--epochs=50"
-        - "--patience=5"
-        - "--embedding-dim=2"
+        - "--patience=10"
+        - "--embedding-dim=4"
         - "--encoder-layers=1"
         - "--decoder-layers=1"
-        - "--key-dim=16"
-        - "--num-heads=4"
-        - "--ff-dim=32"
+        - "--key-dim=32"
+        - "--num-heads=8"
+        - "--ff-dim=256"
         workingDir: /storage/genome_transformer_dev/gene_embedding
         volumeMounts:
         - name: storage
           mountPath: /storage
         resources:
           limits:
-            memory: "16Gi"
+            memory: "32Gi"
         env: 
         - name: WANDB_API_KEY
           valueFrom: 

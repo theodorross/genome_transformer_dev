@@ -1,6 +1,7 @@
 import tensorflow as tf
 from keras import layers
 from keras import models
+import numpy as np
 
 # from utils import PositionalEmbedding, TransformerBlock, DNATokenizer, LevenshteinDistance
 # from utils.PositionalEmbedding import PositionalEmbedding
@@ -50,11 +51,16 @@ class GeneTransformer(models.Model):
         self.masking_rate = masking_rate
         self.learning_rate = learning_rate
 
+        if tokenization_method.lower() == "nucleotide":
+            self.sequence_token = "x"
+        elif tokenization_method.lower() == "codon":
+            self.sequence_token = "seq"
+
         ## Build the sub-models
         # Encoder
         self.encoder = SequenceEncoder(tokenization_method, encoder_layers, embedding_dim,
                                        key_dim, num_heads, dropout_rate, ff_dim,
-                                       masking_rate, max_length)
+                                       masking_rate, self.sequence_token, max_length)
         
         self.vocab_size = self.encoder.vocab_size
         self.vocabulary = self.encoder.vocabulary
@@ -62,6 +68,7 @@ class GeneTransformer(models.Model):
         # Decoder
         self.decoder = SequenceDecoder(decoder_layers, embedding_dim, key_dim, num_heads,
                                        dropout_rate, ff_dim, self.vocab_size)
+        
 
         ## Compile the model
         # Define the optimizer
@@ -79,25 +86,44 @@ class GeneTransformer(models.Model):
         self.build(input_shape=(None,1))
         self.compile(optimizer=opt, loss=loss, metrics=track_metrics)
 
+    def get_decoder_mask(self, x):
+        ## Define a mask to attend to only the first sequence element
+        s_len = tf.shape(x)[1]
+        mask = tf.eye(1,s_len, dtype=tf.bool)[None,...]
+        mask = tf.repeat(mask, repeats=s_len, axis=1)
+        return mask
+
     def call(self, x):
-        z,_ = self.encoder(x)
-        return self.decoder(z)
+        ## Pass through the encoder
+        z = self.encoder(x)
+        ## Compute the decoder's attention mask.
+        #  Only attend to the first token, ie the sequence token
+        decoder_mask = self.get_decoder_mask(z)
+        ## Pass through the decoder
+        return self.decoder(z, attention_mask=decoder_mask)
 
     def encode(self, x):
         return self.encoder(x)
 
-    def decode(self, x):
-        return self.decoder(x)
+    def decode(self, z):
+        ## Compute the decoder's attention mask.
+        #  Only attend to the first token, ie the sequence token
+        decoder_mask = self.get_decoder_mask(z)
+        # return decoder_mask
+        return self.decoder(z, attention_mask=decoder_mask)
     
     def tokenize(self, x, one_hot=False):
         ## Convert a DNA sequence to a sequence of tokens, optionally one-hot encoded
-        # tokens = self.tokenizer(x)
-        # tokens = self.tokenizing_layer(x)
         tokens = self.encoder.tokenizing_layer(x)
         if one_hot:
             return tf.one_hot(tokens, depth=self.vocab_size)
         else:
             return tokens
+        
+    def preprocess_genes(self, data:tf.data.Dataset):
+        ## Add the sequence character to the beginning of each gene sequence
+        prepend_char = lambda x: self.sequence_token + x
+        return data.map(prepend_char)
     
 
     def train(self, 
@@ -106,7 +132,7 @@ class GeneTransformer(models.Model):
               batch_size:int, 
               epochs:int, 
               *callbacks):
-
+        
         ## Define and format the reconstruction targets as a dataset
         y = data.map(self.tokenize)
         y_val = val_data.map(self.tokenize)
@@ -121,9 +147,8 @@ class GeneTransformer(models.Model):
         val_x = tf.data.Dataset.zip(val_data, y_val)
         val_x = val_x.padded_batch(batch_size)
         val_x = val_x.prefetch(tf.data.AUTOTUNE)
-            
+        
         ## Train the model
-        # H = self.autoencoder.fit(x, validation_data=val_x, epochs=epochs, callbacks=callbacks)
         H = self.fit(x, validation_data=val_x, epochs=epochs, callbacks=callbacks)
         return H
     
@@ -141,27 +166,27 @@ class GeneTransformer(models.Model):
             "ff_dim":self.ff_dim,
             "max_length":self.max_length,
             "masking_rate":self.masking_rate,
-            "learning_rate":self.learning_rate
+            "learning_rate":self.learning_rate,
         }
         return {**base_config, **config}
     
 
 
 
-def masked_categorical_crossentropy(label, pred):
-    ## Compute the loss
-    # loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False, reduction='none')
-    # loss = loss_object(label, pred)
-    loss = tf.keras.losses.sparse_categorical_crossentropy(label, pred, from_logits=False)
+# def masked_categorical_crossentropy(label, pred):
+#     ## Compute the loss
+#     # loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False, reduction='none')
+#     # loss = loss_object(label, pred)
+#     loss = tf.keras.losses.sparse_categorical_crossentropy(label, pred, from_logits=False)
 
-    ## Mask the computed loss
-    mask = tf.not_equal(label, 0)
-    mask = tf.cast(mask, dtype=loss.dtype)
-    loss = tf.multiply(loss, mask)
+#     ## Mask the computed loss
+#     mask = tf.not_equal(label, 0)
+#     mask = tf.cast(mask, dtype=loss.dtype)
+#     loss = tf.multiply(loss, mask)
 
-    ## Compute the mean of the loss across the masked values
-    loss = tf.reduce_sum(loss)/tf.reduce_sum(mask)
-    return loss
+#     ## Compute the mean of the loss across the masked values
+#     loss = tf.reduce_sum(loss)/tf.reduce_sum(mask)
+#     return loss
 
 
 # def masked_accuracy(label, pred):

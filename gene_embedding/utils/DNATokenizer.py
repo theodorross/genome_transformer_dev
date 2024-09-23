@@ -9,12 +9,13 @@ import pandas as pd
 @tf.keras.saving.register_keras_serializable()
 class DNATokenizer(layers.Layer):
 
-    def __init__(self, tokenization_method, **kwargs):
+    def __init__(self, tokenization_method, sequence_token=None, **kwargs):
         super().__init__(**kwargs)
 
         ## Enfore supported tokenization method
         assert tokenization_method.lower() in {"nucleotide","codon"}
         self.tokenization_method = tokenization_method
+        self.sequence_token = sequence_token
 
         ## Define vocabularies
         if tokenization_method.lower() == "nucleotide":
@@ -24,13 +25,25 @@ class DNATokenizer(layers.Layer):
             vocab = ["".join(c) for c in itertools.product("atcg", repeat=3)]
             split_method = self.codon_splitter
 
+        ## Add the sequence token if desired
+        if sequence_token:
+            vocab = [sequence_token] + vocab
+
         ## Define the layer
         self.tokenizing_layer = layers.TextVectorization(split=split_method, vocabulary=vocab)
-        # self.vocabulary = self.tokenizing_layer.get_vocabulary()
 
 
     def call(self, x):
+        # print("TOKEN DEBUG:", x)
+        # if self.sequence_token:         
+        #     ## The [SEQ] token will always be vocabulary element index 2.
+        #     #  This feels kind of hacky but it's the only thing I've tried that works robustly :(
+        #     tokens = self.tokenizing_layer(x)
+        #     paddings = tf.constant([[0,0],[1,0]])
+        #     return tf.pad(tokens, paddings, constant_values=2)
+        # else:
         return self.tokenizing_layer(x)
+        
     
     def compute_output_shape(self, input_shape):
         return super().compute_output_shape(input_shape)
@@ -38,7 +51,8 @@ class DNATokenizer(layers.Layer):
     def get_config(self):
         base_config = super().get_config()
         config = {
-            "tokenization_method":self.tokenization_method
+            "tokenization_method":self.tokenization_method,
+            "sequence_token":self.sequence_token
         }
         return {**base_config, **config}
 

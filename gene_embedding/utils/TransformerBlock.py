@@ -43,9 +43,9 @@ class TransformerBlock(Layer):
             self.dropout2 = Dropout(rate=dropout_rate)
 
 
-    def call(self, inputs):
+    def call(self, inputs, attention_mask=None, use_causal_mask=False):
         ## Multi-head attention
-        attn_output = self.attn(inputs, inputs)
+        attn_output = self.attn(inputs, inputs, attention_mask=attention_mask, use_causal_mask=use_causal_mask)
         if self.dropout_rate != 0:
             attn_output = self.dropout1(attn_output)
 

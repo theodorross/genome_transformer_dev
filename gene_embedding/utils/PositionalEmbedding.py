@@ -3,24 +3,42 @@ import numpy as np
 from keras import layers
 
 
+# @tf.function
+# def positional_encoding(length, depth):
+#     # depth = depth/2
+
+#     positions = np.arange(length)[:, None]              # (seq, 1)
+    
+#     # depths = np.arange(depth)[None, :]/depth    # (1, depth)
+#     sin_depths = np.arange(depth/2)                     # (1, floor(depth/2))
+#     sin_angle_rates = 10000**sin_depths                 # (1, floor(depth/2))
+#     sin_angle_rads = positions / sin_angle_rates        # (pos, floor(depth/2))
+
+#     cos_depths = np.arange(depth//2)                    # (1, floor(depth/2) - 1)
+#     cos_angle_rates = 1 / 10000**cos_depths                 # (1, floor(depth/2) - 1)
+#     cos_angle_rads = positions / cos_angle_rates        # (pos, floor(depth/2) - 1)
+
+#     pos_encoding = np.concatenate(
+#         [np.sin(sin_angle_rads), np.cos(cos_angle_rads)],
+#         axis=-1) 
+
+#     return tf.cast(pos_encoding, dtype=tf.float32)
+
+
 @tf.function
 def positional_encoding(length, depth):
-    # depth = depth/2
+    depth = depth/2
 
-    positions = np.arange(length)[:, None]              # (seq, 1)
-    
-    # depths = np.arange(depth)[None, :]/depth    # (1, depth)
-    sin_depths = np.arange(depth/2)                     # (1, floor(depth/2))
-    sin_angle_rates = 10000**sin_depths                 # (1, floor(depth/2))
-    sin_angle_rads = positions / sin_angle_rates        # (pos, floor(depth/2))
+    positions = np.arange(length)[:, np.newaxis]     # (seq, 1)
+    depths = np.arange(depth)[np.newaxis, :]/depth   # (1, depth)
 
-    cos_depths = np.arange(depth//2)                    # (1, floor(depth/2) - 1)
-    cos_angle_rates = 10000**cos_depths                 # (1, floor(depth/2) - 1)
-    cos_angle_rads = positions / cos_angle_rates        # (pos, floor(depth/2) - 1)
+    angle_rates = 1 / (10000**depths)         # (1, depth)
+    angle_rads = positions * angle_rates      # (pos, depth)
 
     pos_encoding = np.concatenate(
-        [np.sin(sin_angle_rads), np.cos(cos_angle_rads)],
-        axis=-1) 
+        [np.sin(angle_rads), np.cos(angle_rads)],
+        axis=-1
+    ) 
 
     return tf.cast(pos_encoding, dtype=tf.float32)
 
@@ -44,6 +62,9 @@ class PositionalEmbedding(layers.Layer):
         x *= tf.math.sqrt(tf.cast(self.embedding_dim, tf.float32))
         x = x + self.pos_encoding[tf.newaxis, :length, :]
         return x
+    
+    def compute_mask(self, *args, **kwargs):
+        return self.embedding.compute_mask(*args, **kwargs)
     
     def get_config(self):
         base_config = super().get_config()
