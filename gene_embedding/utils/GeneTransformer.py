@@ -21,7 +21,6 @@ class GeneTransformer(models.Model):
     
     @TODO: 
         - codon tokenization doesn't quite work right, not sure why
-        - try to figure out why embeddings seem to lay on hyperplanes
     '''
 
     def __init__(self, tokenization_method:str, 
@@ -35,6 +34,7 @@ class GeneTransformer(models.Model):
                        max_length:int=5000,
                        masking_rate:float=0.05,
                        learning_rate:float=1e-6,
+                       n_sequence_tokens:int=2,
                        **kwargs):
         super().__init__(**kwargs)
 
@@ -50,6 +50,7 @@ class GeneTransformer(models.Model):
         self.max_length = max_length
         self.masking_rate = masking_rate
         self.learning_rate = learning_rate
+        self.n_sequence_tokens = n_sequence_tokens
 
         if tokenization_method.lower() == "nucleotide":
             self.sequence_token = "x"
@@ -60,14 +61,15 @@ class GeneTransformer(models.Model):
         # Encoder
         self.encoder = SequenceEncoder(tokenization_method, encoder_layers, embedding_dim,
                                        key_dim, num_heads, dropout_rate, ff_dim,
-                                       masking_rate, self.sequence_token, max_length)
+                                       masking_rate, self.sequence_token, n_sequence_tokens, max_length)
         
         self.vocab_size = self.encoder.vocab_size
         self.vocabulary = self.encoder.vocabulary
 
         # Decoder
         self.decoder = SequenceDecoder(decoder_layers, embedding_dim, key_dim, num_heads,
-                                       dropout_rate, ff_dim, self.vocab_size)
+                                       dropout_rate, ff_dim, self.vocab_size, n_sequence_tokens,
+                                       max_length)
         
 
         ## Compile the model
@@ -75,7 +77,8 @@ class GeneTransformer(models.Model):
         opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Define the objective function
-        loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
+        # loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
+        loss = "sparse_categorical_crossentropy"
 
         # Define performance metrics to track
         levenshtein_metric = LevenshteinDistance(self.vocabulary)
@@ -83,34 +86,21 @@ class GeneTransformer(models.Model):
         track_metrics = [masked_accuracy,
                          levenshtein_metric]
 
-        self.build(input_shape=(None,1))
+        self.build(input_shape=(None,))
         self.compile(optimizer=opt, loss=loss, metrics=track_metrics)
 
-    def get_decoder_mask(self, x):
-        ## Define a mask to attend to only the first sequence element
-        s_len = tf.shape(x)[1]
-        mask = tf.eye(1,s_len, dtype=tf.bool)[None,...]
-        mask = tf.repeat(mask, repeats=s_len, axis=1)
-        return mask
-
-    def call(self, x):
+    def call(self, x, **kwargs):
+        x = tf.cast(x, tf.string)
         ## Pass through the encoder
-        z = self.encoder(x)
-        ## Compute the decoder's attention mask.
-        #  Only attend to the first token, ie the sequence token
-        decoder_mask = self.get_decoder_mask(z)
+        z = self.encoder(x, **kwargs)
         ## Pass through the decoder
-        return self.decoder(z, attention_mask=decoder_mask)
+        return self.decoder(z, **kwargs)
 
-    def encode(self, x):
-        return self.encoder(x)
+    def encode(self, x, **kwargs):
+        return self.encoder(x, **kwargs)
 
-    def decode(self, z):
-        ## Compute the decoder's attention mask.
-        #  Only attend to the first token, ie the sequence token
-        decoder_mask = self.get_decoder_mask(z)
-        # return decoder_mask
-        return self.decoder(z, attention_mask=decoder_mask)
+    def decode(self, z, **kwargs):
+        return self.decoder(z, **kwargs)
     
     def tokenize(self, x, one_hot=False):
         ## Convert a DNA sequence to a sequence of tokens, optionally one-hot encoded
@@ -125,13 +115,13 @@ class GeneTransformer(models.Model):
         prepend_char = lambda x: self.sequence_token + x
         return data.map(prepend_char)
     
-
     def train(self, 
               data:tf.data.Dataset, 
               val_data:tf.data.Dataset,
               batch_size:int, 
               epochs:int, 
-              *callbacks):
+              *callbacks,
+              **kwargs):
         
         ## Define and format the reconstruction targets as a dataset
         y = data.map(self.tokenize)
@@ -149,8 +139,35 @@ class GeneTransformer(models.Model):
         val_x = val_x.prefetch(tf.data.AUTOTUNE)
         
         ## Train the model
-        H = self.fit(x, validation_data=val_x, epochs=epochs, callbacks=callbacks)
-        return H
+        H = self.fit(x, validation_data=val_x, epochs=epochs, callbacks=callbacks, **kwargs)
+        return H.history
+
+        ## For defined number of epochs
+        # history = {"loss":[], 'masked_accuracy':[], 'mean_levenshtein_distance':[],
+        #            "val_loss":[], 'val_masked_accuracy':[], 'val_mean_levenshtein_distance':[]}
+        
+        # for epoch in range(epochs):
+        #     epoch_hist = {"loss":[], 'masked_accuracy':[], 'mean_levenshtein_distance':[],
+        #                   "val_loss":[], 'val_masked_accuracy':[], 'val_mean_levenshtein_distance':[]}
+            
+        #     for batch in x:
+        #         ## Train on this batch
+        #         h = self.train_on_batch(batch[0], batch[1], return_dict=True)
+        #         ## Store the batch metrics
+        #         for key in h.keys():
+        #             epoch_hist[key].append(h[key])
+            
+        #     for batch in val_x:
+        #         ## Test on this batch
+        #         h = self.test_on_batch(batch[0], batch[1], return_dict=True)
+        #         ## Store the batch metrics
+        #         for key in h.keys():
+        #             epoch_hist[f"val_{key}"].append(h[key])
+
+        #     for key,vals in epoch_hist.items():
+        #         history[key].append(np.mean(vals))
+
+        return history
     
 
     def get_config(self):
@@ -167,46 +184,7 @@ class GeneTransformer(models.Model):
             "max_length":self.max_length,
             "masking_rate":self.masking_rate,
             "learning_rate":self.learning_rate,
+            "n_sequence_tokens":self.n_sequence_tokens
         }
         return {**base_config, **config}
     
-
-
-
-# def masked_categorical_crossentropy(label, pred):
-#     ## Compute the loss
-#     # loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False, reduction='none')
-#     # loss = loss_object(label, pred)
-#     loss = tf.keras.losses.sparse_categorical_crossentropy(label, pred, from_logits=False)
-
-#     ## Mask the computed loss
-#     mask = tf.not_equal(label, 0)
-#     mask = tf.cast(mask, dtype=loss.dtype)
-#     loss = tf.multiply(loss, mask)
-
-#     ## Compute the mean of the loss across the masked values
-#     loss = tf.reduce_sum(loss)/tf.reduce_sum(mask)
-#     return loss
-
-
-# def masked_accuracy(label, pred):
-#     ## Compute the predicted categories 
-#     pred = tf.argmax(pred, axis=2)
-#     # label = tf.argmax(label, axis=2)
-#     label = tf.cast(label, pred.dtype)
-
-#     ## Check for matches between predictions and labels
-#     # match = label == pred
-#     match = tf.equal(label, pred)
-
-#     ## Mask the matches based
-#     # mask = label != 0
-#     mask = tf.not_equal(label, 0)
-#     # match = match & mask
-#     match = tf.logical_and(match, mask)
-
-#     ## Compute the accuracy 
-#     match = tf.cast(match, dtype=tf.float32)
-#     mask = tf.cast(mask, dtype=tf.float32)
-#     return tf.reduce_sum(match)/tf.reduce_sum(mask)
-

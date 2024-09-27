@@ -20,6 +20,7 @@ class SequenceEncoder(models.Model):
                        ff_dim:int,
                        masking_rate:float,
                        sequence_token=None,
+                       n_sequence_tokens:int=1,
                        max_length:int=5000,
                        **kwargs):
         super().__init__(**kwargs)
@@ -33,6 +34,7 @@ class SequenceEncoder(models.Model):
         self.ff_dim = ff_dim
         self.masking_rate = masking_rate
         self.sequence_token = sequence_token
+        self.n_sequence_tokens = n_sequence_tokens
         self.max_length = max_length
 
         ## Define the tokenizing and positional embedding
@@ -52,22 +54,30 @@ class SequenceEncoder(models.Model):
         ]
 
         # ## Define the optional pooling layer
-        # self.pooling_layer = layers.GlobalAveragePooling1D()
+        self.pooling_layer = layers.GlobalAveragePooling1D()
 
 
-    def call(self, x):
+    def call(self, x, **kwargs):
+        ## Prepend the sequence tokens to the beginning of each string
+        x = self.prepend_sequence_tokens(x)
         ## Convert the input strings to tokens
-        tokens = self.tokenizing_layer(x)
+        tokens = self.tokenizing_layer(x, **kwargs)
         float_tokens = tf.cast(tokens, "float32")
         ## Randomly mask the tokens for training
-        masked_tokens = self.token_masker(float_tokens)
+        masked_tokens = self.token_masker(float_tokens, **kwargs)
         ## Compute positional embeddings
-        enc_z = self.embedding_layer(masked_tokens)
+        enc_z = self.embedding_layer(masked_tokens, **kwargs)
         ## Pass through transformer layers
         for enc_layer in self.transformer_layers:
-            enc_z = enc_layer(enc_z)
+            enc_z = enc_layer(enc_z, enc_z, **kwargs)
         return enc_z
-    
+
+    def prepend_sequence_tokens(self, batch):
+        prepend_seq = self.n_sequence_tokens*self.sequence_token
+        chars = tf.constant([prepend_seq], dtype=tf.string)
+        chars = tf.repeat(chars, tf.shape(batch)[0], axis=0)
+        newbatch = tf.strings.join([chars, batch])
+        return newbatch
 
     def get_config(self):
         base_config = super().get_config()

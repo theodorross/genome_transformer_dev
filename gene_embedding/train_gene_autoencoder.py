@@ -40,6 +40,7 @@ if __name__ == "__main__":
     parser.add_argument("--num-heads", default=8, type=int, help="Number of attention heads in multi-head attention units.")
     parser.add_argument("--dropout-rate", default=0.1, type=float, help="Dropout rate used in feed-forward layers.")
     parser.add_argument("--ff-dim", default=2048, type=int, help="Dimensionality of the hidden feed-forward layer in the transformer blocks.")
+    parser.add_argument("--n-sequence-tokens", default=2, type=int, help="Number of sequence tokens to use.")
 
     ## Training hyperparameters
     parser.add_argument("--masking-rate", default=0.05, type=float, help="Probability of masking each input token during training.")
@@ -67,7 +68,8 @@ if __name__ == "__main__":
                     "ff_dim":args.ff_dim,
                     "max_length":args.max_seq_length,
                     "masking_rate":args.masking_rate,
-                    "learning_rate":args.learning_rate}
+                    "learning_rate":args.learning_rate,
+                    "n_sequence_tokens":args.n_sequence_tokens}
     
     training_config = {"patience":args.patience,
                        "cross_folds":args.cross_folds,
@@ -112,7 +114,8 @@ if __name__ == "__main__":
     early_stopper = keras.callbacks.EarlyStopping(monitor="val_loss",
                                                   patience=args.patience,
                                                   restore_best_weights=True)
-    callbacks = [wandb_callback, early_stopper]
+    lr_scheduler = keras.callbacks.LearningRateScheduler(lambda ep: args.learning_rate/10 if ep>50 else args.learning_rate)
+    callbacks = [wandb_callback, early_stopper, lr_scheduler]
 
 
     '''
@@ -129,6 +132,7 @@ if __name__ == "__main__":
 
         ## Initialize the model
         gene_ae = GeneTransformer(**model_config)
+        print(gene_ae.summary())
 
         ## Preprocess the genes
         training_fold = gene_ae.preprocess_genes(training_fold)
@@ -138,7 +142,7 @@ if __name__ == "__main__":
         fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
 
         ## Store the training history
-        training_histories[f"Fold {k}"] = fold_history.history
+        training_histories[f"Fold {k}"] = fold_history
 
         ## Save the model
         os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
