@@ -53,9 +53,11 @@ class GeneTransformer(models.Model):
         self.n_sequence_tokens = n_sequence_tokens
 
         if tokenization_method.lower() == "nucleotide":
-            self.sequence_token = "x"
+            # self.sequence_token = "x"
+            self.sequence_token = None
         elif tokenization_method.lower() == "codon":
-            self.sequence_token = "seq"
+            # self.sequence_token = "seq"
+            self.sequence_token = None
 
         ## Build the sub-models
         # Encoder
@@ -97,18 +99,23 @@ class GeneTransformer(models.Model):
         return self.decoder(z, **kwargs)
 
     def encode(self, x, **kwargs):
-        return self.encoder(x, **kwargs)
+        return self.encoder.predict(x, **kwargs)
 
     def decode(self, z, **kwargs):
-        return self.decoder(z, **kwargs)
+        return self.decoder.predict(z, **kwargs)
     
     def tokenize(self, x, one_hot=False):
+        ## Add a batch dimension if needed
+        # if x.shape.rank < 1:
+        if len(x.shape) == 0:
+            x = tf.expand_dims(x, axis=0)
         ## Convert a DNA sequence to a sequence of tokens, optionally one-hot encoded
         tokens = self.encoder.tokenizing_layer(x)
         if one_hot:
             return tf.one_hot(tokens, depth=self.vocab_size)
         else:
-            return tokens
+            return tf.squeeze(tokens)
+        # return tokens
         
     def preprocess_genes(self, data:tf.data.Dataset):
         ## Add the sequence character to the beginning of each gene sequence
@@ -125,49 +132,25 @@ class GeneTransformer(models.Model):
         
         ## Define and format the reconstruction targets as a dataset
         y = data.map(self.tokenize)
-        y_val = val_data.map(self.tokenize)
+        val_y = val_data.map(self.tokenize)
 
         ## Create the training dataset
         x = tf.data.Dataset.zip(data,y)
         x = x.shuffle(buffer_size=100*batch_size)
-        x = x.padded_batch(batch_size)
+        # x = x.padded_batch(batch_size)
+        x = x.batch(batch_size)
         x = x.prefetch(tf.data.AUTOTUNE)
 
         ## Create the validation dataset
-        val_x = tf.data.Dataset.zip(val_data, y_val)
-        val_x = val_x.padded_batch(batch_size)
+        val_x = tf.data.Dataset.zip(val_data, val_y)
+        # val_x = val_x.padded_batch(batch_size)
+        val_x = val_x.batch(batch_size)
         val_x = val_x.prefetch(tf.data.AUTOTUNE)
         
         ## Train the model
         H = self.fit(x, validation_data=val_x, epochs=epochs, callbacks=callbacks, **kwargs)
         return H.history
 
-        ## For defined number of epochs
-        # history = {"loss":[], 'masked_accuracy':[], 'mean_levenshtein_distance':[],
-        #            "val_loss":[], 'val_masked_accuracy':[], 'val_mean_levenshtein_distance':[]}
-        
-        # for epoch in range(epochs):
-        #     epoch_hist = {"loss":[], 'masked_accuracy':[], 'mean_levenshtein_distance':[],
-        #                   "val_loss":[], 'val_masked_accuracy':[], 'val_mean_levenshtein_distance':[]}
-            
-        #     for batch in x:
-        #         ## Train on this batch
-        #         h = self.train_on_batch(batch[0], batch[1], return_dict=True)
-        #         ## Store the batch metrics
-        #         for key in h.keys():
-        #             epoch_hist[key].append(h[key])
-            
-        #     for batch in val_x:
-        #         ## Test on this batch
-        #         h = self.test_on_batch(batch[0], batch[1], return_dict=True)
-        #         ## Store the batch metrics
-        #         for key in h.keys():
-        #             epoch_hist[f"val_{key}"].append(h[key])
-
-        #     for key,vals in epoch_hist.items():
-        #         history[key].append(np.mean(vals))
-
-        return history
     
 
     def get_config(self):

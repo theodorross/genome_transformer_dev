@@ -12,8 +12,10 @@ from utils.GeneTransformer import GeneTransformer
 
 
 def clip_gene(gene):
-    # print(gene)
-    return tf.strings.substr(gene, 0, 35)
+    # num = tf.random.categorical( tf.math.log([[.2,.2,.2,.2,.2]]), num_samples=1, dtype=tf.int32) + 30
+    # num = tf.squeeze(num)
+    # num = 30
+    return tf.strings.substr(gene, 0, 50)
 
 
 def concatenate_datasets(*datasets) -> tf.data.Dataset:
@@ -31,20 +33,25 @@ if __name__ == "__main__":
     Define the model parameters
     '''
     ## - embedding_dim appears to be the limiting factor. Adding more class tokens seems to help alleviate this
-    config = {"embedding_dim":4,
-            "encoder_layers":1,
-            'decoder_layers':1,
+    config = {"embedding_dim":32,
+            "encoder_layers":2,
+            'decoder_layers':2,
             'key_dim':16,
             'num_heads':16,
             'ff_dim':64,
             'learning_rate':1e-3,
-            'n_sequence_tokens':20,
-            'max_length':40}
+            'n_sequence_tokens':4,
+            'max_length':50}
 
 
     '''
     Define the dataset
     '''
+    ## Generate a fake datset
+    # genes = ["".join(np.random.choice(["A","T","C","G"], np.random.choice([30,31,32,33,34,35],1))) for _ in range(300)]
+    # gene_dataset = tf.data.Dataset.from_tensor_slices(genes)
+
+
     ## Load the genes
     gene_dataset = tf.data.TextLineDataset("../data/gene_sequences/unique_dna_seqs_dev.txt")
 
@@ -62,10 +69,15 @@ if __name__ == "__main__":
     '''
     Train a model on each split
     '''
+    ## If not training --> for debugging
+    # gene_ae = GeneTransformer("nucleotide", **config)
+    # val_genes = dataset_cuts[0]
+    # train_genes = dataset_cuts[1:]
+
     ## Initialize a dataframe for plotting
     df_list = []
 
-    for k in range(1):
+    for k in range(5):
         
         ## Get this fold's data
         val_genes = dataset_cuts[k]
@@ -75,10 +87,16 @@ if __name__ == "__main__":
         ## Define the model
         gene_ae = GeneTransformer("nucleotide", **config)
         print(gene_ae.summary())
+        print(gene_ae.decoder.summary())
 
         ## Train the model
+        plip = lambda e,lr: 1e-3 if e<50 else 1e-4
+        # def plip(e, lr):
+        #     if e < 100: return 1e-3
+        #     else: return 1e-4
         callback = tf.keras.callbacks.EarlyStopping(patience=20)
-        train_history = gene_ae.train(train_genes, val_genes, 8, 50, callback, verbose=2)
+        lrsched = tf.keras.callbacks.LearningRateScheduler(plip)
+        train_history = gene_ae.train(train_genes, val_genes, 8, 200, callback, lrsched, verbose=2)
 
         ## Save the training history
         hist_df = pd.DataFrame(train_history)
@@ -86,6 +104,8 @@ if __name__ == "__main__":
         hist_df.reset_index(inplace=True)
         hist_df["fold"] = k
         df_list.append(hist_df)
+
+        break
 
     ## Combine the training history dataframes
     df = pd.concat(df_list)
@@ -108,11 +128,20 @@ if __name__ == "__main__":
     filestr += f"-d{config['decoder_layers']}-h{config['num_heads']}"
     filestr += f"-k{config['key_dim']}-ff{config['ff_dim']}-lr{config['learning_rate']}"
     # fig.suptitle(f"{filestr}\ncontext")
-    fig.suptitle(f"{filestr}\nseqmask")
+    # fig.suptitle(f"{filestr}\nseqmask")
+    fig.suptitle(f"{filestr}\nquery_stuff")
+    
 
     plt.tight_layout()
     # plt.savefig(f"figures/small_test_context_{filestr}.png")
     # plt.savefig(f"figures/small_test_seqmask_{filestr}.png")
+    # plt.savefig(f"figures/small_test_query_stuff_{filestr}.png")
+
+    print("\nSOME MODEL STUFF")
+    print("encoder query sequence")
+    print(gene_ae.encoder.query_tokens)
+    print("decoder mask token")
+    print(gene_ae.decoder.mask_token)
 
     '''
     Test the reconstructions
@@ -128,13 +157,35 @@ if __name__ == "__main__":
     ## Reconstruct the sequences
     recon_tokens = np.argmax(decodes, axis=-1)
     recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
-    
     recon_genes = ["".join(recon_chars[ix]).upper() for ix in range(val_gene_seqs.shape[0])]
     
     for ix in range(5):
         print()
+        # print(len(val_gene_seqs[ix].decode("ASCII")))
+        # print(len(recon_genes[ix]))
         print(val_gene_seqs[ix].decode("ASCII"))
         print(recon_genes[ix])
-    
+
+
+    '''
+    Plot position-wise accuracy
+    '''
+    ## Get the validation genes as sequnces and arrays
+    val_gene_seqs = next(val_genes.batch(60).as_numpy_iterator())
+    val_gene_chars = np.array( [list(_v.decode('ASCII').lower()) for _v in val_gene_seqs] )
+
+    ## Predict the validation genes
+    preds = gene_ae.predict(val_gene_seqs)
+    recon_tokens = np.argmax(preds, axis=-1)
+    recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
+
+    ## Compute the coordinate-level accuracy
+    pos_acc = np.mean(recon_chars==val_gene_chars, axis=0)
+
+    fig1, a1 = plt.subplots(1,1)
+    a1.plot(pos_acc)
+    a1.set_xlabel("Positon")
+    a1.set_xlabel("Accuracy")
+    a1.set_ylim([0,1])
     
     plt.show()

@@ -3,7 +3,7 @@ from keras.layers import Dense, Identity
 from keras import models
 
 # from utils.PositionalEmbedding import PositionalEmbedding
-from utils.TransformerBlock import TransformerBlock
+from utils.TransformerBlock import TransformerDecoderBlock, TransformerEncoderBlock
 # from utils.DNATokenizer import DNATokenizer
 
 
@@ -51,11 +51,23 @@ class SequenceDecoder(models.Model):
         self.max_length = max_length
 
         ## Define the transformer block layers
+        # Initial layer without self-attention for the mask sequence
         self.transformer_layers = [
-            TransformerBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
-                             key_dim=key_dim, dropout_rate=dropout_rate) 
-            for _ in range(decoder_layers)
+            TransformerEncoderBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads,
+                                    key_dim=key_dim, dropout_rate=dropout_rate)
         ]
+        # Subsequent layers with self-attention and cross-attention layers
+        if decoder_layers > 1:
+            for _ in range(decoder_layers-1):
+                self.transformer_layers.append(
+                    TransformerDecoderBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
+                                            key_dim=key_dim, dropout_rate=dropout_rate) 
+                )
+        # self.transformer_layers = [
+        #     TransformerDecoderBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
+        #                             key_dim=key_dim, dropout_rate=dropout_rate) 
+        #     for _ in range(decoder_layers-1)
+        # ]
 
         ## Define the positional encoding
         self.pos_encoding = positional_encoding(self.max_length, self.embedding_dim)
@@ -79,9 +91,24 @@ class SequenceDecoder(models.Model):
 
 
     def call(self, x, **kwargs):
+        ## Create the query sequence and add positional encoding
+        query_seq = tf.tile(self.mask_token, [tf.shape(x)[0], self.max_length,1])
+        query_seq = query_seq + self.pos_encoding[tf.newaxis,:,:]
+
+        ## Pass through the first transformer layer
+        z = self.transformer_layers[0](query=query_seq, value=x, key=x, **kwargs)
+        ## Subsequent layers with no attention mask
+        if self.decoder_layers > 1:
+            for dec_layer in self.transformer_layers[1:]:
+                # z = dec_layer(z, context,context, **kwargs)
+                z = dec_layer(query=z, value=x, key=x, **kwargs)
+        return self.final_layer(z, **kwargs)
+
+
+
         ## Apply the mask
-        mask = self.get_decoder_mask(tf.shape(x)[1])
-        x = mask*x + (1-mask)*self.mask_token
+        # mask = self.get_decoder_mask(tf.shape(x)[1])
+        # x = mask*x + (1-mask)*self.mask_token
 
         ## Separate the context and sequence tokens
         # context_v = tf.slice(x, [0,0,0], [-1,self.n_sequence_tokens//2,-1])
@@ -90,17 +117,17 @@ class SequenceDecoder(models.Model):
         # x = tf.slice(x, [0,self.n_sequence_tokens,0], [-1,-1,-1])
 
         ## Add the positional encoding
-        z = x + self.pos_encoding[tf.newaxis, :tf.shape(x)[1], :]
-        ## First layer with potential attention mask
-        # z = self.transformer_layers[0](z,context,context, **kwargs)
-        z = self.transformer_layers[0](z,z, **kwargs)
-        ## Subsequent layers with no attention mask
-        if self.decoder_layers > 1:
-            for dec_layer in self.transformer_layers[1:]:
-                # z = dec_layer(z, context,context, **kwargs)
-                z = dec_layer(z, z, **kwargs)
-        z = tf.slice(z, [0,self.n_sequence_tokens,0], [-1,-1,-1])
-        return self.final_layer(z, **kwargs)
+        # # z = x + self.pos_encoding[tf.newaxis, :tf.shape(x)[1], :]
+        # ## First layer with potential attention mask
+        # # z = self.transformer_layers[0](z,context,context, **kwargs)
+        # z = self.transformer_layers[0](z,z, **kwargs)
+        # ## Subsequent layers with no attention mask
+        # if self.decoder_layers > 1:
+        #     for dec_layer in self.transformer_layers[1:]:
+        #         # z = dec_layer(z, context,context, **kwargs)
+        #         z = dec_layer(z, z, **kwargs)
+        # z = tf.slice(z, [0,self.n_sequence_tokens,0], [-1,-1,-1])
+        # return self.final_layer(z, **kwargs)
     
 
     def get_config(self):

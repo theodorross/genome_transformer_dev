@@ -9,13 +9,14 @@ import pandas as pd
 @tf.keras.saving.register_keras_serializable()
 class DNATokenizer(layers.Layer):
 
-    def __init__(self, tokenization_method, sequence_token=None, **kwargs):
+    def __init__(self, tokenization_method, sequence_token=None, max_length=5000, **kwargs):
         super().__init__(**kwargs)
 
         ## Enfore supported tokenization method
         assert tokenization_method.lower() in {"nucleotide","codon"}
         self.tokenization_method = tokenization_method
         self.sequence_token = sequence_token
+        self.max_length = max_length
 
         ## Define vocabularies
         if tokenization_method.lower() == "nucleotide":
@@ -42,7 +43,13 @@ class DNATokenizer(layers.Layer):
         #     paddings = tf.constant([[0,0],[1,0]])
         #     return tf.pad(tokens, paddings, constant_values=2)
         # else:
-        return self.tokenizing_layer(x)
+        # return self.tokenizing_layer(x)
+        # print("X:", x)
+        tokens = self.tokenizing_layer(x)
+        ## Zero-pad the token sequence to desired length
+        paddings = [[0,0],[0,self.max_length-tf.shape(tokens)[1]]]
+        paddedd_tokens = tf.pad(tokens, paddings)
+        return paddedd_tokens
         
     
     def compute_output_shape(self, input_shape):
@@ -52,7 +59,8 @@ class DNATokenizer(layers.Layer):
         base_config = super().get_config()
         config = {
             "tokenization_method":self.tokenization_method,
-            "sequence_token":self.sequence_token
+            "sequence_token":self.sequence_token,
+            "max_length":self.max_length
         }
         return {**base_config, **config}
 

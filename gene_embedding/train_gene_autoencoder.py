@@ -11,6 +11,12 @@ import os
 from utils import *
 
 
+def clip_gene(length):
+    def clipper(gene):
+        return tf.strings.substr(gene, 0, length)
+    return clipper
+
+
 
 def concatenate_datasets(*datasets) -> tf.data.Dataset:
     ## Function to concatenate a list of dataset objects into one dataset
@@ -101,7 +107,8 @@ if __name__ == "__main__":
 
     ## Load the dataset and remove genes over the max sequence length
     gene_dataset = tf.data.TextLineDataset(datapath)
-    gene_dataset = gene_dataset.filter(lambda x: tf.strings.length(x) <= args.max_seq_length)
+    # gene_dataset = gene_dataset.filter(lambda x: tf.strings.length(x) <= args.max_seq_length)
+    gene_dataset = gene_dataset.map(clip_gene(args.max_seq_length))
 
     ## Cut the dataset into k cross-folds
     dataset_cuts = [gene_dataset.shard(args.cross_folds, k) for k in range(args.cross_folds)]
@@ -111,11 +118,11 @@ if __name__ == "__main__":
     Define training callbacks
     '''
     wandb_callback = wandb.keras.WandbMetricsLogger()
-    early_stopper = keras.callbacks.EarlyStopping(monitor="val_loss",
-                                                  patience=args.patience,
+    early_stopper = keras.callbacks.EarlyStopping(patience=args.patience,
                                                   restore_best_weights=True)
-    lr_scheduler = keras.callbacks.LearningRateScheduler(lambda ep: args.learning_rate/10 if ep>50 else args.learning_rate)
-    callbacks = [wandb_callback, early_stopper, lr_scheduler]
+    callbacks = [wandb_callback, early_stopper]
+    # lr_scheduler = keras.callbacks.LearningRateScheduler(lambda ep: args.learning_rate/10 if ep>50 else args.learning_rate)
+    # callbacks = [wandb_callback, early_stopper, lr_scheduler]
 
 
     '''
@@ -135,21 +142,20 @@ if __name__ == "__main__":
         print(gene_ae.summary())
 
         ## Preprocess the genes
-        training_fold = gene_ae.preprocess_genes(training_fold)
-        validation_fold = gene_ae.preprocess_genes(validation_fold)
+        # training_fold = gene_ae.preprocess_genes(training_fold)
+        # validation_fold = gene_ae.preprocess_genes(validation_fold)
 
         ## Train the model
         fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
 
         ## Store the training history
-        training_histories[f"Fold {k}"] = fold_history
+        training_histories[f"Fold {k}"] = fold_history.history
 
         ## Save the model
         os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
         gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}")
 
         break
-
 
 
     ## Save the histories
