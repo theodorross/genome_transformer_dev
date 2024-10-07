@@ -51,6 +51,8 @@ if __name__ == "__main__":
     ## Training hyperparameters
     parser.add_argument("--masking-rate", default=0.05, type=float, help="Probability of masking each input token during training.")
     parser.add_argument("--learning-rate", default=1e-6, type=float, help="Learning rate for the optimizer.", required=False)
+    parser.add_argument("--learning-rate-decay", default=None, type=float, help="Decay rate for learning rate schedule.")
+    parser.add_argument("--learning-rate-decay-start", default=None, type=float, help="Epoch to begin learning rate decay.")
     parser.add_argument("--batch-size", "-b", default=4, type=int, help="Batch size for training.", required=False)
     parser.add_argument("--epochs", default=100, type=int, help="Maximum number of training epochs to perform.", required=False)
     parser.add_argument("--patience", default=25, type=int, help="Patience for early stopping.", required=False)
@@ -80,7 +82,9 @@ if __name__ == "__main__":
     training_config = {"patience":args.patience,
                        "cross_folds":args.cross_folds,
                        "batch_size":args.batch_size,
-                       "epochs":args.epochs}
+                       "epochs":args.epochs,
+                       "learning_rate_decay":args.learning_rate_decay,
+                       "learning_rate_decay_start":args.learning_rate_decay_start}
     
     wandb_config = sys_config | model_config | training_config
 
@@ -121,9 +125,15 @@ if __name__ == "__main__":
     early_stopper = keras.callbacks.EarlyStopping(patience=args.patience,
                                                   restore_best_weights=True)
     callbacks = [wandb_callback, early_stopper]
-    # lr_scheduler = keras.callbacks.LearningRateScheduler(lambda ep: args.learning_rate/10 if ep>50 else args.learning_rate)
-    # callbacks = [wandb_callback, early_stopper, lr_scheduler]
 
+    if (args.learning_rate_decay is not None) and (args.learning_rate_decay_start is not None):
+        def schedule_func(ep,lr):
+            if ep > args.learning_rate_decay_start:
+                return args.learning_rate * np.exp(-args.learning_rate_decay * (ep - args.learning_rate_decay_start))
+            else:
+                return args.learning_rate
+        lr_scheduler = keras.callbacks.LearningRateScheduler(schedule_func)
+        callbacks.append(lr_scheduler)
 
     '''
     Define a new model to train for each cross-validation fold
@@ -148,17 +158,32 @@ if __name__ == "__main__":
         ## Train the model
         fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
 
+        ## Print a sample reconstruction
+        sample_gene = next(validation_fold.batch(1).as_numpy_iterator())
+        sample_pred = gene_ae.predict(sample_gene)
+        recon_tokens = np.argmax(sample_pred, axis=-1)
+        recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
+        recon_gene = ["".join(recon_chars[ix]).upper() for ix in range(sample_gene.shape[0])]
+
+        print("Input & Reconstruction:")
+        print(sample_gene[0].decode("ASCII"))
+        print(recon_gene[0])
+
+
         ## Store the training history
-        training_histories[f"Fold {k}"] = fold_history.history
+        training_histories[f"Fold {k}"] = fold_history
 
         ## Save the model
         os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
         gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}")
 
+        
+
         break
 
+    wandb.finish()
 
     ## Save the histories
-    with open(f"training_histories/geneAE_{wandb.run.name}.json","w") as f:
-        json.dump(training_histories, f)
+    # with open(f"training_histories/geneAE_{wandb.run.name}.json","w") as f:
+    #     json.dump(training_histories, f)
 

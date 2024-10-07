@@ -7,7 +7,7 @@ from tqdm import tqdm
 import itertools
 import datetime
 
-from utils.GeneTransformer_dep import GeneTransformer
+from utils.GeneTransformer_depr import GeneTransformer
 
 
 

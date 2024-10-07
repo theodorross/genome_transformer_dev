@@ -15,7 +15,7 @@ def clip_gene(gene):
     # num = tf.random.categorical( tf.math.log([[.2,.2,.2,.2,.2]]), num_samples=1, dtype=tf.int32) + 30
     # num = tf.squeeze(num)
     # num = 30
-    return tf.strings.substr(gene, 0, 50)
+    return tf.strings.substr(gene, 0, 40)
 
 
 def concatenate_datasets(*datasets) -> tf.data.Dataset:
@@ -34,14 +34,15 @@ if __name__ == "__main__":
     '''
     ## - embedding_dim appears to be the limiting factor. Adding more class tokens seems to help alleviate this
     config = {"embedding_dim":32,
-            "encoder_layers":2,
-            'decoder_layers':2,
+            "encoder_layers":3,
+            'decoder_layers':3,
             'key_dim':16,
-            'num_heads':16,
-            'ff_dim':64,
-            'learning_rate':1e-3,
-            'n_sequence_tokens':4,
-            'max_length':50}
+            'num_heads':8,
+            'ff_dim':128,
+            'max_length':40,
+            'masking_rate':0.25,
+            'learning_rate':1e-4,
+            'n_sequence_tokens':1}
 
 
     '''
@@ -90,13 +91,14 @@ if __name__ == "__main__":
         print(gene_ae.decoder.summary())
 
         ## Train the model
-        plip = lambda e,lr: 1e-3 if e<50 else 1e-4
+        # plip = lambda e,lr: lr if e<50 else lr/5
+        plip = lambda e,lr: lr*tf.exp(-0.1) if e%50==0 else lr
         # def plip(e, lr):
         #     if e < 100: return 1e-3
         #     else: return 1e-4
-        callback = tf.keras.callbacks.EarlyStopping(patience=20)
+        callback = tf.keras.callbacks.EarlyStopping(patience=20, restore_best_weights=True)
         lrsched = tf.keras.callbacks.LearningRateScheduler(plip)
-        train_history = gene_ae.train(train_genes, val_genes, 8, 200, callback, lrsched, verbose=2)
+        train_history = gene_ae.train(train_genes, val_genes, 1, 400, callback, verbose=2)
 
         ## Save the training history
         hist_df = pd.DataFrame(train_history)
@@ -171,11 +173,12 @@ if __name__ == "__main__":
     Plot position-wise accuracy
     '''
     ## Get the validation genes as sequnces and arrays
-    val_gene_seqs = next(val_genes.batch(60).as_numpy_iterator())
+    val_gene_seqs = next(val_genes.batch(5).as_numpy_iterator())
     val_gene_chars = np.array( [list(_v.decode('ASCII').lower()) for _v in val_gene_seqs] )
 
     ## Predict the validation genes
     preds = gene_ae.predict(val_gene_seqs)
+    # preds = gene_ae(val_gene_seqs, training=True)
     recon_tokens = np.argmax(preds, axis=-1)
     recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
 
@@ -184,8 +187,8 @@ if __name__ == "__main__":
 
     fig1, a1 = plt.subplots(1,1)
     a1.plot(pos_acc)
-    a1.set_xlabel("Positon")
-    a1.set_xlabel("Accuracy")
+    a1.set_xlabel("Position")
+    a1.set_ylabel("Accuracy")
     a1.set_ylim([0,1])
     
     plt.show()

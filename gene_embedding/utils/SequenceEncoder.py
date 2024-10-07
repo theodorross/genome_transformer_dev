@@ -2,7 +2,8 @@ import tensorflow as tf
 from keras import layers
 from keras import models
 
-from utils.PositionalEmbedding import PositionalEmbedding
+# from utils.PositionalEmbedding import PositionalEmbedding
+from utils.RotationalPositionEmbedding import RotaryPositionEncoding
 from utils.TransformerBlock import TransformerEncoderBlock
 from utils.DNATokenizer import DNATokenizer
 
@@ -12,7 +13,7 @@ from utils.DNATokenizer import DNATokenizer
 class SequenceEncoder(models.Model):
 
     '''
-    @TODO think more about when to inject the query token sequence
+    @TODO
     '''
 
     def __init__(self, tokenization_method:str,
@@ -49,14 +50,10 @@ class SequenceEncoder(models.Model):
         self.vocab_size = len(self.vocabulary)
 
         self.token_masker = layers.Dropout(rate=masking_rate)
-        self.embedding_layer = PositionalEmbedding(self.vocab_size, embedding_dim, max_length)
-
-        ## Define the querry token sequence
-        self.query_tokens = self.add_weight(
-            name="query_tokens",
-            shape=(1,n_sequence_tokens,embedding_dim),
-            initializer="glorot_uniform"
-        )
+        self.embedding_layer = layers.Embedding(input_dim=self.vocab_size, 
+                                                output_dim=embedding_dim, 
+                                                mask_zero=True)
+        self.position_encoder = RotaryPositionEncoding(max_length, embedding_dim)
 
         ## Define the transformer block layers
         self.transformer_layers = [
@@ -65,35 +62,38 @@ class SequenceEncoder(models.Model):
             for _ in range(encoder_layers)
         ]
 
-        # ## Define the optional pooling layer
-        # self.pooling_layer = layers.GlobalAveragePooling1D()
+        ## Define the querry token sequence
+        self.query_tokens = self.add_weight(
+            name="query_tokens",
+            shape=(1,n_sequence_tokens,embedding_dim),
+            initializer="glorot_uniform"
+        )
+
+        ## Define some arrithemtic layers
+        # self.mult = layers.Multiply()
+        # self.subtract = layers.Subtract()
 
 
     def call(self, x, **kwargs):
-        # print("DEBUG:", tf.strings.length(x))
-        ## Prepend the sequence tokens to the beginning of each string
-        # x = self.prepend_sequence_tokens(x)
         ## Convert the input strings to tokens
         tokens = self.tokenizing_layer(x, **kwargs)
         float_tokens = tf.cast(tokens, "float32")
         ## Randomly mask the tokens for training
         masked_tokens = self.token_masker(float_tokens, **kwargs)
-        ## Define the query token sequence
-        query_seq = tf.repeat(self.query_tokens, repeats=tf.shape(x)[0], axis=0)
+        # Undo the Dropout layer's normalization if needed
+        if kwargs['training']: 
+            masked_tokens *= (1-self.masking_rate)
         ## Compute positional embeddings
-        enc_z = self.embedding_layer(masked_tokens, **kwargs)
+        enc_z = self.embedding_layer(masked_tokens)
+        enc_z = self.position_encoder(enc_z)
+
         ## Pass through the early transformer layers
         if self.encoder_layers > 1:
             for enc_layer in self.transformer_layers[:-1]:
                 enc_z = enc_layer(query=enc_z, key=enc_z, value=enc_z, **kwargs)
         ## Pass through the final transformer layer
+        query_seq = tf.repeat(self.query_tokens, repeats=tf.shape(x)[0], axis=0)
         enc_z = self.transformer_layers[-1](query=query_seq, key=enc_z, value=enc_z, **kwargs)
-        # ## Pass through the first transformer layer
-        # enc_z = self.transformer_layers[0](query=query_seq, key=enc_z, value=enc_z, **kwargs)
-        # ## Pass through later layers
-        # if self.encoder_layers > 1:
-        #     for enc_layer in self.transformer_layers[:-1]:
-        #         enc_z = enc_layer(query=enc_z, key=enc_z, value=enc_z, **kwargs)
         return enc_z
 
     def prepend_sequence_tokens(self, batch):

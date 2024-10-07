@@ -21,6 +21,7 @@ class GeneTransformer(models.Model):
     
     @TODO: 
         - codon tokenization doesn't quite work right, not sure why
+        - fix sequence masking during attention
     '''
 
     def __init__(self, tokenization_method:str, 
@@ -122,6 +123,26 @@ class GeneTransformer(models.Model):
         prepend_char = lambda x: self.sequence_token + x
         return data.map(prepend_char)
     
+    def _random_mask(self, s):
+        ## Randomly remove a fraction of characters from a string
+        lens = tf.strings.length(s)
+        n_mask = tf.math.floor( self.masking_rate*tf.cast(lens, tf.float32) )
+        n_mask = tf.cast(n_mask, dtype=tf.int32)
+        keep_indices = tf.random.shuffle( tf.range(lens) )[n_mask:]
+        keep_indices = tf.squeeze( tf.sort( keep_indices ) )
+        new_s = tf.strings.substr(s, pos=keep_indices, len=tf.ones(tf.shape(keep_indices), dtype=tf.int32))
+        new_s = tf.strings.reduce_join(new_s)
+        return new_s
+    
+    def _preprocess_dataset(self, data:tf.data.Dataset, mask:bool=False) -> tf.data.Dataset:
+        ## Map the dataset to a label dataset and randomly mask the inputs
+        y = data.map(self.tokenize)
+        if mask:
+            x = data.map(self._random_mask)
+            return tf.data.Dataset.zip(x,y)
+        else:
+            return tf.data.Dataset.zip(data,y)
+    
     def train(self, 
               data:tf.data.Dataset, 
               val_data:tf.data.Dataset,
@@ -130,25 +151,38 @@ class GeneTransformer(models.Model):
               *callbacks,
               **kwargs):
         
-        ## Define and format the reconstruction targets as a dataset
-        y = data.map(self.tokenize)
-        val_y = val_data.map(self.tokenize)
+        # ## Define and format the reconstruction targets as a dataset
+        # y = data.map(self.tokenize)
+        # val_y = val_data.map(self.tokenize)
 
-        ## Create the training dataset
-        x = tf.data.Dataset.zip(data,y)
-        x = x.shuffle(buffer_size=100*batch_size)
-        # x = x.padded_batch(batch_size)
-        x = x.batch(batch_size)
-        x = x.prefetch(tf.data.AUTOTUNE)
+        # ## Create the training dataset
+        # x = tf.data.Dataset.zip(data,y)
+        # x = x.shuffle(buffer_size=100*batch_size)
+        # # x = x.padded_batch(batch_size)
+        # x = x.batch(batch_size)
+        # x = x.prefetch(tf.data.AUTOTUNE)
 
-        ## Create the validation dataset
-        val_x = tf.data.Dataset.zip(val_data, val_y)
-        # val_x = val_x.padded_batch(batch_size)
-        val_x = val_x.batch(batch_size)
-        val_x = val_x.prefetch(tf.data.AUTOTUNE)
+        # ## Create the validation dataset
+        # val_x = tf.data.Dataset.zip(val_data, val_y)
+        # # val_x = val_x.padded_batch(batch_size)
+        # val_x = val_x.batch(batch_size)
+        # val_x = val_x.prefetch(tf.data.AUTOTUNE)
+
+        # H = self.fit(x, validation_data=val_x, epochs=epochs, callbacks=callbacks, **kwargs)
+        # return H.history
+
+        ## Preprocess the input data for training
+        _training = self._preprocess_dataset(data)
+        _training = _training.shuffle(buffer_size=100*batch_size)
+        _training = _training.batch(batch_size)
+        _training = _training.prefetch(tf.data.AUTOTUNE)
+
+        _validation = self._preprocess_dataset(val_data)
+        _validation = _validation.batch(batch_size)
+        _validation = _validation.prefetch(tf.data.AUTOTUNE)
         
         ## Train the model
-        H = self.fit(x, validation_data=val_x, epochs=epochs, callbacks=callbacks, **kwargs)
+        H = self.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
         return H.history
 
     

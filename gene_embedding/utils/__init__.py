@@ -4,3 +4,4 @@ from utils.PositionalEmbedding import PositionalEmbedding
 from utils.TransformerBlock import TransformerEncoderBlock, TransformerDecoderBlock
 from utils.SequenceDecoder import SequenceDecoder
 from utils.SequenceEncoder import SequenceEncoder
+from utils.RotationalPositionEmbedding import RotaryPositionEncoding

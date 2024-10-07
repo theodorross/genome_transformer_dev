@@ -4,6 +4,7 @@ from keras import models
 
 # from utils.PositionalEmbedding import PositionalEmbedding
 from utils.TransformerBlock import TransformerDecoderBlock, TransformerEncoderBlock
+from utils.RotationalPositionEmbedding import RotaryPositionEncoding
 # from utils.DNATokenizer import DNATokenizer
 
 
@@ -60,7 +61,7 @@ class SequenceDecoder(models.Model):
         if decoder_layers > 1:
             for _ in range(decoder_layers-1):
                 self.transformer_layers.append(
-                    TransformerDecoderBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
+                    TransformerEncoderBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
                                             key_dim=key_dim, dropout_rate=dropout_rate) 
                 )
         # self.transformer_layers = [
@@ -70,7 +71,8 @@ class SequenceDecoder(models.Model):
         # ]
 
         ## Define the positional encoding
-        self.pos_encoding = positional_encoding(self.max_length, self.embedding_dim)
+        # self.pos_encoding = positional_encoding(self.max_length, self.embedding_dim)
+        self.position_encoder = RotaryPositionEncoding(max_length, embedding_dim)
 
         ## Define the final output layer
         self.final_layer = Dense(vocab_size, activation="softmax")
@@ -93,7 +95,8 @@ class SequenceDecoder(models.Model):
     def call(self, x, **kwargs):
         ## Create the query sequence and add positional encoding
         query_seq = tf.tile(self.mask_token, [tf.shape(x)[0], self.max_length,1])
-        query_seq = query_seq + self.pos_encoding[tf.newaxis,:,:]
+        # query_seq = query_seq + self.pos_encoding[tf.newaxis,:,:]
+        query_seq = self.position_encoder(query_seq)
 
         ## Pass through the first transformer layer
         z = self.transformer_layers[0](query=query_seq, value=x, key=x, **kwargs)
