@@ -29,7 +29,7 @@ class TransformerEncoderBlock(layers.Layer):
         self.supports_masking = True
 
         ## Attention layer
-        self.attn = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim)
+        self.attn = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, dropout=dropout_rate)
 
         ## Normalization layers
         self.norm1 = layers.LayerNormalization()
@@ -41,11 +41,8 @@ class TransformerEncoderBlock(layers.Layer):
         ## Feed forward layers
         self.ff1 = layers.Dense(ff_dim, activation=activation)
         self.ff2 = layers.Dense(output_dim)
-
-        ## Dropout layers
         if dropout_rate != 0:
-            self.dropout1 = layers.Dropout(rate=dropout_rate)
-            self.dropout2 = layers.Dropout(rate=dropout_rate)
+            self.dropout = layers.Dropout(rate=dropout_rate)
 
 
     def call(self, query, value, key=None, attention_mask=None, use_causal_mask=False, **kwargs):
@@ -54,11 +51,8 @@ class TransformerEncoderBlock(layers.Layer):
                                            attention_mask=attention_mask, 
                                            use_causal_mask=use_causal_mask, 
                                            return_attention_scores=True,
-                                           training=kwargs)
+                                           training=kwargs["training"])
         self.last_attention = attn_score
-
-        if self.dropout_rate != 0:
-            attn_output = self.dropout1(attn_output)
 
         ## Add and norm
         out1 = self.norm1( self.add([query, attn_output]) )
@@ -66,7 +60,7 @@ class TransformerEncoderBlock(layers.Layer):
         ## Feed-forward
         ffn_output = self.ff1(out1)
         if self.dropout_rate != 0:
-            ffn_output = self.dropout2(ffn_output)
+            ffn_output = self.dropout(ffn_output)
         ffn_output = self.ff2(ffn_output)
 
         ## Add and norm
@@ -122,8 +116,8 @@ class TransformerDecoderBlock(layers.Layer):
         self.supports_masking = True
 
         ## Attention layer
-        self.self_attn = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim)
-        self.cross_attn = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim)
+        self.self_attn = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, dropout=dropout_rate)
+        self.cross_attn = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, dropout=dropout_rate)
 
         ## Normalization layers
         self.norm1 = layers.LayerNormalization()
@@ -136,11 +130,9 @@ class TransformerDecoderBlock(layers.Layer):
         ## Feed forward layers
         self.ff1 = layers.Dense(ff_dim, activation=activation)
         self.ff2 = layers.Dense(output_dim)
-
-        ## Dropout layers
         if dropout_rate != 0:
-            self.dropout1 = layers.Dropout(rate=dropout_rate)
-            self.dropout2 = layers.Dropout(rate=dropout_rate)
+            self.dropout = layers.Dropout(rate=dropout_rate)
+
 
     def compute_mask(self, inputs, mask=None):
         return super().compute_mask(inputs, mask)
@@ -163,17 +155,13 @@ class TransformerDecoderBlock(layers.Layer):
                                                              **kwargs)
         self.last_cross_attention = cross_attn_score
 
-        ## Dropout layer
-        if self.dropout_rate != 0:
-            cross_attn_output = self.dropout1(cross_attn_output)
-
         ## Add and norm
         out2 = self.norm2( self.add([out1, cross_attn_output]) )
 
         ## Feed-forward
         ffn_output = self.ff1(out2)
         if self.dropout_rate != 0:
-            ffn_output = self.dropout2(ffn_output)
+            ffn_output = self.dropout(ffn_output)
         ffn_output = self.ff2(ffn_output)
 
         ## Add and norm

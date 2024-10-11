@@ -18,6 +18,7 @@ class GeneTransformer(models.Model):
     '''
     Transformer model for embedding gene sequences
     - default values taken from "Attention is All You Need": https://arxiv.org/pdf/1706.03762
+    - no longer resembles a normal transformer...
     
     @TODO: 
         - codon tokenization doesn't quite work right, not sure why
@@ -25,7 +26,8 @@ class GeneTransformer(models.Model):
     '''
 
     def __init__(self, tokenization_method:str, 
-                       embedding_dim:int=512, 
+                       embedding_dim:int=4,
+                       latent_dim:int=512,
                        encoder_layers:int=6, 
                        decoder_layers:int=6, 
                        key_dim:int=64, 
@@ -42,6 +44,7 @@ class GeneTransformer(models.Model):
         ## Store configuration arguments
         self.tokenization_method = tokenization_method
         self.embedding_dim = embedding_dim
+        self.latent_dim = latent_dim
         self.encoder_layers = encoder_layers
         self.decoder_layers = decoder_layers
         self.key_dim = key_dim
@@ -62,7 +65,7 @@ class GeneTransformer(models.Model):
 
         ## Build the sub-models
         # Encoder
-        self.encoder = SequenceEncoder(tokenization_method, encoder_layers, embedding_dim,
+        self.encoder = SequenceEncoder(tokenization_method, encoder_layers, embedding_dim, latent_dim,
                                        key_dim, num_heads, dropout_rate, ff_dim,
                                        masking_rate, self.sequence_token, n_sequence_tokens, max_length)
         
@@ -173,7 +176,7 @@ class GeneTransformer(models.Model):
 
         ## Preprocess the input data for training
         _training = self._preprocess_dataset(data)
-        _training = _training.shuffle(buffer_size=100*batch_size)
+        _training = _training.shuffle(buffer_size=_training.cardinality())
         _training = _training.batch(batch_size)
         _training = _training.prefetch(tf.data.AUTOTUNE)
 
@@ -192,6 +195,7 @@ class GeneTransformer(models.Model):
         config = {
             "tokenization_method":self.tokenization_method,
             "embedding_dim":self.embedding_dim,
+            "latent_dim":self.latent_dim,
             "encoder_layers":self.encoder_layers,
             "decoder_layers":self.decoder_layers,
             "key_dim":self.key_dim,

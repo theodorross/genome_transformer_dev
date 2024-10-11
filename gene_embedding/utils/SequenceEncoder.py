@@ -19,6 +19,7 @@ class SequenceEncoder(models.Model):
     def __init__(self, tokenization_method:str,
                        encoder_layers:int, 
                        embedding_dim:int,
+                       latent_dim:int,
                        key_dim:int,
                        num_heads:int,
                        dropout_rate:float,
@@ -33,6 +34,7 @@ class SequenceEncoder(models.Model):
         self.tokenization_method = tokenization_method
         self.encoder_layers = encoder_layers
         self.embedding_dim = embedding_dim
+        self.latent_dim = latent_dim
         self.key_dim = key_dim
         self.num_heads = num_heads
         self.dropout_rate = dropout_rate
@@ -55,9 +57,14 @@ class SequenceEncoder(models.Model):
                                                 mask_zero=True)
         self.position_encoder = RotaryPositionEncoding(max_length, embedding_dim)
 
+        ## Define cross-attention layers
+        self.cross_attn_layers = [
+            layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, dropout=dropout_rate)
+        ]
+
         ## Define the transformer block layers
         self.transformer_layers = [
-            TransformerEncoderBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
+            TransformerEncoderBlock(output_dim=latent_dim, ff_dim=ff_dim, num_heads=num_heads, 
                                     key_dim=key_dim, dropout_rate=dropout_rate) 
             for _ in range(encoder_layers)
         ]
@@ -65,7 +72,7 @@ class SequenceEncoder(models.Model):
         ## Define the querry token sequence
         self.query_tokens = self.add_weight(
             name="query_tokens",
-            shape=(1,n_sequence_tokens,embedding_dim),
+            shape=(1,n_sequence_tokens,latent_dim),
             initializer="glorot_uniform"
         )
 
@@ -86,15 +93,26 @@ class SequenceEncoder(models.Model):
         ## Compute positional embeddings
         enc_z = self.embedding_layer(masked_tokens)
         enc_z = self.position_encoder(enc_z)
+        ## Apply the sequence mask to attention
+        sequence_mask = tf.expand_dims(enc_z._keras_mask, axis=1)
 
-        ## Pass through the early transformer layers
-        if self.encoder_layers > 1:
-            for enc_layer in self.transformer_layers[:-1]:
-                enc_z = enc_layer(query=enc_z, key=enc_z, value=enc_z, **kwargs)
-        ## Pass through the final transformer layer
+        ## Define the query sequence
         query_seq = tf.repeat(self.query_tokens, repeats=tf.shape(x)[0], axis=0)
-        enc_z = self.transformer_layers[-1](query=query_seq, key=enc_z, value=enc_z, **kwargs)
-        return enc_z
+        ## Pass through the transformer layers
+        for attn,tran in zip(self.cross_attn_layers, self.transformer_layers):
+            query_seq = attn(query=query_seq, key=enc_z, value=enc_z, attention_mask=sequence_mask, **kwargs)
+            query_seq = tran(query=query_seq, key=query_seq, value=query_seq, **kwargs)
+        # for enc_layer in self.transformer_layers:
+        #     query_seq = enc_layer(query=query_seq, key=enc_z, value=enc_z, attention_mask=sequence_mask, **kwargs)
+        return query_seq
+
+        # ## Pass through the early transformer layers
+        # if self.encoder_layers > 1:
+        #     for enc_layer in self.transformer_layers[:-1]:
+        #         enc_z = enc_layer(query=enc_z, key=enc_z, value=enc_z, attention_mask=sequence_mask, **kwargs)
+        # ## Pass through the final transformer layer
+        # enc_z = self.transformer_layers[-1](query=query_seq, key=enc_z, value=enc_z, attention_mask=sequence_mask, **kwargs)
+        # return enc_z
 
     def prepend_sequence_tokens(self, batch):
         prepend_seq = self.n_sequence_tokens*self.sequence_token
@@ -109,6 +127,7 @@ class SequenceEncoder(models.Model):
             'tokenization_method' : self.tokenization_method,
             'encoder_layers' : self.encoder_layers,
             'embedding_dim' : self.embedding_dim,
+            'latent_dim' : self.latent_dim,
             'key_dim' : self.key_dim,
             'num_heads' : self.num_heads,
             'dropout_rate' : self.dropout_rate,

@@ -38,8 +38,9 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", default="full", choices=["dev","full"], type=str, help="Which datset to use.", required=False)
 
     ## Model architecture hyperparameters
-    parser.add_argument("--tokenization", default="nucleotide", choices=["nucleotide","codon"], type=str, help="Units to tokenize for processiing.", required=False)
-    parser.add_argument("--embedding-dim", "-z", default=512, type=int, help="Dimensionality of the contig embedding vectors. One of ['nucleotide','codon'],", required=False)
+    parser.add_argument("--tokenization", default="nucleotide", choices=["nucleotide","codon"], type=str, help="Units to tokenize for processing. One of ['nucleotide','codon'].", required=False)
+    parser.add_argument("--latent-dim", "-z", default=512, type=int, help="Dimensionality of the representation space.", required=False)
+    parser.add_argument("--embedding-dim", default=512, type=int, help="Dimensionality of token embedding vectors.", required=False)
     parser.add_argument("--encoder-layers", default=6, type=int, help="Number of transformer-blocks in the encoder.")
     parser.add_argument("--decoder-layers", default=6, type=int, help="Number of transformer-blocks in the decoder.")
     parser.add_argument("--key-dim", default=64, type=int, help="Dimension of the key, query, and value vectors in multi-head attention units.")
@@ -67,6 +68,7 @@ if __name__ == "__main__":
                   "dataset":args.dataset}
     
     model_config = {"tokenization_method":args.tokenization,
+                    "latent_dim":args.latent_dim,
                     "embedding_dim":args.embedding_dim,
                     "encoder_layers":args.encoder_layers,
                     "decoder_layers":args.decoder_layers,
@@ -111,8 +113,8 @@ if __name__ == "__main__":
 
     ## Load the dataset and remove genes over the max sequence length
     gene_dataset = tf.data.TextLineDataset(datapath)
-    # gene_dataset = gene_dataset.filter(lambda x: tf.strings.length(x) <= args.max_seq_length)
-    gene_dataset = gene_dataset.map(clip_gene(args.max_seq_length))
+    gene_dataset = gene_dataset.filter(lambda x: tf.strings.length(x) <= args.max_seq_length)
+    # gene_dataset = gene_dataset.map(clip_gene(args.max_seq_length))
 
     ## Cut the dataset into k cross-folds
     dataset_cuts = [gene_dataset.shard(args.cross_folds, k) for k in range(args.cross_folds)]
@@ -121,7 +123,7 @@ if __name__ == "__main__":
     '''
     Define training callbacks
     '''
-    wandb_callback = wandb.keras.WandbMetricsLogger()
+    wandb_callback = wandb.keras.WandbMetricsLogger(log_freq=50)
     early_stopper = keras.callbacks.EarlyStopping(patience=args.patience,
                                                   restore_best_weights=True)
     callbacks = [wandb_callback, early_stopper]
