@@ -13,7 +13,7 @@ from utils import *
 
 def clip_gene(length):
     def clipper(gene):
-        return tf.strings.substr(gene, 0, length)
+        return tf.strings.substr(gene, 3, length)
     return clipper
 
 
@@ -113,8 +113,8 @@ if __name__ == "__main__":
 
     ## Load the dataset and remove genes over the max sequence length
     gene_dataset = tf.data.TextLineDataset(datapath)
-    gene_dataset = gene_dataset.filter(lambda x: tf.strings.length(x) <= args.max_seq_length)
-    # gene_dataset = gene_dataset.map(clip_gene(args.max_seq_length))
+    # gene_dataset = gene_dataset.filter(lambda x: tf.strings.length(x) <= args.max_seq_length)
+    gene_dataset = gene_dataset.map(clip_gene(args.max_seq_length))
 
     ## Cut the dataset into k cross-folds
     dataset_cuts = [gene_dataset.shard(args.cross_folds, k) for k in range(args.cross_folds)]
@@ -123,17 +123,21 @@ if __name__ == "__main__":
     '''
     Define training callbacks
     '''
-    wandb_callback = wandb.keras.WandbMetricsLogger(log_freq=50)
+    if args.dataset.lower() == "full":
+        wandb_callback = wandb.keras.WandbMetricsLogger(log_freq=50)
+    else:
+        wandb_callback = wandb.keras.WandbMetricsLogger()
     early_stopper = keras.callbacks.EarlyStopping(patience=args.patience,
                                                   restore_best_weights=True)
     callbacks = [wandb_callback, early_stopper]
 
     if (args.learning_rate_decay is not None) and (args.learning_rate_decay_start is not None):
-        def schedule_func(ep,lr):
-            if ep > args.learning_rate_decay_start:
-                return args.learning_rate * np.exp(-args.learning_rate_decay * (ep - args.learning_rate_decay_start))
-            else:
-                return args.learning_rate
+        # def schedule_func(ep,lr):
+        #     if ep > args.learning_rate_decay_start:
+        #         return args.learning_rate * np.exp(-args.learning_rate_decay * (ep - args.learning_rate_decay_start))
+        #     else:
+        #         return args.learning_rate
+        schedule_func = lambda e,lr: lr*tf.exp(-0.1) if (e%100==99 and e>args.learning_rate_decay_start) else lr
         lr_scheduler = keras.callbacks.LearningRateScheduler(schedule_func)
         callbacks.append(lr_scheduler)
 
@@ -161,16 +165,23 @@ if __name__ == "__main__":
         fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
 
         ## Print a sample reconstruction
+        print("Training reconstruction")
+        sample_gene = next(training_fold.batch(1).as_numpy_iterator())
+        sample_pred = gene_ae.predict(sample_gene)
+        recon_tokens = np.argmax(sample_pred, axis=-1)
+        recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
+        recon_gene = ["".join(recon_chars[ix]).upper() for ix in range(sample_gene.shape[0])]
+        print(sample_gene[0].decode("ASCII"))
+        print(recon_gene[0])
+
+        print("\nValidation reconstruction")
         sample_gene = next(validation_fold.batch(1).as_numpy_iterator())
         sample_pred = gene_ae.predict(sample_gene)
         recon_tokens = np.argmax(sample_pred, axis=-1)
         recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
         recon_gene = ["".join(recon_chars[ix]).upper() for ix in range(sample_gene.shape[0])]
-
-        print("Input & Reconstruction:")
         print(sample_gene[0].decode("ASCII"))
         print(recon_gene[0])
-
 
         ## Store the training history
         training_histories[f"Fold {k}"] = fold_history

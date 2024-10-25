@@ -3,7 +3,7 @@ from keras import layers
 from keras import models
 
 # from utils.PositionalEmbedding import PositionalEmbedding
-from utils.RotationalPositionEmbedding import RotaryPositionEncoding
+from utils.RotaryPositionEmbedding import RotaryPositionEncoding
 from utils.TransformerBlock import TransformerEncoderBlock
 from utils.DNATokenizer import DNATokenizer
 
@@ -25,7 +25,6 @@ class SequenceEncoder(models.Model):
                        dropout_rate:float,
                        ff_dim:int,
                        masking_rate:float,
-                       sequence_token=None,
                        n_sequence_tokens:int=1,
                        max_length:int=5000,
                        **kwargs):
@@ -40,13 +39,15 @@ class SequenceEncoder(models.Model):
         self.dropout_rate = dropout_rate
         self.ff_dim = ff_dim
         self.masking_rate = masking_rate
-        self.sequence_token = sequence_token
         self.n_sequence_tokens = n_sequence_tokens
         self.max_length = max_length
+        self.use_layers = encoder_layers
+
+        ## Define initializers according to Huang et. al. : https://proceedings.mlr.press/v119/huang20f.html
+        embedding_init = tf.keras.initializers.RandomNormal(0, embedding_dim**-0.5)
 
         ## Define the tokenizing and positional embedding
         self.tokenizing_layer = DNATokenizer(tokenization_method=tokenization_method,
-                                             sequence_token=sequence_token,
                                              max_length=max_length)
         self.vocabulary = self.tokenizing_layer.tokenizing_layer.get_vocabulary()
         self.vocab_size = len(self.vocabulary)
@@ -54,31 +55,35 @@ class SequenceEncoder(models.Model):
         self.token_masker = layers.Dropout(rate=masking_rate)
         self.embedding_layer = layers.Embedding(input_dim=self.vocab_size, 
                                                 output_dim=embedding_dim, 
-                                                mask_zero=True)
+                                                mask_zero=True,
+                                                embeddings_initializer=embedding_init)
         self.position_encoder = RotaryPositionEncoding(max_length, embedding_dim)
+        self.latent_position_encoder = RotaryPositionEncoding(n_sequence_tokens, latent_dim)
 
         ## Define cross-attention layers
-        self.cross_attn_layers = [
-            layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, dropout=dropout_rate)
-        ]
+        self.cross_attn_layer = TransformerEncoderBlock(output_dim=latent_dim, ff_dim=ff_dim, num_heads=num_heads,
+                                                        key_dim=key_dim, dropout_rate=dropout_rate,)
+        # self.cross_attn_layer = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, dropout=dropout_rate)
 
         ## Define the transformer block layers
         self.transformer_layers = [
             TransformerEncoderBlock(output_dim=latent_dim, ff_dim=ff_dim, num_heads=num_heads, 
                                     key_dim=key_dim, dropout_rate=dropout_rate) 
             for _ in range(encoder_layers)
+            # layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, dropout=dropout_rate)
         ]
 
         ## Define the querry token sequence
-        self.query_tokens = self.add_weight(
-            name="query_tokens",
+        self.latent_tokens = self.add_weight(
+            name="latent_tokens",
             shape=(1,n_sequence_tokens,latent_dim),
-            initializer="glorot_uniform"
+            initializer="uniform",
+            trainable=True
         )
 
-        ## Define some arrithemtic layers
-        # self.mult = layers.Multiply()
-        # self.subtract = layers.Subtract()
+        # self.final_layer = layers.Softmax()
+
+        self.build(input_shape=(None,))
 
 
     def call(self, x, **kwargs):
@@ -88,38 +93,20 @@ class SequenceEncoder(models.Model):
         ## Randomly mask the tokens for training
         masked_tokens = self.token_masker(float_tokens, **kwargs)
         # Undo the Dropout layer's normalization if needed
-        if kwargs['training']: 
+        if kwargs.get('training', False): 
             masked_tokens *= (1-self.masking_rate)
         ## Compute positional embeddings
-        enc_z = self.embedding_layer(masked_tokens)
-        enc_z = self.position_encoder(enc_z)
-        ## Apply the sequence mask to attention
-        sequence_mask = tf.expand_dims(enc_z._keras_mask, axis=1)
-
-        ## Define the query sequence
-        query_seq = tf.repeat(self.query_tokens, repeats=tf.shape(x)[0], axis=0)
+        enc_z0 = self.embedding_layer(masked_tokens)
+        enc_z = self.position_encoder(enc_z0)
+        ## Repeat the latent sequence along the batch dimension
+        latent_seq = tf.tile(self.latent_tokens, (tf.shape(x)[0],1,1))
+        latent_seq = self.latent_position_encoder(latent_seq)
+        ## Define the latent seqeuence and pass through cross-attention
+        latent_seq = self.cross_attn_layer(query=latent_seq, value=enc_z, use_residuals=True, verbose=False, **kwargs)
         ## Pass through the transformer layers
-        for attn,tran in zip(self.cross_attn_layers, self.transformer_layers):
-            query_seq = attn(query=query_seq, key=enc_z, value=enc_z, attention_mask=sequence_mask, **kwargs)
-            query_seq = tran(query=query_seq, key=query_seq, value=query_seq, **kwargs)
-        # for enc_layer in self.transformer_layers:
-        #     query_seq = enc_layer(query=query_seq, key=enc_z, value=enc_z, attention_mask=sequence_mask, **kwargs)
-        return query_seq
-
-        # ## Pass through the early transformer layers
-        # if self.encoder_layers > 1:
-        #     for enc_layer in self.transformer_layers[:-1]:
-        #         enc_z = enc_layer(query=enc_z, key=enc_z, value=enc_z, attention_mask=sequence_mask, **kwargs)
-        # ## Pass through the final transformer layer
-        # enc_z = self.transformer_layers[-1](query=query_seq, key=enc_z, value=enc_z, attention_mask=sequence_mask, **kwargs)
-        # return enc_z
-
-    def prepend_sequence_tokens(self, batch):
-        prepend_seq = self.n_sequence_tokens*self.sequence_token
-        chars = tf.constant([prepend_seq], dtype=tf.string)
-        chars = tf.repeat(chars, tf.shape(batch)[0], axis=0)
-        newbatch = tf.strings.join([chars, batch])
-        return newbatch
+        for enc_layer in self.transformer_layers:
+            latent_seq = enc_layer(query=latent_seq, value=latent_seq, use_residuals=True, verbose=False, **kwargs)
+        return latent_seq
 
     def get_config(self):
         base_config = super().get_config()
@@ -133,7 +120,6 @@ class SequenceEncoder(models.Model):
             'dropout_rate' : self.dropout_rate,
             'ff_dim' : self.ff_dim,
             'masking_rate' : self. masking_rate,
-            'sequence_token' : self.sequence_token,
             'max_length' : self.max_length
         }
         return {**base_config, **config}

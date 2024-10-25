@@ -3,7 +3,7 @@ from keras import models, layers
 
 # from utils.PositionalEmbedding import PositionalEmbedding
 from utils.TransformerBlock import TransformerDecoderBlock, TransformerEncoderBlock
-from utils.RotationalPositionEmbedding import RotaryPositionEncoding
+from utils.RotaryPositionEmbedding import RotaryPositionEncoding
 # from utils.DNATokenizer import DNATokenizer
 
 
@@ -30,6 +30,7 @@ class SequenceDecoder(models.Model):
 
     def __init__(self, decoder_layers:int, 
                        embedding_dim:int,
+                       latent_dim:int,
                        key_dim:int,
                        num_heads:int,
                        dropout_rate:float,
@@ -42,6 +43,7 @@ class SequenceDecoder(models.Model):
 
         self.decoder_layers = decoder_layers
         self.embedding_dim = embedding_dim
+        self.latent_dim = latent_dim
         self.key_dim = key_dim
         self.num_heads = num_heads
         self.dropout_rate = dropout_rate
@@ -50,111 +52,46 @@ class SequenceDecoder(models.Model):
         self.n_sequence_tokens = n_sequence_tokens
         self.max_length = max_length
 
-        ## Define cross-attention layers
-        self.cross_attn_layers = [
-            layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, dropout=dropout_rate)
-        ]
-
         ## Define the transformer block layers
-        self.transformer_layers = [
-            TransformerEncoderBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads,
-                                    key_dim=key_dim, dropout_rate=dropout_rate)
-            for _ in range(decoder_layers)
-        ]
-        # Initial layer without self-attention for the mask sequence
+        self.transformer_layer = TransformerEncoderBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads,
+                                                         key_dim=key_dim, dropout_rate=dropout_rate)
         # self.transformer_layers = [
-        #     TransformerEncoderBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads,
-        #                             key_dim=key_dim, dropout_rate=dropout_rate)
-        # ]
-        # # Subsequent layers with self-attention and cross-attention layers
-        # if decoder_layers > 1:
-        #     for _ in range(decoder_layers-1):
-        #         self.transformer_layers.append(
-        #             TransformerEncoderBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
-        #                                     key_dim=key_dim, dropout_rate=dropout_rate) 
-        #         )
-        # self.transformer_layers = [
-        #     TransformerDecoderBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads, 
-        #                             key_dim=key_dim, dropout_rate=dropout_rate) 
-        #     for _ in range(decoder_layers-1)
+        #     layers.MultiHeadAttention(num_heads=num_heads,key_dim=key_dim, dropout=dropout_rate)
+        #     for _ in range(decoder_layers)
         # ]
 
         ## Define the positional encoding
         # self.pos_encoding = positional_encoding(self.max_length, self.embedding_dim)
-        self.position_encoder = RotaryPositionEncoding(max_length, embedding_dim)
+        self.query_position_encoder = RotaryPositionEncoding(max_length, embedding_dim)
+        self.latent_position_encoder = RotaryPositionEncoding(n_sequence_tokens, latent_dim)
 
         ## Define the final output layer
         self.final_layer = layers.Dense(vocab_size, activation="softmax")
 
         ## Define the mask token variable
         #  -> defined to allow broadcasting across the batch and sequence dimensions
-        self.mask_token = self.add_weight(
-            name="mask_token",
-            shape=(1,1,embedding_dim),
-            initializer="glorot_uniform"
+        self.query_tokens = self.add_weight(
+            name="query_tokens",
+            shape=(1,max_length,embedding_dim),
+            initializer="uniform",
+            trainable=True
         )
-        # self.latent_sequence = self.add_weight(
-        #     name="latent_sequence",
-        #     shape=(1,max_length, )
-        # )
 
-    def get_decoder_mask(self, seq_len):
-        ## Define a mask to apply to the encoded sequences
-        mask = tf.expand_dims(tf.eye(seq_len, self.n_sequence_tokens, dtype=tf.float32), axis=0)
-        mask = tf.reduce_sum(mask, axis=2, keepdims=True)
-        return mask
+        self.build(input_shape=(None, n_sequence_tokens, latent_dim))
 
 
     def call(self, x, **kwargs):
-        ## Create the query sequence and add positional encoding
-        query_seq = tf.tile(self.mask_token, [tf.shape(x)[0], self.max_length,1])
-        # query_seq = query_seq + self.pos_encoding[tf.newaxis,:,:]
-        query_seq = self.position_encoder(query_seq)
-
-        ## Pass through the transformer layers
-        # for attn,tran in zip(self.cross_attn_layers, self.transformer_layers):
-        #     query_seq = attn(query=query_seq, value=x, key=x, **kwargs)
-        #     query_seq = tran(query=query_seq, value=query_seq, key=query_seq, **kwargs)
-        return query_seq
-
-        ## Pass through the transformer layers
-        # for dec_layer in self.transformer_layers:
-        #     query_seq = dec_layer(query=query_seq, value=x, key=x, **kwargs)
-        # return self.final_layer(query_seq, **kwargs)
-
-        # ## Pass through the first transformer layer
-        # z = self.transformer_layers[0](query=query_seq, value=x, key=x, **kwargs)
-        # ## Subsequent layers with no attention mask
-        # if self.decoder_layers > 1:
-        #     for dec_layer in self.transformer_layers[1:]:
-        #         # z = dec_layer(z, context,context, **kwargs)
-        #         z = dec_layer(query=z, value=x, key=x, **kwargs)
-        # return self.final_layer(z, **kwargs)
-
-
-
-        ## Apply the mask
-        # mask = self.get_decoder_mask(tf.shape(x)[1])
-        # x = mask*x + (1-mask)*self.mask_token
-
-        ## Separate the context and sequence tokens
-        # context_v = tf.slice(x, [0,0,0], [-1,self.n_sequence_tokens//2,-1])
-        # context_k = tf.slice(x, [0,self.n_sequence_tokens//2,0], [-1,self.n_sequence_tokens//2,-1])
-        # context = tf.slice(x, [0,0,0], [-1,self.n_sequence_tokens,-1])
-        # x = tf.slice(x, [0,self.n_sequence_tokens,0], [-1,-1,-1])
-
-        ## Add the positional encoding
-        # # z = x + self.pos_encoding[tf.newaxis, :tf.shape(x)[1], :]
-        # ## First layer with potential attention mask
-        # # z = self.transformer_layers[0](z,context,context, **kwargs)
-        # z = self.transformer_layers[0](z,z, **kwargs)
-        # ## Subsequent layers with no attention mask
-        # if self.decoder_layers > 1:
-        #     for dec_layer in self.transformer_layers[1:]:
-        #         # z = dec_layer(z, context,context, **kwargs)
-        #         z = dec_layer(z, z, **kwargs)
-        # z = tf.slice(z, [0,self.n_sequence_tokens,0], [-1,-1,-1])
-        # return self.final_layer(z, **kwargs)
+        ## Repeat the query sequence along the batch and sequence dimensions
+        # query_seq = tf.tile(self.query_tokens, [tf.shape(x)[0], self.max_length,1])
+        query_seq = tf.tile(self.query_tokens, [tf.shape(x)[0], 1,1])
+        ## Apply positional encoding to the query and key sequence
+        query_seq = self.query_position_encoder(query_seq)
+        x = self.latent_position_encoder(x)
+        ## Pass through the decoding layers
+        query_seq = self.transformer_layer(query=query_seq, value=x, use_residuals=True, verbose=False, **kwargs)
+        # return layers.Softmax()(query_seq)
+        out = self.final_layer(query_seq, training=kwargs.get("training", False))
+        return out
     
 
     def get_config(self):

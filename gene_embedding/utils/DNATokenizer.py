@@ -9,13 +9,12 @@ import pandas as pd
 @tf.keras.saving.register_keras_serializable()
 class DNATokenizer(layers.Layer):
 
-    def __init__(self, tokenization_method, sequence_token=None, max_length=5000, **kwargs):
+    def __init__(self, tokenization_method, max_length=5000, **kwargs):
         super().__init__(**kwargs)
 
         ## Enfore supported tokenization method
         assert tokenization_method.lower() in {"nucleotide","codon"}
         self.tokenization_method = tokenization_method
-        self.sequence_token = sequence_token
         self.max_length = max_length
 
         ## Define vocabularies
@@ -26,25 +25,11 @@ class DNATokenizer(layers.Layer):
             vocab = ["".join(c) for c in itertools.product("atcg", repeat=3)]
             split_method = self.codon_splitter
 
-        ## Add the sequence token if desired
-        if sequence_token:
-            vocab = [sequence_token] + vocab
-
         ## Define the layer
-        self.tokenizing_layer = layers.TextVectorization(split=split_method, vocabulary=vocab)
+        self.tokenizing_layer = layers.TextVectorization(split=split_method, vocabulary=vocab, output_mode="int")
 
 
     def call(self, x):
-        # print("TOKEN DEBUG:", x)
-        # if self.sequence_token:         
-        #     ## The [SEQ] token will always be vocabulary element index 2.
-        #     #  This feels kind of hacky but it's the only thing I've tried that works robustly :(
-        #     tokens = self.tokenizing_layer(x)
-        #     paddings = tf.constant([[0,0],[1,0]])
-        #     return tf.pad(tokens, paddings, constant_values=2)
-        # else:
-        # return self.tokenizing_layer(x)
-        # print("X:", x)
         tokens = self.tokenizing_layer(x)
         ## Zero-pad the token sequence to desired length
         paddings = [[0,0],[0,self.max_length-tf.shape(tokens)[1]]]
@@ -59,7 +44,6 @@ class DNATokenizer(layers.Layer):
         base_config = super().get_config()
         config = {
             "tokenization_method":self.tokenization_method,
-            "sequence_token":self.sequence_token,
             "max_length":self.max_length
         }
         return {**base_config, **config}

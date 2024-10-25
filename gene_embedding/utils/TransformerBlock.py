@@ -15,7 +15,7 @@ class TransformerEncoderBlock(layers.Layer):
                        num_heads:int, 
                        key_dim:int, 
                        dropout_rate:float=0.1, 
-                       activation="relu",
+                       activation="gelu",
                        **kwargs):
         super().__init__(**kwargs)
         
@@ -26,7 +26,7 @@ class TransformerEncoderBlock(layers.Layer):
         self.key_dim = key_dim
         self.dropout_rate = dropout_rate
         self.activation = activation
-        self.supports_masking = True
+        # self.supports_masking = True
 
         ## Attention layer
         self.attn = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, dropout=dropout_rate)
@@ -45,17 +45,34 @@ class TransformerEncoderBlock(layers.Layer):
             self.dropout = layers.Dropout(rate=dropout_rate)
 
 
-    def call(self, query, value, key=None, attention_mask=None, use_causal_mask=False, **kwargs):
+    def call(self, query, value, key=None, attention_mask=None, use_causal_mask=False, use_residuals=True, verbose=False, **kwargs):
         ## Multi-head attention
-        attn_output,attn_score = self.attn(query, value, key, 
+        if verbose:
+            print("\nATTENTION DEBUG:")
+        attn_output,attn_score = self.attn(query=query, value=value, key=key, 
                                            attention_mask=attention_mask, 
                                            use_causal_mask=use_causal_mask, 
                                            return_attention_scores=True,
                                            training=kwargs["training"])
         self.last_attention = attn_score
 
+        if verbose:
+            print("attention scores", attn_score.shape)
+            print(attn_score[:10,0,...])
+            print("attention output:", attn_output.shape)
+            print(attn_output[:10,2,:5])
+
         ## Add and norm
-        out1 = self.norm1( self.add([query, attn_output]) )
+        if use_residuals:
+            out1 = self.norm1( self.add([query, attn_output]) )
+            # out1 = self.add([query, attn_output])
+        else:
+            out1 = self.norm1( attn_output )
+            # out1 = attn_output
+        
+        if verbose:
+            print("post add & norm:")
+            print(out1[:10,2,:5])
 
         ## Feed-forward
         ffn_output = self.ff1(out1)
@@ -63,8 +80,21 @@ class TransformerEncoderBlock(layers.Layer):
             ffn_output = self.dropout(ffn_output)
         ffn_output = self.ff2(ffn_output)
 
+        if verbose:
+            print("post ffn:")
+            print(ffn_output[:10,2,:5])
+
         ## Add and norm
-        out2 = self.norm2( self.add([out1, ffn_output]) )
+        if use_residuals:
+            out2 = self.norm2( self.add([out1, ffn_output]) )
+            # out2 = self.add([out1, ffn_output])
+        else:
+            out2 = self.norm2( ffn_output )
+            # out2 = ffn_output
+        
+        if verbose:
+            print("output:")
+            print(out2[:10,2,:5])
         
         return out2
     

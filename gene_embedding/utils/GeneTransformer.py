@@ -51,40 +51,44 @@ class GeneTransformer(models.Model):
         self.num_heads = num_heads
         self.dropout_rate = dropout_rate
         self.ff_dim = ff_dim
-        self.max_length = max_length
+        # self.max_length = max_length
         self.masking_rate = masking_rate
         self.learning_rate = learning_rate
         self.n_sequence_tokens = n_sequence_tokens
 
         if tokenization_method.lower() == "nucleotide":
             # self.sequence_token = "x"
-            self.sequence_token = None
+            # self.sequence_token = None
+            self.max_length = max_length
         elif tokenization_method.lower() == "codon":
             # self.sequence_token = "seq"
-            self.sequence_token = None
+            # self.sequence_token = None
+            self.max_length = int(np.ceil(max_length/3))
 
         ## Build the sub-models
         # Encoder
         self.encoder = SequenceEncoder(tokenization_method, encoder_layers, embedding_dim, latent_dim,
                                        key_dim, num_heads, dropout_rate, ff_dim,
-                                       masking_rate, self.sequence_token, n_sequence_tokens, max_length)
+                                       masking_rate, n_sequence_tokens, self.max_length)
         
         self.vocab_size = self.encoder.vocab_size
         self.vocabulary = self.encoder.vocabulary
 
         # Decoder
-        self.decoder = SequenceDecoder(decoder_layers, embedding_dim, key_dim, num_heads,
+        self.decoder = SequenceDecoder(decoder_layers, embedding_dim, latent_dim, key_dim, num_heads,
                                        dropout_rate, ff_dim, self.vocab_size, n_sequence_tokens,
-                                       max_length)
+                                       self.max_length)
         
 
         ## Compile the model
         # Define the optimizer
         opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        # opt2 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        # opt3 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Define the objective function
-        # loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
-        loss = "sparse_categorical_crossentropy"
+        loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
+        # loss = "sparse_categorical_crossentropy"
 
         # Define performance metrics to track
         levenshtein_metric = LevenshteinDistance(self.vocabulary)
@@ -92,13 +96,18 @@ class GeneTransformer(models.Model):
         track_metrics = [masked_accuracy,
                          levenshtein_metric]
 
+        # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics)
+        # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics)
+
         self.build(input_shape=(None,))
-        self.compile(optimizer=opt, loss=loss, metrics=track_metrics)
+        self.compile(optimizer=opt, loss=loss, metrics=track_metrics, weighted_metrics=[])
+
 
     def call(self, x, **kwargs):
         x = tf.cast(x, tf.string)
         ## Pass through the encoder
         z = self.encoder(x, **kwargs)
+        # return z
         ## Pass through the decoder
         return self.decoder(z, **kwargs)
 
@@ -108,6 +117,8 @@ class GeneTransformer(models.Model):
     def decode(self, z, **kwargs):
         return self.decoder.predict(z, **kwargs)
     
+
+
     def tokenize(self, x, one_hot=False):
         ## Add a batch dimension if needed
         # if x.shape.rank < 1:
@@ -119,33 +130,55 @@ class GeneTransformer(models.Model):
             return tf.one_hot(tokens, depth=self.vocab_size)
         else:
             return tf.squeeze(tokens)
-        # return tokens
-        
-    def preprocess_genes(self, data:tf.data.Dataset):
-        ## Add the sequence character to the beginning of each gene sequence
-        prepend_char = lambda x: self.sequence_token + x
-        return data.map(prepend_char)
     
-    def _random_mask(self, s):
-        ## Randomly remove a fraction of characters from a string
-        lens = tf.strings.length(s)
-        n_mask = tf.math.floor( self.masking_rate*tf.cast(lens, tf.float32) )
-        n_mask = tf.cast(n_mask, dtype=tf.int32)
-        keep_indices = tf.random.shuffle( tf.range(lens) )[n_mask:]
-        keep_indices = tf.squeeze( tf.sort( keep_indices ) )
-        new_s = tf.strings.substr(s, pos=keep_indices, len=tf.ones(tf.shape(keep_indices), dtype=tf.int32))
-        new_s = tf.strings.reduce_join(new_s)
-        return new_s
-    
-    def _preprocess_dataset(self, data:tf.data.Dataset, mask:bool=False) -> tf.data.Dataset:
+
+
+    def _preprocess_dataset(self, data:tf.data.Dataset, weights:tf.lookup.StaticHashTable=None) -> tf.data.Dataset:
         ## Map the dataset to a label dataset and randomly mask the inputs
         y = data.map(self.tokenize)
-        if mask:
-            x = data.map(self._random_mask)
-            return tf.data.Dataset.zip(x,y)
-        else:
+        if weights is None:
             return tf.data.Dataset.zip(data,y)
+        else:
+            w = y.map(weights.lookup)
+            return tf.data.Dataset.zip(data,y,w)
+        
+
+
+    def _compute_token_weights(self, data:tf.data.Dataset, sample:int=0):
+        ## Compute training weights for each token based on the token frequencies
+        ## Tokenize and optionally shuffle the input dataset
+        _data = data.map(lambda x: self.tokenize(x, one_hot=True))
+        if sample!=0:
+            _data = _data.shuffle(sample)
+
+        ## Compute the occurance of each token in the dataset
+        counts = np.zeros(self.encoder.vocab_size)
+        for ix,g in enumerate(_data):
+            if ix+1 == sample:
+                break
+            counts += g.numpy().sum(axis=1).squeeze()
+
+        ## Compute weights for tokens with non-zero presence
+        _w = ((ix+1) * self.max_length) / (counts[counts!=0] * sum(counts!=0))
+        # Use 1 for the weight of absent tokens
+        weights = np.ones(counts.shape)
+        weights[counts!=0] = _w
+
+        ## Define the weights as both a dict and a StaticHashTable
+        weight_dict = {ix:w for ix,w in enumerate(weights)}
+        weight_table = tf.lookup.StaticHashTable(
+            tf.lookup.KeyValueTensorInitializer(
+                list(weight_dict.keys()),
+                list(weight_dict.values()),
+                key_dtype=tf.int64,
+                value_dtype=tf.float64
+            ),
+            default_value=1
+        )
+        return weight_dict, weight_table
     
+
+
     def train(self, 
               data:tf.data.Dataset, 
               val_data:tf.data.Dataset,
@@ -153,34 +186,17 @@ class GeneTransformer(models.Model):
               epochs:int, 
               *callbacks,
               **kwargs):
-        
-        # ## Define and format the reconstruction targets as a dataset
-        # y = data.map(self.tokenize)
-        # val_y = val_data.map(self.tokenize)
 
-        # ## Create the training dataset
-        # x = tf.data.Dataset.zip(data,y)
-        # x = x.shuffle(buffer_size=100*batch_size)
-        # # x = x.padded_batch(batch_size)
-        # x = x.batch(batch_size)
-        # x = x.prefetch(tf.data.AUTOTUNE)
-
-        # ## Create the validation dataset
-        # val_x = tf.data.Dataset.zip(val_data, val_y)
-        # # val_x = val_x.padded_batch(batch_size)
-        # val_x = val_x.batch(batch_size)
-        # val_x = val_x.prefetch(tf.data.AUTOTUNE)
-
-        # H = self.fit(x, validation_data=val_x, epochs=epochs, callbacks=callbacks, **kwargs)
-        # return H.history
+        ## Compute token frequencies to inform class weights
+        _,weight_table = self._compute_token_weights(data)
 
         ## Preprocess the input data for training
-        _training = self._preprocess_dataset(data)
+        _training = self._preprocess_dataset(data, weight_table)
         _training = _training.shuffle(buffer_size=_training.cardinality())
         _training = _training.batch(batch_size)
         _training = _training.prefetch(tf.data.AUTOTUNE)
 
-        _validation = self._preprocess_dataset(val_data)
+        _validation = self._preprocess_dataset(val_data, weight_table)
         _validation = _validation.batch(batch_size)
         _validation = _validation.prefetch(tf.data.AUTOTUNE)
         

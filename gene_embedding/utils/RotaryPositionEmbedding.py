@@ -22,7 +22,6 @@ class RotaryPositionEncoding(keras.layers.Layer):
         self.supports_masking = True
 
     def build(self, input_shape: tf.TensorShape):
-
         ## Define the angle vector
         d_idx = tf.range(self.embedding_dim//2)
         theta = 10000 ** ((-1*d_idx)/self.embedding_dim)
@@ -34,8 +33,6 @@ class RotaryPositionEncoding(keras.layers.Layer):
 
         ## Define the positonally encoded angles with an outer product
         self.m_theta = tf.einsum("s,d->sd", m,theta)
-        # print("m_theta:", self.m_theta.shape)
-
         super().build(input_shape)
 
     def compute_mask(self, inputs, mask=None):
@@ -58,13 +55,16 @@ class RotaryPositionEncoding(keras.layers.Layer):
         sgn = sgn*tf.cast(evs,sgn.dtype) - sgn*tf.cast(ods,sgn.dtype)
 
         ## Apply the alternating indices and signs
-        return tf.gather(x*sgn, idx, axis=2)
+        return tf.gather( tf.multiply(x,sgn), idx, axis=2)
 
     def call(self, x: tf.Tensor):
         """Input is expected to be of size [bsz x seqlen]."""
+        # print("\nROTARY DEBUGGING:")
         seq_len = tf.shape(x)[1]
         _angles = tf.slice(self.m_theta, begin=[0,0], size=[seq_len,self.embedding_dim])[None,...]
         _angles = tf.cast(_angles, x.dtype)
         x_shuffle = self._permute_for_rotation(x)
-        return x*tf.cos(_angles) + x_shuffle*tf.sin(_angles)
+        _t1 = tf.multiply(x, tf.math.cos(_angles))
+        _t2 = tf.multiply(x_shuffle,tf.math.sin(_angles))
+        return tf.add(_t1, _t2)
     
