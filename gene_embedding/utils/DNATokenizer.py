@@ -15,7 +15,7 @@ class DNATokenizer(layers.Layer):
         ## Enfore supported tokenization method
         assert tokenization_method.lower() in {"nucleotide","codon"}
         self.tokenization_method = tokenization_method
-        self.max_length = max_length
+        self.max_length = tf.Variable(initial_value=max_length, trainable=False, dtype=tf.int32, name="tokenizer_pad_length")
 
         ## Define vocabularies
         if tokenization_method.lower() == "nucleotide":
@@ -30,8 +30,11 @@ class DNATokenizer(layers.Layer):
 
 
     def call(self, x):
+        # print("DEBUG 1.5:", x)
+        # print("DEBUG 2:", tf.strings.length(x))
         tokens = self.tokenizing_layer(x)
         ## Zero-pad the token sequence to desired length
+        # print("DEBUG 3:", self.max_length-tf.shape(tokens)[1])
         paddings = [[0,0],[0,self.max_length-tf.shape(tokens)[1]]]
         paddedd_tokens = tf.pad(tokens, paddings)
         return paddedd_tokens
@@ -44,7 +47,7 @@ class DNATokenizer(layers.Layer):
         base_config = super().get_config()
         config = {
             "tokenization_method":self.tokenization_method,
-            "max_length":self.max_length
+            "max_length":self.max_length.numpy()
         }
         return {**base_config, **config}
 

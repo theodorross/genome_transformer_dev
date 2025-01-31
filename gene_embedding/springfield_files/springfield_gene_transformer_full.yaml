@@ -1,36 +1,37 @@
 kind: Job
 apiVersion: batch/v1
 metadata:
-  name: gene-embedding
+  name: gene-embedding-full
 spec:
   template:
     spec:
       hostIPC: true
       containers:
-      - name: gene-embedding
+      - name: gene-embedding-full
         image: "theodorross/tensorflow-experiments:cuda-v0.3"
         command: ["python"]
         args:
         - "train_gene_autoencoder.py"
         - "--platform=springfield"
-        - "--dataset=dev"
-        - "--n-sequence-tokens=250"
-        - "--latent-dim=6"
+        - "--dataset=full"
+        - "--n-sequence-tokens=8"
+        - "--latent-dim=32"
         - "--embedding-dim=6"
-        - "--learning-rate=1e-3"
-        - "--learning-rate-decay=0.01"
-        - "--learning-rate-decay-start=3000"
+        - "--learning-rate=5e-3"
+        - "--learning-rate-decay=1e-3"
+        - "--learning-rate-decay-start=1000"
         - "--masking-rate=0.0"
         - "--dropout-rate=0.0"
         - "--batch-size=30"
-        - "--epochs=10000"
-        - "--patience=5000"
-        - "--encoder-layers=0"
+        - "--epochs=1000"
+        - "--patience=150"
+        - "--encoder-layers=1"
         - "--decoder-layers=1"
-        - "--key-dim=10"
-        - "--num-heads=1"
-        - "--ff-dim=50"
-        - "--max-seq-length=250"
+        - "--key-dim=8"
+        - "--num-heads=12"
+        - "--ff-dim=32"
+        - "--max-seq-length=100"
+        - "--decode-length=100"
         workingDir: /storage/genome_transformer_dev/gene_embedding
         volumeMounts:
         - name: storage

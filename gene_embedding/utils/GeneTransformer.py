@@ -21,8 +21,6 @@ class GeneTransformer(models.Model):
     - no longer resembles a normal transformer...
     
     @TODO: 
-        - codon tokenization doesn't quite work right, not sure why
-        - fix sequence masking during attention
     '''
 
     def __init__(self, tokenization_method:str, 
@@ -35,6 +33,7 @@ class GeneTransformer(models.Model):
                        dropout_rate:float=0.1, 
                        ff_dim:int=2048, 
                        max_length:int=5000,
+                       decode_length:int=5000,
                        masking_rate:float=0.05,
                        learning_rate:float=1e-6,
                        n_sequence_tokens:int=2,
@@ -60,35 +59,54 @@ class GeneTransformer(models.Model):
             # self.sequence_token = "x"
             # self.sequence_token = None
             self.max_length = max_length
+            self.decode_length = decode_length
         elif tokenization_method.lower() == "codon":
             # self.sequence_token = "seq"
             # self.sequence_token = None
             self.max_length = int(np.ceil(max_length/3))
+            self.decode_length = int(np.ceil(decode_length/3))
 
         ## Build the sub-models
         # Encoder
-        self.encoder = SequenceEncoder(tokenization_method, encoder_layers, embedding_dim, latent_dim,
-                                       key_dim, num_heads, dropout_rate, ff_dim,
-                                       masking_rate, n_sequence_tokens, self.max_length)
+        self.encoder = SequenceEncoder(tokenization_method=tokenization_method, 
+                                       encoder_layers=encoder_layers, 
+                                       embedding_dim=embedding_dim, 
+                                       latent_dim=latent_dim,
+                                       key_dim=key_dim, 
+                                       num_heads=num_heads,
+                                       dropout_rate=dropout_rate, 
+                                       ff_dim=ff_dim,
+                                       masking_rate=masking_rate, 
+                                       n_sequence_tokens=n_sequence_tokens, 
+                                       max_length=max_length,
+                                       decode_length=decode_length)
         
         self.vocab_size = self.encoder.vocab_size
         self.vocabulary = self.encoder.vocabulary
 
         # Decoder
-        self.decoder = SequenceDecoder(decoder_layers, embedding_dim, latent_dim, key_dim, num_heads,
-                                       dropout_rate, ff_dim, self.vocab_size, n_sequence_tokens,
-                                       self.max_length)
+        self.decoder = SequenceDecoder(decoder_layers=decoder_layers, 
+                                       embedding_dim=embedding_dim, 
+                                       latent_dim=latent_dim, 
+                                       key_dim=key_dim, 
+                                       num_heads=num_heads,
+                                       dropout_rate=dropout_rate, 
+                                       ff_dim=ff_dim, 
+                                       vocab_size=self.vocab_size, 
+                                       n_sequence_tokens=n_sequence_tokens,
+                                       max_length=max_length,
+                                       decode_length=decode_length)
         
 
         ## Compile the model
         # Define the optimizer
         opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        # opt2 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        # opt3 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        opt2 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        opt3 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Define the objective function
-        loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
-        # loss = "sparse_categorical_crossentropy"
+        # loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
+        loss = "sparse_categorical_crossentropy"
 
         # Define performance metrics to track
         levenshtein_metric = LevenshteinDistance(self.vocabulary)
@@ -96,20 +114,22 @@ class GeneTransformer(models.Model):
         track_metrics = [masked_accuracy,
                          levenshtein_metric]
 
-        # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics)
-        # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics)
+        self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
+        self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
 
         self.build(input_shape=(None,))
         self.compile(optimizer=opt, loss=loss, metrics=track_metrics, weighted_metrics=[])
 
 
     def call(self, x, **kwargs):
-        x = tf.cast(x, tf.string)
+        # x = tf.cast(x, tf.string)
         ## Pass through the encoder
         z = self.encoder(x, **kwargs)
         # return z
         ## Pass through the decoder
         return self.decoder(z, **kwargs)
+        # return self.decoder(x, **kwargs)
+
 
     def encode(self, x, **kwargs):
         return self.encoder.predict(x, **kwargs)
@@ -117,6 +137,19 @@ class GeneTransformer(models.Model):
     def decode(self, z, **kwargs):
         return self.decoder.predict(z, **kwargs)
     
+
+    def update_decode_length(self, new_length):
+        ## Compute the new decoding length
+        if self.tokenization_method.lower() == "nucleotide":
+            self.decode_length = new_length
+        elif self.tokenization_method.lower() == "codon":
+            self.decode_length = int(np.ceil(new_length/3))
+
+        ## Set sub-objects to have the new decoding length
+        self.encoder._update_decode_length(self.decode_length)
+        self.decoder._update_decode_length(self.decode_length)
+        
+        
 
 
     def tokenize(self, x, one_hot=False):
@@ -127,7 +160,7 @@ class GeneTransformer(models.Model):
         ## Convert a DNA sequence to a sequence of tokens, optionally one-hot encoded
         tokens = self.encoder.tokenizing_layer(x)
         if one_hot:
-            return tf.one_hot(tokens, depth=self.vocab_size)
+            return tf.squeeze( tf.one_hot(tokens, depth=self.vocab_size) )
         else:
             return tf.squeeze(tokens)
     
@@ -136,11 +169,14 @@ class GeneTransformer(models.Model):
     def _preprocess_dataset(self, data:tf.data.Dataset, weights:tf.lookup.StaticHashTable=None) -> tf.data.Dataset:
         ## Map the dataset to a label dataset and randomly mask the inputs
         y = data.map(self.tokenize)
+        _y = data.map(lambda x: self.tokenize(x, one_hot=True))
         if weights is None:
             return tf.data.Dataset.zip(data,y)
+            # return tf.data.Dataset.zip(_y,y)
         else:
             w = y.map(weights.lookup)
             return tf.data.Dataset.zip(data,y,w)
+            # return tf.data.Dataset.zip(_y,y,w)
         
 
 
@@ -156,10 +192,10 @@ class GeneTransformer(models.Model):
         for ix,g in enumerate(_data):
             if ix+1 == sample:
                 break
-            counts += g.numpy().sum(axis=1).squeeze()
+            counts += g.numpy().sum(axis=0).squeeze()
 
         ## Compute weights for tokens with non-zero presence
-        _w = ((ix+1) * self.max_length) / (counts[counts!=0] * sum(counts!=0))
+        _w = ((ix+1) * self.decode_length) / (counts[counts!=0] * sum(counts!=0))
         # Use 1 for the weight of absent tokens
         weights = np.ones(counts.shape)
         weights[counts!=0] = _w
@@ -184,7 +220,7 @@ class GeneTransformer(models.Model):
               val_data:tf.data.Dataset,
               batch_size:int, 
               epochs:int, 
-              *callbacks,
+              callbacks:list,
               **kwargs):
 
         ## Compute token frequencies to inform class weights
@@ -192,16 +228,28 @@ class GeneTransformer(models.Model):
 
         ## Preprocess the input data for training
         _training = self._preprocess_dataset(data, weight_table)
-        _training = _training.shuffle(buffer_size=_training.cardinality())
+        # _training = _training.shuffle(buffer_size=_training.cardinality())
+        _training = _training.shuffle(buffer_size=batch_size*100)
+        # _training = _training.shuffle(buffer_size=100)
         _training = _training.batch(batch_size)
         _training = _training.prefetch(tf.data.AUTOTUNE)
 
         _validation = self._preprocess_dataset(val_data, weight_table)
         _validation = _validation.batch(batch_size)
         _validation = _validation.prefetch(tf.data.AUTOTUNE)
+
+        # for x,y,w in _training.as_numpy_iterator():
+
+        #     print(x.shape, y.shape, w.shape)
+        #     print(len(x[0]))
+        #     print(y[0])
+        #     print(w[0])
+        #     exit()
         
         ## Train the model
         H = self.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
+        # H = self.decoder.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
+        # H = self.encoder.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
         return H.history
 
     

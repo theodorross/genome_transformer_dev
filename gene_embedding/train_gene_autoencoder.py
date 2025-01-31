@@ -3,7 +3,7 @@ import tensorflow as tf
 import keras
 import wandb
 import argparse
-import json
+# import json
 import os
 # import datetime
 # import pickle
@@ -47,7 +47,8 @@ if __name__ == "__main__":
     parser.add_argument("--num-heads", default=8, type=int, help="Number of attention heads in multi-head attention units.")
     parser.add_argument("--dropout-rate", default=0.1, type=float, help="Dropout rate used in feed-forward layers.")
     parser.add_argument("--ff-dim", default=2048, type=int, help="Dimensionality of the hidden feed-forward layer in the transformer blocks.")
-    parser.add_argument("--n-sequence-tokens", default=2, type=int, help="Number of sequence tokens to use.")
+    parser.add_argument("--n-sequence-tokens", default=2, type=int, help="Number of latent sequence tokens to use.")
+    parser.add_argument("--decode-length", default=5000, type=int, help="Number of sequence tokens to use during reconstruction.")
 
     ## Training hyperparameters
     parser.add_argument("--masking-rate", default=0.05, type=float, help="Probability of masking each input token during training.")
@@ -79,7 +80,8 @@ if __name__ == "__main__":
                     "max_length":args.max_seq_length,
                     "masking_rate":args.masking_rate,
                     "learning_rate":args.learning_rate,
-                    "n_sequence_tokens":args.n_sequence_tokens}
+                    "n_sequence_tokens":args.n_sequence_tokens,
+                    "decode_length":args.decode_length}
     
     training_config = {"patience":args.patience,
                        "cross_folds":args.cross_folds,
@@ -113,8 +115,10 @@ if __name__ == "__main__":
 
     ## Load the dataset and remove genes over the max sequence length
     gene_dataset = tf.data.TextLineDataset(datapath)
-    # gene_dataset = gene_dataset.filter(lambda x: tf.strings.length(x) <= args.max_seq_length)
-    gene_dataset = gene_dataset.map(clip_gene(args.max_seq_length))
+    if args.dataset == "full":
+        gene_dataset = gene_dataset.filter(lambda x: tf.strings.length(x) <= args.max_seq_length).cache()
+    elif args.dataset == "dev":
+        gene_dataset = gene_dataset.map(clip_gene(args.max_seq_length))
 
     ## Cut the dataset into k cross-folds
     dataset_cuts = [gene_dataset.shard(args.cross_folds, k) for k in range(args.cross_folds)]
@@ -123,10 +127,11 @@ if __name__ == "__main__":
     '''
     Define training callbacks
     '''
-    if args.dataset.lower() == "full":
-        wandb_callback = wandb.keras.WandbMetricsLogger(log_freq=50)
-    else:
-        wandb_callback = wandb.keras.WandbMetricsLogger()
+    # if args.dataset.lower() == "full":
+    #     wandb_callback = wandb.keras.WandbMetricsLogger(log_freq=50)
+    # else:
+    #     wandb_callback = wandb.keras.WandbMetricsLogger()
+    wandb_callback = wandb.keras.WandbMetricsLogger()
     early_stopper = keras.callbacks.EarlyStopping(patience=args.patience,
                                                   restore_best_weights=True)
     callbacks = [wandb_callback, early_stopper]
@@ -137,15 +142,30 @@ if __name__ == "__main__":
         #         return args.learning_rate * np.exp(-args.learning_rate_decay * (ep - args.learning_rate_decay_start))
         #     else:
         #         return args.learning_rate
-        schedule_func = lambda e,lr: lr*tf.exp(-0.1) if (e%100==99 and e>args.learning_rate_decay_start) else lr
+        if args.dataset.lower() == "dev":
+            schedule_func = lambda e,lr: lr*tf.exp(-0.1) if (e%250==249 and e>args.learning_rate_decay_start) else lr
+        else:
+            schedule_func = lambda e,lr: lr*tf.exp(-0.1) if (e%250==249 and e>args.learning_rate_decay_start) else lr
         lr_scheduler = keras.callbacks.LearningRateScheduler(schedule_func)
         callbacks.append(lr_scheduler)
 
     '''
     Define a new model to train for each cross-validation fold
     '''
+    ## Define incrementing gene lengths for training
+    decode_lengths = [args.decode_length]
+    while min(decode_lengths) > 50:
+        newval = min(decode_lengths) // 2
+        if newval > 50:
+            decode_lengths.append(newval)
+        else:
+            break
+    decode_lengths.sort()
+
+    ## Initialize a dictionary for storing training histories of each fold
     training_histories = {}
 
+    ## Loop through training folds
     for k in range(args.cross_folds):
 
         ## Define the training and test datsets
@@ -156,32 +176,67 @@ if __name__ == "__main__":
         ## Initialize the model
         gene_ae = GeneTransformer(**model_config)
         print(gene_ae.summary())
+        
+        # ## Train the model
+        # fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
 
-        ## Preprocess the genes
-        # training_fold = gene_ae.preprocess_genes(training_fold)
-        # validation_fold = gene_ae.preprocess_genes(validation_fold)
+        ## Initialize a training history
+        fold_history = {}
 
-        ## Train the model
-        fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
+        ## Loop through the desired gene lengths
+        for ix,gene_length in enumerate(decode_lengths):
+            print(f"Training on genes of {gene_length} tokens and smaller...")
+
+            ## Filter the datasets
+            _training_fold = training_fold.filter(lambda x: tf.strings.length(x) < gene_length).cache()
+            _validation_fold = validation_fold.filter(lambda x: tf.strings.length(x) < gene_length).cache()
+
+            ## Train the model
+            _epochs = args.epochs // len(decode_lengths)
+            _hist = gene_ae.train(_training_fold, _validation_fold, args.batch_size, _epochs*(ix+1), callbacks=callbacks, verbose=1, initial_epoch=_epochs*ix)
+            
+            ## Store the training history
+            for key,val in _hist.items():
+                if key in fold_history.keys():
+                    fold_history[key] += _hist[key]
+                else:
+                    fold_history[key] = _hist[key]
+
 
         ## Print a sample reconstruction
-        print("Training reconstruction")
-        sample_gene = next(training_fold.batch(1).as_numpy_iterator())
-        sample_pred = gene_ae.predict(sample_gene)
-        recon_tokens = np.argmax(sample_pred, axis=-1)
+        print("Training reconstructions")
+        sample_genes = next(training_fold.batch(5).as_numpy_iterator())
+        sample_preds = gene_ae.predict(sample_genes)
+        recon_tokens = np.argmax(sample_preds, axis=-1)
         recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
-        recon_gene = ["".join(recon_chars[ix]).upper() for ix in range(sample_gene.shape[0])]
-        print(sample_gene[0].decode("ASCII"))
-        print(recon_gene[0])
+        recon_genes = ["".join(recon_chars[ix]).upper() for ix in range(sample_genes.shape[0])]
 
-        print("\nValidation reconstruction")
-        sample_gene = next(validation_fold.batch(1).as_numpy_iterator())
-        sample_pred = gene_ae.predict(sample_gene)
-        recon_tokens = np.argmax(sample_pred, axis=-1)
+        for ix in range(5):
+            print()
+            recon_str = ""
+            for t,r in zip(sample_genes[ix].decode("ASCII"), recon_genes[ix]):
+                if t != r: recon_str += f"\033[0;31m{r}\033[0m"
+                else: recon_str += f"\033[0;32m{r}\033[0m"
+            print(sample_genes[ix].decode("ASCII"))
+            print(recon_str)
+
+
+
+        print("\nValidation reconstructions")
+        sample_genes = next(validation_fold.batch(5).as_numpy_iterator())
+        sample_preds = gene_ae.predict(sample_genes)
+        recon_tokens = np.argmax(sample_preds, axis=-1)
         recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
-        recon_gene = ["".join(recon_chars[ix]).upper() for ix in range(sample_gene.shape[0])]
-        print(sample_gene[0].decode("ASCII"))
-        print(recon_gene[0])
+        recon_genes = ["".join(recon_chars[ix]).upper() for ix in range(sample_genes.shape[0])]
+
+        for ix in range(5):
+            print()
+            recon_str = ""
+            for t,r in zip(sample_genes[ix].decode("ASCII"), recon_genes[ix]):
+                if t != r: recon_str += f"\033[0;31m{r}\033[0m"
+                else: recon_str += f"\033[0;32m{r}\033[0m"
+            print(sample_genes[ix].decode("ASCII"))
+            print(recon_str)
 
         ## Store the training history
         training_histories[f"Fold {k}"] = fold_history
@@ -191,7 +246,6 @@ if __name__ == "__main__":
         gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}")
 
         
-
         break
 
     wandb.finish()
