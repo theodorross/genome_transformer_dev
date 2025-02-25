@@ -2,7 +2,8 @@
 
 
 ## Log into wandb
-sh ~/wandb_login.sh
+# sh ~/wandb_login.sh
+WANDB_MODE=offline
 
 
 ## Run the python script
