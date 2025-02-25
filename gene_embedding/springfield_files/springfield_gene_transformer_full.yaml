@@ -31,8 +31,8 @@ spec:
         - "--num-heads=12"
         - "--ff-dim=32"
         - "--max-seq-length=1000"
-        - "--decode-length=100"
-        - "--seq-length-steps=10"
+        - "--decode-length=200"
+        - "--seq-length-steps=9"
         workingDir: /storage/genome_transformer_dev/gene_embedding
         volumeMounts:
         - name: storage
