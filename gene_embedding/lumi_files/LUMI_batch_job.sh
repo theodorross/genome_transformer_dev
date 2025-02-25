@@ -24,7 +24,7 @@ WORKDIR=/project/project_465001381/rosstheo/genome_transformer_dev/gene_embeddin
 srun singularity exec \
     -B /project/project_465001381/rosstheo \
     $GITDIR/container/tensorflow-experiments_rocm-v0.3.sif python \
-    train_gene_autoencoder.py < $WORKDIR/lumi_files/args.txt
+    train_gene_autoencoder.py < $WORKDIR/lumi_files/args.yml
 
 
 
