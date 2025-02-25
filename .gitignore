@@ -25,7 +25,7 @@ gene_embedding/wandb
 gene_embedding/utils/__pycache__
 gene_embedding/models
 gene_embedding/figures
-gene_embedding/lumi_files/logs/*
+gene_embedding/lumi_files/logs
 data/__pycache__
 data/blast
 data/gene_sequences
