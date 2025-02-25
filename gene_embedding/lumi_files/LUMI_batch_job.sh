@@ -16,9 +16,6 @@
 sh ~/wandb_login.sh
 
 
-## Update the codebase
-git pull origin working
-
 ## Define directories of interest
 GITDIR=/project/project_465001381/rosstheo/gneome_transformer_dev
 WORKDIR=/project/project_465001381/rosstheo/gneome_transformer_dev/gene_embedding
