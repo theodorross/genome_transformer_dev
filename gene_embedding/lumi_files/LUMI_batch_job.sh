@@ -9,7 +9,7 @@
 #SBATCH --cpus-per-task=32
 #SBATCH --gpus=1
 #SBATCH --mem=32G
-#SBATCH --partition=small-g
+#SBATCH --partition=standard-g
 
 
 ## Log into wandb
@@ -17,8 +17,8 @@ sh ~/wandb_login.sh
 
 
 ## Define directories of interest
-GITDIR=/project/project_465001381/rosstheo/gneome_transformer_dev
-WORKDIR=/project/project_465001381/rosstheo/gneome_transformer_dev/gene_embedding
+GITDIR=/project/project_465001381/rosstheo/genome_transformer_dev
+WORKDIR=/project/project_465001381/rosstheo/genome_transformer_dev/gene_embedding
 
 ## Run the training scrip
 srun singularity exec \
