@@ -108,6 +108,8 @@ if __name__ == "__main__":
         data_dir = "../data/gene_sequences"
     if args.platform.lower() == "springfield":
         data_dir = "/storage/data/e_faecium/gene_embedding"
+    if args.platform.upper() == "LUMI":
+        data_dir = "/project/project_465001381/rosstheo/genome_transformer_dev/data"
     
     if args.dataset.lower() == "dev":   
         datapath = f"{data_dir}/unique_dna_seqs_dev.txt"
