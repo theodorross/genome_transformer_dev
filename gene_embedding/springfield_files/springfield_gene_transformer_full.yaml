@@ -1,13 +1,13 @@
 kind: Job
 apiVersion: batch/v1
 metadata:
-  name: gene-embedding-full
+  name: gene-embedding-full-b100
 spec:
   template:
     spec:
       hostIPC: true
       containers:
-      - name: gene-embedding-full
+      - name: gene-embedding-full-b100
         image: "theodorross/tensorflow-experiments:cuda-v0.3"
         command: ["python"]
         args:
@@ -16,22 +16,23 @@ spec:
         - "--dataset=full"
         - "--n-sequence-tokens=8"
         - "--latent-dim=32"
-        - "--embedding-dim=6"
+        - "--embedding-dim=8"
         - "--learning-rate=5e-3"
         - "--learning-rate-decay=1e-3"
         - "--learning-rate-decay-start=1000"
         - "--masking-rate=0.0"
         - "--dropout-rate=0.0"
-        - "--batch-size=30"
-        - "--epochs=1000"
+        - "--batch-size=100"
+        - "--epochs=2000"
         - "--patience=150"
-        - "--encoder-layers=1"
-        - "--decoder-layers=1"
+        - "--encoder-layers=5"
+        - "--decoder-layers=5"
         - "--key-dim=8"
         - "--num-heads=12"
         - "--ff-dim=32"
-        - "--max-seq-length=100"
+        - "--max-seq-length=1000"
         - "--decode-length=100"
+        - "--seq-length-steps=10"
         workingDir: /storage/genome_transformer_dev/gene_embedding
         volumeMounts:
         - name: storage

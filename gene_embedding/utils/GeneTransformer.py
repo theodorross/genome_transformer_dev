@@ -231,11 +231,11 @@ class GeneTransformer(models.Model):
         # _training = _training.shuffle(buffer_size=_training.cardinality())
         _training = _training.shuffle(buffer_size=batch_size*100)
         # _training = _training.shuffle(buffer_size=100)
-        _training = _training.batch(batch_size)
+        _training = _training.batch(batch_size).cache()
         _training = _training.prefetch(tf.data.AUTOTUNE)
 
         _validation = self._preprocess_dataset(val_data, weight_table)
-        _validation = _validation.batch(batch_size)
+        _validation = _validation.batch(batch_size).cache()
         _validation = _validation.prefetch(tf.data.AUTOTUNE)
 
         # for x,y,w in _training.as_numpy_iterator():

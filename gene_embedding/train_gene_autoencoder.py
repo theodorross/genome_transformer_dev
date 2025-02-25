@@ -48,18 +48,19 @@ if __name__ == "__main__":
     parser.add_argument("--dropout-rate", default=0.1, type=float, help="Dropout rate used in feed-forward layers.")
     parser.add_argument("--ff-dim", default=2048, type=int, help="Dimensionality of the hidden feed-forward layer in the transformer blocks.")
     parser.add_argument("--n-sequence-tokens", default=2, type=int, help="Number of latent sequence tokens to use.")
-    parser.add_argument("--decode-length", default=5000, type=int, help="Number of sequence tokens to use during reconstruction.")
-
-    ## Training hyperparameters
+    parser.add_argument("--decode-length", default=5000, type=int, help="Number of sequence tokens to use during reconstruction at the beginning of training.")
     parser.add_argument("--masking-rate", default=0.05, type=float, help="Probability of masking each input token during training.")
     parser.add_argument("--learning-rate", default=1e-6, type=float, help="Learning rate for the optimizer.", required=False)
+    parser.add_argument("--max-seq-length", default=5000, type=int, help="Maximum sequence length to use during training.")
+
+    ## Training hyperparameters
     parser.add_argument("--learning-rate-decay", default=None, type=float, help="Decay rate for learning rate schedule.")
     parser.add_argument("--learning-rate-decay-start", default=None, type=float, help="Epoch to begin learning rate decay.")
     parser.add_argument("--batch-size", "-b", default=4, type=int, help="Batch size for training.", required=False)
     parser.add_argument("--epochs", default=100, type=int, help="Maximum number of training epochs to perform.", required=False)
     parser.add_argument("--patience", default=25, type=int, help="Patience for early stopping.", required=False)
     parser.add_argument("--cross-folds", default=5, type=int, help="Number of cross-folds for validation of training.", required=False)
-    parser.add_argument("--max-seq-length", default=5000, type=int, help="Maximum sequence length to use during training.")
+    parser.add_argument("--seq-length-steps", default=10, type=int, help="Number of linear steps for increasing the sequence length from decode-length to max-seq-length.")
     args = parser.parse_args()
 
     '''
@@ -88,7 +89,8 @@ if __name__ == "__main__":
                        "batch_size":args.batch_size,
                        "epochs":args.epochs,
                        "learning_rate_decay":args.learning_rate_decay,
-                       "learning_rate_decay_start":args.learning_rate_decay_start}
+                       "learning_rate_decay_start":args.learning_rate_decay_start,
+                       "seq_length_steps":args.seq_length_steps}
     
     wandb_config = sys_config | model_config | training_config
 
@@ -127,10 +129,6 @@ if __name__ == "__main__":
     '''
     Define training callbacks
     '''
-    # if args.dataset.lower() == "full":
-    #     wandb_callback = wandb.keras.WandbMetricsLogger(log_freq=50)
-    # else:
-    #     wandb_callback = wandb.keras.WandbMetricsLogger()
     wandb_callback = wandb.keras.WandbMetricsLogger()
     early_stopper = keras.callbacks.EarlyStopping(patience=args.patience,
                                                   restore_best_weights=True)
@@ -153,14 +151,15 @@ if __name__ == "__main__":
     Define a new model to train for each cross-validation fold
     '''
     ## Define incrementing gene lengths for training
-    decode_lengths = [args.decode_length]
-    while min(decode_lengths) > 50:
-        newval = min(decode_lengths) // 2
-        if newval > 50:
-            decode_lengths.append(newval)
-        else:
-            break
-    decode_lengths.sort()
+    decode_lengths = np.linspace(args.decode_length, args.max_seq_length, args.seq_length_steps, dtype=int)
+    # decode_lengths = [args.decode_length]
+    # while min(decode_lengths) > 50:
+    #     newval = min(decode_lengths) // 2
+    #     if newval > 50:
+    #         decode_lengths.append(newval)
+    #     else:
+    #         break
+    # decode_lengths.sort()
 
     ## Initialize a dictionary for storing training histories of each fold
     training_histories = {}
@@ -184,16 +183,19 @@ if __name__ == "__main__":
         fold_history = {}
 
         ## Loop through the desired gene lengths
+        _epoch_count = 0
         for ix,gene_length in enumerate(decode_lengths):
             print(f"Training on genes of {gene_length} tokens and smaller...")
+            gene_ae.update_decode_length(gene_length)
 
             ## Filter the datasets
             _training_fold = training_fold.filter(lambda x: tf.strings.length(x) < gene_length).cache()
             _validation_fold = validation_fold.filter(lambda x: tf.strings.length(x) < gene_length).cache()
 
             ## Train the model
-            _epochs = args.epochs // len(decode_lengths)
-            _hist = gene_ae.train(_training_fold, _validation_fold, args.batch_size, _epochs*(ix+1), callbacks=callbacks, verbose=1, initial_epoch=_epochs*ix)
+            _epochs = args.epochs // len(decode_lengths)        # number of epochs per decode length
+            _hist = gene_ae.train(_training_fold, _validation_fold, args.batch_size, _epochs*(ix+1), callbacks=callbacks, verbose=1, initial_epoch=_epoch_count)
+            _epoch_count += len(_hist["loss"])
             
             ## Store the training history
             for key,val in _hist.items():
