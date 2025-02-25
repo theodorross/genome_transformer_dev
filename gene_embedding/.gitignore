@@ -1,0 +1,25 @@
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Data files #
+######################
+*.csv
+*.fasta
+*.txt
+*.zip
+*.keras
+*.sif
+
+# Specific Directories #
+######################
+wandb
+utils/__pycache__
+models
+figures
