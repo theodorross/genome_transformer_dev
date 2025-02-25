@@ -7,3 +7,10 @@ dependencies:
   - tensorflow=2.14.0
   - wandb=0.16.6
   - pandas=2.2.2
+  - altair=5.4.0
+  - scikit-learn=1.5.1
+  - matplotlib=3.9.2
+  - ipykernel=6.29.5
+  - vl-convert-python=1.7.0
+  - tqdm=4.67.1
+
