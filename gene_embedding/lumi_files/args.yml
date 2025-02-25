@@ -9,7 +9,7 @@
 --masking-rate=0.0
 --dropout-rate=0.0
 --batch-size=100
---epochs=1800
+--epochs=3200
 --patience=150
 --encoder-layers=5
 --decoder-layers=5
