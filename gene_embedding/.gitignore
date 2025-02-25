@@ -23,3 +23,4 @@ wandb
 utils/__pycache__
 models
 figures
+lumi_files/logs/*
