@@ -6,5 +6,5 @@ sh ~/wandb_login.sh
 
 
 ## Run the python script
-train_gene_autoencoder.py < lumi_files/args.yml
+python train_gene_autoencoder.py < lumi_files/args.yml
 
