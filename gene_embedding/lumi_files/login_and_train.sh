@@ -1,10 +1,12 @@
 #!/bin/bash
 
+## Activate the venv
+$WITH_CONDA
+source wandb-env/bin/activate
 
 ## Log into wandb
 sh ~/wandb_login.sh
 # WANDB_MODE=offline
-
 
 ## Run the python script
 python train_gene_autoencoder.py `cat lumi_files/args.yml`
