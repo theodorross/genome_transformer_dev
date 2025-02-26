@@ -22,6 +22,7 @@ Thumbs.db
 cog_presence/wandb
 cog_presence/utils/__pycache__
 gene_embedding/wandb
+gene_embedding/wandb-env
 gene_embedding/utils/__pycache__
 gene_embedding/models
 gene_embedding/figures

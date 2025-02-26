@@ -20,6 +20,7 @@ Thumbs.db
 # Specific Directories #
 ######################
 wandb
+wandb-env
 utils/__pycache__
 models
 figures
