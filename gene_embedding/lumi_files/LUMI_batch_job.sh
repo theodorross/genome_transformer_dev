@@ -3,13 +3,13 @@
 #SBATCH --output=lumi_files/logs/gene_embedding.o%j # Name of stdout output file
 #SBATCH --error=lumi_files/logs/gene_embedding.e%j  # Name of stderr error file
 #SBATCH --account=project_465001381
-#SBATCH --time=00:10:00
+#SBATCH --time=48:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
 #SBATCH --gpus=1
 #SBATCH --mem=32G
-#SBATCH --partition=dev-g
+#SBATCH --partition=small-g
 
 
 ## Load the needed LUMI bindings
