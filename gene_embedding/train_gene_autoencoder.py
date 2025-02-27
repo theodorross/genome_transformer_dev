@@ -100,6 +100,10 @@ if __name__ == "__main__":
         sync_tensorboard=True
     )
 
+    ## Instantiate the multi-GPU training strategy
+    strategy = tf.distribute.MirroredStrategy()
+    print(f"\nNumber of device: {strategy.num_replicas_in_sync}\n")
+
     '''
     Load the unique gene sequences and get rid of genes longer than 5 kb
     '''
@@ -155,20 +159,13 @@ if __name__ == "__main__":
     '''
     ## Define incrementing gene lengths for training
     decode_lengths = np.linspace(args.decode_length, args.max_seq_length, args.seq_length_steps, dtype=int)
-    # decode_lengths = [args.decode_length]
-    # while min(decode_lengths) > 50:
-    #     newval = min(decode_lengths) // 2
-    #     if newval > 50:
-    #         decode_lengths.append(newval)
-    #     else:
-    #         break
-    # decode_lengths.sort()
 
     ## Initialize a dictionary for storing training histories of each fold
     training_histories = {}
 
     ## Loop through training folds
     for k in range(args.cross_folds):
+        print()
 
         ## Define the training and test datsets
         validation_fold = dataset_cuts[k]
@@ -176,7 +173,8 @@ if __name__ == "__main__":
         training_fold = concatenate_datasets(*training_fold)
 
         ## Initialize the model
-        gene_ae = GeneTransformer(**model_config)
+        with strategy.scope():
+            gene_ae = GeneTransformer(**model_config)
         print(gene_ae.summary())
         
         # ## Train the model
