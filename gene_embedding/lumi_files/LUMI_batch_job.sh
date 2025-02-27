@@ -6,10 +6,8 @@
 #SBATCH --time=48:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=32
-#SBATCH --gpus=1
-#SBATCH --mem=32G
-#SBATCH --partition=small-g
+#SBATCH --gpus-per-node=8
+#SBATCH --partition=standard-g
 
 
 ## Load the needed LUMI bindings

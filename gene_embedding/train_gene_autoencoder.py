@@ -207,6 +207,12 @@ if __name__ == "__main__":
                 else:
                     fold_history[key] = _hist[key]
 
+            ## Save the interstitial model after each step up in size
+            if not os.path.exists(f"models/geneAE_{wandb.run.name}_fold{k}"):
+                os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
+            os.path.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}/{gene_length}_tokens")
+            gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}/{gene_length}_tokens")
+
 
         ## Print a sample reconstruction
         print("Training reconstructions")
@@ -247,7 +253,8 @@ if __name__ == "__main__":
         training_histories[f"Fold {k}"] = fold_history
 
         ## Save the model
-        os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
+        if not os.path.exists(f"models/geneAE_{wandb.run.name}_fold{k}"):
+            os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
         gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}")
 
         

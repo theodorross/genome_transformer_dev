@@ -9,13 +9,13 @@
 --masking-rate=0.0
 --dropout-rate=0.0
 --batch-size=100
---epochs=3600
+--epochs=4000
 --patience=150
 --encoder-layers=10
 --decoder-layers=5
 --key-dim=16
 --num-heads=12
 --ff-dim=32
---max-seq-length=1000
+--max-seq-length=500
 --decode-length=200
---seq-length-steps=9
+--seq-length-steps=4
