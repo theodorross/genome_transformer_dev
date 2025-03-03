@@ -15,15 +15,14 @@ module use /appl/local/containers/ai-modules
 module load singularity-AI-bindings
 
 ## Define CPU binding
-CPU_BIND_MASKS="0x00fe000000000000,0xfe00000000000000,0x0000000000fe0000,0x00000000fe000000,0x00000000000000fe,0x000000000000fe00,0x000000fe00000000,0x0000fe0000000000"
+# CPU_BIND_MASKS="0x00fe000000000000,0xfe00000000000000,0x0000000000fe0000,0x00000000fe000000,0x00000000000000fe,0x000000000000fe00,0x000000fe00000000,0x0000fe0000000000"
 
 ## Define directories of interest
 GITDIR=/project/project_465001381/rosstheo/genome_transformer_dev
 export SIF=/project/project_465001381/rosstheo/genome_transformer_dev/containerlumi-tensorflow-rocm-6.2.0-python-3.10-tensorflow-2.16.1-horovod-0.28.1.sif
 
 ## Run the training script
-srun --cpu-bind=mask_cpu=$CPU_BIND_MASKS \
-    singularity exec \
+srun singularity exec \
     -B /project/project_465001381/rosstheo \
     $GITDIR/container/tensorflow-experiments_rocm-v0.3.sif /bin/bash \
     lumi_files/login_and_train.sh
