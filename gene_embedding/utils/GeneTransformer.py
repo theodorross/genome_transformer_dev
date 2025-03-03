@@ -166,7 +166,7 @@ class GeneTransformer(models.Model):
         
 
 
-    def _get_closest_batch_size(self, data:tf.data.Dataset, batch_size:int, verbose:bool=True):
+    def _get_closest_batch_size(self, data:tf.data.Dataset, batch_size:int, min_batch_size:int=1, verbose:bool=True):
         ## Get the closest batch size that is evenly divisible among the input dataset.
         if data.cardinality() > 0:
             cardinality = data.cardinality()
@@ -180,6 +180,8 @@ class GeneTransformer(models.Model):
         while (cardinality%b_up!=0) and (cardinality%b_dwn!=0):
             b_up += 1
             b_dwn -= 1
+            if b_dwn < min_batch_size:
+                b_dwn = min_batch_size
 
         ## Prioritize the smaller batch size counter
         if cardinality%b_dwn == 0:
@@ -248,6 +250,7 @@ class GeneTransformer(models.Model):
               batch_size:int, 
               epochs:int, 
               callbacks:list,
+              n_devices:int,
               **kwargs):
 
         ## Compute token frequencies to inform class weights
@@ -262,7 +265,7 @@ class GeneTransformer(models.Model):
         _training = _training.prefetch(tf.data.AUTOTUNE)
 
         _validation = self._preprocess_dataset(val_data, weight_table)
-        _validation_batch_sz = self._get_closest_batch_size(_validation, batch_size)
+        _validation_batch_sz = self._get_closest_batch_size(_validation, batch_size, n_devices)
         _validation = _validation.batch(_validation_batch_sz).cache()
         _validation = _validation.prefetch(tf.data.AUTOTUNE)
 

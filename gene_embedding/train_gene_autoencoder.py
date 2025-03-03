@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     ## Instantiate the multi-GPU training strategy
     strategy = tf.distribute.MirroredStrategy()
-    print(f"\nNumber of device: {strategy.num_replicas_in_sync}\n")
+    print(f"\nNumber of devices: {strategy.num_replicas_in_sync}\n")
 
 
     '''
@@ -196,7 +196,9 @@ if __name__ == "__main__":
 
             ## Train the model
             _epochs = args.epochs // len(decode_lengths)        # number of epochs per decode length
-            _hist = gene_ae.train(_training_fold, _validation_fold, args.batch_size, _epochs*(ix+1), callbacks=callbacks, verbose=1, initial_epoch=_epoch_count)
+            _hist = gene_ae.train(_training_fold, _validation_fold, args.batch_size, _epochs*(ix+1), 
+                                  callbacks=callbacks, n_devices=strategy.num_replicas_in_sync, 
+                                  verbose=1, initial_epoch=_epoch_count)
             _epoch_count += len(_hist["loss"])
             
             ## Store the training history
