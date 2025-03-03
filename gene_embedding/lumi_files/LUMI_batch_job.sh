@@ -7,13 +7,19 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-node=2
-#SBATCH --cpus-per-task=56
+#SBATCH --cpus-per-task=14
 #SBATCH --partition=standard-g
 
 
 ## Load the needed LUMI bindings
 module use /appl/local/containers/ai-modules
 module load singularity-AI-bindings
+
+# To have RCCL use the Slingshot interfaces:
+export NCCL_SOCKET_IFNAME=hsn0,hsn1,hsn2,hsn3
+
+# To have RCCL use GPU RDMA:
+export NCCL_NET_GDR_LEVEL=PHB
 
 ## Define CPU binding
 # CPU_BIND_MASKS="0x00fe000000000000,0xfe00000000000000,0x0000000000fe0000,0x00000000fe000000,0x00000000000000fe,0x000000000000fe00,0x000000fe00000000,0x0000fe0000000000"
