@@ -39,19 +39,19 @@ if __name__ == "__main__":
 
     ## Model architecture hyperparameters
     parser.add_argument("--tokenization", default="nucleotide", choices=["nucleotide","codon"], type=str, help="Units to tokenize for processing. One of ['nucleotide','codon'].", required=False)
-    parser.add_argument("--latent-dim", "-z", default=512, type=int, help="Dimensionality of the representation space.", required=False)
-    parser.add_argument("--embedding-dim", default=512, type=int, help="Dimensionality of token embedding vectors.", required=False)
+    parser.add_argument("--latent-dim", "-z", default=32, type=int, help="Dimensionality of the representation space.", required=False)
+    parser.add_argument("--embedding-dim", default=8, type=int, help="Dimensionality of token embedding vectors.", required=False)
     parser.add_argument("--encoder-layers", default=6, type=int, help="Number of transformer-blocks in the encoder.")
     parser.add_argument("--decoder-layers", default=6, type=int, help="Number of transformer-blocks in the decoder.")
-    parser.add_argument("--key-dim", default=64, type=int, help="Dimension of the key, query, and value vectors in multi-head attention units.")
+    parser.add_argument("--key-dim", default=16, type=int, help="Dimension of the key, query, and value vectors in multi-head attention units.")
     parser.add_argument("--num-heads", default=8, type=int, help="Number of attention heads in multi-head attention units.")
     parser.add_argument("--dropout-rate", default=0.1, type=float, help="Dropout rate used in feed-forward layers.")
-    parser.add_argument("--ff-dim", default=2048, type=int, help="Dimensionality of the hidden feed-forward layer in the transformer blocks.")
-    parser.add_argument("--n-sequence-tokens", default=2, type=int, help="Number of latent sequence tokens to use.")
-    parser.add_argument("--decode-length", default=5000, type=int, help="Number of sequence tokens to use during reconstruction at the beginning of training.")
+    parser.add_argument("--ff-dim", default=32, type=int, help="Dimensionality of the hidden feed-forward layer in the transformer blocks.")
+    parser.add_argument("--n-sequence-tokens", default=8, type=int, help="Number of latent sequence tokens to use.")
+    parser.add_argument("--decode-length", default=300, type=int, help="Number of sequence tokens to use during reconstruction at the beginning of training.")
     parser.add_argument("--masking-rate", default=0.05, type=float, help="Probability of masking each input token during training.")
     parser.add_argument("--learning-rate", default=1e-6, type=float, help="Learning rate for the optimizer.", required=False)
-    parser.add_argument("--max-seq-length", default=5000, type=int, help="Maximum sequence length to use during training.")
+    parser.add_argument("--max-seq-length", default=300, type=int, help="Maximum sequence length to use during training.")
 
     ## Training hyperparameters
     parser.add_argument("--learning-rate-decay", default=None, type=float, help="Decay rate for learning rate schedule.")
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", default=100, type=int, help="Maximum number of training epochs to perform.", required=False)
     parser.add_argument("--patience", default=25, type=int, help="Patience for early stopping.", required=False)
     parser.add_argument("--cross-folds", default=5, type=int, help="Number of cross-folds for validation of training.", required=False)
-    parser.add_argument("--seq-length-steps", default=10, type=int, help="Number of linear steps for increasing the sequence length from decode-length to max-seq-length.")
+    parser.add_argument("--seq-length-steps", default=1, type=int, help="Number of linear steps for increasing the sequence length from decode-length to max-seq-length.")
     args = parser.parse_args()
 
     '''
@@ -103,6 +103,7 @@ if __name__ == "__main__":
     ## Instantiate the multi-GPU training strategy
     strategy = tf.distribute.MirroredStrategy()
     print(f"\nNumber of device: {strategy.num_replicas_in_sync}\n")
+
 
     '''
     Load the unique gene sequences and get rid of genes longer than 5 kb
@@ -192,6 +193,10 @@ if __name__ == "__main__":
             ## Filter the datasets
             _training_fold = training_fold.filter(lambda x: tf.strings.length(x) < gene_length).cache()
             _validation_fold = validation_fold.filter(lambda x: tf.strings.length(x) < gene_length).cache()
+
+            print(_training_fold.cardinality())
+            print(_validation_fold.cardinality())
+            exit()
 
             ## Train the model
             _epochs = args.epochs // len(decode_lengths)        # number of epochs per decode length
