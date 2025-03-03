@@ -7,6 +7,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-node=8
+#SBATCH --cpus-per-node=56
 #SBATCH --partition=standard-g
 
 
@@ -19,7 +20,7 @@ module load singularity-AI-bindings
 
 ## Define directories of interest
 GITDIR=/project/project_465001381/rosstheo/genome_transformer_dev
-export SIF=/project/project_465001381/rosstheo/genome_transformer_dev/containerlumi-tensorflow-rocm-6.2.0-python-3.10-tensorflow-2.16.1-horovod-0.28.1.sif
+export SIF=/project/project_465001381/rosstheo/genome_transformer_dev/container/lumi-tensorflow-rocm-6.2.0-python-3.10-tensorflow-2.16.1-horovod-0.28.1.sif
 
 ## Run the training script
 srun singularity exec \
