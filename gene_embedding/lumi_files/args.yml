@@ -16,6 +16,6 @@
 --key-dim=16
 --num-heads=12
 --ff-dim=32
---max-seq-length=295
---decode-length=295
+--max-seq-length=300
+--decode-length=300
 --seq-length-steps=1
