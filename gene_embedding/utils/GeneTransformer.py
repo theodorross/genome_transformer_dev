@@ -179,7 +179,7 @@ class GeneTransformer(models.Model):
         b_up, b_dwn = batch_size, batch_size
         while (cardinality%b_up!=0) and (cardinality%b_dwn!=0):
             b_up += 1
-            b_dwn += 1
+            b_dwn -= 1
 
         ## Prioritize the smaller batch size counter
         if cardinality%b_dwn == 0:
