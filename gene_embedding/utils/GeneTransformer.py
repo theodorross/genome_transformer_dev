@@ -101,8 +101,8 @@ class GeneTransformer(models.Model):
         ## Compile the model
         # Define the optimizer
         opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        # opt2 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        # opt3 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        opt2 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        opt3 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Define the objective function
         loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
@@ -114,8 +114,8 @@ class GeneTransformer(models.Model):
         track_metrics = [masked_accuracy,
                          levenshtein_metric]
 
-        # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
-        # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
+        self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
+        self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
 
         self.build(input_shape=(None,))
         self.compile(optimizer=opt, loss=loss, metrics=track_metrics, weighted_metrics=[])
