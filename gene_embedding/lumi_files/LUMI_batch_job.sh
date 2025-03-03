@@ -6,16 +6,16 @@
 #SBATCH --time=48:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gpus-per-node=2
-#SBATCH --cpus-per-task=14
+#SBATCH --gpus-per-node=8
+#SBATCH --cpus-per-task=56
 #SBATCH --partition=standard-g
 
 
 ## Load the needed LUMI bindings
 module use /appl/local/containers/ai-modules
 module load singularity-AI-bindings
-module use /appl/local/training/modules/AI-20240529
-module load singularity-CPEbits
+# module use /appl/local/training/modules/AI-20240529
+# module load singularity-CPEbits
 
 # To have RCCL use the Slingshot interfaces:
 export NCCL_SOCKET_IFNAME=hsn0,hsn1,hsn2,hsn3

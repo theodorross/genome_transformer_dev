@@ -163,6 +163,33 @@ class GeneTransformer(models.Model):
             return tf.squeeze( tf.one_hot(tokens, depth=self.vocab_size) )
         else:
             return tf.squeeze(tokens)
+        
+
+
+    def _get_closest_batch_size(self, data:tf.data.Dataset, batch_size:int, verbose:bool=True):
+        ## Get the closest batch size that is evenly divisible among the input dataset.
+        if data.cardinality() > 0:
+            cardinality = data.cardinality()
+        else:
+            cardinality = 0
+            for _ in enumerate(data):
+                cardinality += 1
+
+        ## Initialize two batch size counters: going up and down from batch_size
+        b_up, b_dwn = batch_size, batch_size
+        while (cardinality%b_up!=0) and (cardinality%b_dwn!=0):
+            b_up += 1
+            b_dwn += 1
+
+        ## Prioritize the smaller batch size counter
+        if cardinality%b_dwn == 0:
+            new_batch_size= b_dwn
+        elif cardinality%b_up == 0:
+            new_batch_size= b_up
+        
+        if verbose:
+            print(f"Resetting batch size from {batch_size} to {new_batch_size} to fit dataset of length {cardinality}")
+        return new_batch_size
     
 
 
@@ -235,8 +262,8 @@ class GeneTransformer(models.Model):
         _training = _training.prefetch(tf.data.AUTOTUNE)
 
         _validation = self._preprocess_dataset(val_data, weight_table)
-        _validation = _validation.shuffle(buffer_size=batch_size*5)
-        _validation = _validation.batch(batch_size).cache()
+        _validation_batch_sz = self._get_closest_batch_size(_validation, batch_size)
+        _validation = _validation.batch(_validation_batch_sz).cache()
         _validation = _validation.prefetch(tf.data.AUTOTUNE)
 
         # for x,y,w in _training.as_numpy_iterator():
