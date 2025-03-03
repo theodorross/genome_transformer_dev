@@ -235,8 +235,9 @@ class GeneTransformer(models.Model):
         _training = _training.prefetch(tf.data.AUTOTUNE)
 
         _validation = self._preprocess_dataset(val_data, weight_table)
+        _validation = _validation.shuffle(buffer_size=batch_size*100)
         _validation = _validation.batch(batch_size).cache()
-        # _validation = _validation.prefetch(tf.data.AUTOTUNE)
+        _validation = _validation.prefetch(tf.data.AUTOTUNE)
 
         # for x,y,w in _training.as_numpy_iterator():
 
