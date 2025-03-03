@@ -180,7 +180,7 @@ class GeneTransformer(models.Model):
         while (cardinality%b_up!=0) and (cardinality%b_dwn!=0):
             b_up += 1
             b_dwn -= 1
-            if b_dwn < min_batch_size:
+            if b_dwn < min_batch_size:      # Ensure the batch size is no less than the number of devices
                 b_dwn = min_batch_size
 
         ## Prioritize the smaller batch size counter
@@ -268,14 +268,6 @@ class GeneTransformer(models.Model):
         _validation_batch_sz = self._get_closest_batch_size(_validation, batch_size, n_devices)
         _validation = _validation.batch(_validation_batch_sz).cache()
         _validation = _validation.prefetch(tf.data.AUTOTUNE)
-
-        # for x,y,w in _training.as_numpy_iterator():
-
-        #     print(x.shape, y.shape, w.shape)
-        #     print(len(x[0]))
-        #     print(y[0])
-        #     print(w[0])
-        #     exit()
         
         ## Train the model
         H = self.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
