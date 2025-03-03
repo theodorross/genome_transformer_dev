@@ -14,6 +14,8 @@
 ## Load the needed LUMI bindings
 module use /appl/local/containers/ai-modules
 module load singularity-AI-bindings
+module use /appl/local/training/modules/AI-20240529
+module load singularity-CPEbits
 
 # To have RCCL use the Slingshot interfaces:
 export NCCL_SOCKET_IFNAME=hsn0,hsn1,hsn2,hsn3
