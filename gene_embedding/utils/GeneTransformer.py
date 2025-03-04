@@ -274,9 +274,7 @@ class GeneTransformer(models.Model):
         # H = self.decoder.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
         # H = self.encoder.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
 
-        self.evaluate(_validation)
-
-        return H.history, _validation
+        return H.history
 
     
 
