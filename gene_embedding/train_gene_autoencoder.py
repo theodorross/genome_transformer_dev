@@ -211,7 +211,7 @@ if __name__ == "__main__":
             ## Save the interstitial model after each step up in size
             if not os.path.exists(f"models/geneAE_{wandb.run.name}_fold{k}"):
                 os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
-            os.path.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}/{gene_length}_tokens")
+            os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}/{gene_length}_tokens")
             gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}/{gene_length}_tokens")
 
 
