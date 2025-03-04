@@ -54,9 +54,10 @@ class LevenshteinDistance(tf.keras.metrics.Metric):
         sparse_true = tf.sparse.from_dense(tokens_true)
         sparse_pred = tf.sparse.from_dense(tokens_pred)
 
-        ## Compute the Levenshtein distance
+        ## Compute the Levenshtein distance and normalize it by the number of replicas
+        n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
         dists = tf.edit_distance(sparse_pred, sparse_true)
-        self.levenshtein_dist.assign(tf.reduce_mean(dists))
+        self.levenshtein_dist.assign(tf.reduce_mean(dists) / n_replicas)
 
     def result(self):
         return self.levenshtein_dist
@@ -84,10 +85,9 @@ class LevenshteinDistance(tf.keras.metrics.Metric):
 @tf.keras.saving.register_keras_serializable()
 class MaskedAccuracy(tf.keras.metrics.Metric):
 
-    def __init__(self, mask_category=0, name="masked_accuracy", tokenizer=None, **kwargs):
+    def __init__(self, mask_category=0, name="masked_accuracy", **kwargs):
         super().__init__(name=name, **kwargs)
 
-        self.tokenizer = tokenizer
         self.mask_category = mask_category
         self.acc = self.add_weight(
             shape=(),
@@ -96,39 +96,26 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
         )
 
     def update_state(self, y_true, y_pred, **kwargs):
-        ## Tokenize y_true if needed
-        if self.tokenizer is not None:
-            y_true = self.tokenizer(y_true)
-
         
         ## Compute predicted categories
         pred = tf.argmax(y_pred, axis=-1)
         label = tf.cast(y_true, pred.dtype)
 
-
         ## Find category matches
         matches = tf.equal(label, pred)
-        try:
-            print("ACCURACY DEBUG label:", label)
-            print("ACCURACY DEBUG pred:", pred)
-            print("ACCURACY DEBUG matches:", tf.cast(matches, tf.int32))
-        except:
-            pass
 
         ## Mask the matches
         mask = tf.not_equal(label, self.mask_category)
         matches = tf.logical_and(matches, mask)
-        try:
-            print("ACCURACY DEBUG mask:", tf.cast(mask, tf.int32))
-            print("ACCURACY DEBUG masked matches:", tf.cast(matches, tf.int32))
-        except:
-            pass
 
         ## Compute the accuracy
         matches = tf.cast(matches, tf.float32)
         mask = tf.cast(mask, tf.float32)
-        print("acc computation:", tf.reduce_sum(matches), tf.reduce_sum(mask))
-        self.acc.assign( tf.reduce_sum(matches)/tf.reduce_sum(mask) )
+
+        ## Normalize the accuracy by the number of replicas
+        n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
+        acc = tf.reduce_sum(matches)/tf.reduce_sum(mask)
+        self.acc.assign( acc / n_replicas )
     
     def result(self):
         return self.acc

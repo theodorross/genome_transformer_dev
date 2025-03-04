@@ -13,6 +13,7 @@ from sklearn.decomposition import PCA
 from utils.GeneTransformer import GeneTransformer
 from utils.TrainingUtils import MaskedSparseCategoricalCrossentropy, MaskedAccuracy
 
+from tensorflow.python.client import device_lib
 
 def clip_gene(len):
     # num = tf.random.categorical( tf.math.log([[.2,.2,.2,.2,.2]]), num_samples=1, dtype=tf.int32) + 30
@@ -54,6 +55,9 @@ if __name__ == "__main__":
     ## Instantiate the multi-GPU training strategy
     strategy = tf.distribute.MirroredStrategy()
     print(f"\nNumber of devices: {strategy.num_replicas_in_sync}\n")
+    print(type(tf.distribute.get_replica_context().num_replicas_in_sync))
+    # print(device_lib.list_local_devices())
+    exit()
 
 
     '''
@@ -127,7 +131,7 @@ if __name__ == "__main__":
             lrsched = tf.keras.callbacks.LearningRateScheduler(plip)
             epochs = 5
             # epochs = 2
-            _hist, fucker = gene_ae.train(train_genes, val_genes, 5, epochs+_epoch_count, callbacks=[callback, lrsched], 
+            _hist = gene_ae.train(train_genes, val_genes, 5, epochs+_epoch_count, callbacks=[callback, lrsched], 
                                   n_devices=strategy.num_replicas_in_sync, verbose=1, initial_epoch=_epoch_count)
             _epoch_count += len(_hist["loss"])
 
@@ -166,16 +170,24 @@ if __name__ == "__main__":
     '''
     Test something
     '''
-    m_acc = MaskedAccuracy()
-    v_x, v_y, v_w = next(fucker.as_numpy_iterator())
-    print(v_x)
-    print(v_y)
-    v_pred = gene_ae.predict(v_x)
+    # m_acc = MaskedAccuracy()
+    for val_seqs in val_genes.batch(3):
+        break
 
-    m_acc.update_state(v_y, v_pred)
+    print(val_seqs)
+    preds = gene_ae(val_seqs)
+    # print(type(preds._keras_mask))
+    print(preds)
+    print(tf.keras.backend.get_keras_mask(preds))
 
-    print("\nFINAL_OUT")
-    print(m_acc.acc.numpy)
+    # print(v_x)
+    # print(v_y)
+    # v_pred = gene_ae.predict(v_x)
+
+    # m_acc.update_state(v_y, v_pred)
+
+    # print("\nFINAL_OUT")
+    # print(m_acc.acc.numpy)
 
     exit()
 
