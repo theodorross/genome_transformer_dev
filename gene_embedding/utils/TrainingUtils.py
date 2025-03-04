@@ -95,6 +95,8 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
         )
 
     def update_state(self, y_true, y_pred, **kwargs):
+        print("ACCURACY DEBUG:", y_true)
+        
         ## Compute predicted categories
         pred = tf.argmax(y_pred, axis=-1)
         label = tf.cast(y_true, pred.dtype)
