@@ -273,7 +273,10 @@ class GeneTransformer(models.Model):
         H = self.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
         # H = self.decoder.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
         # H = self.encoder.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
-        return H.history
+
+        self.evaluate(_validation)
+
+        return H.history, _validation
 
     
 

@@ -11,7 +11,7 @@ from scipy.stats import entropy
 from sklearn.decomposition import PCA
 
 from utils.GeneTransformer import GeneTransformer
-from utils.TrainingUtils import MaskedSparseCategoricalCrossentropy
+from utils.TrainingUtils import MaskedSparseCategoricalCrossentropy, MaskedAccuracy
 
 
 def clip_gene(len):
@@ -46,10 +46,14 @@ if __name__ == "__main__":
               'key_dim':8,
               'num_heads':12,
               'ff_dim':64,
-              'max_length':125,
-              'decode_length':100,
+              'max_length':50,
+              'decode_length':50,
               'masking_rate':0.00,
               'learning_rate':5e-3}
+    
+    ## Instantiate the multi-GPU training strategy
+    strategy = tf.distribute.MirroredStrategy()
+    print(f"\nNumber of devices: {strategy.num_replicas_in_sync}\n")
 
 
     '''
@@ -107,7 +111,7 @@ if __name__ == "__main__":
         train_history = {}
         # for ix, gene_len in enumerate([50,75,100,125]):
         _epoch_count = 0
-        for ix, gene_len in enumerate([100,125]):
+        for ix, gene_len in enumerate([50]):
             gene_ae.update_decode_length(gene_len)
 
             ## Trim the genes
@@ -121,9 +125,10 @@ if __name__ == "__main__":
             plip = lambda e,lr: lr*tf.exp(-0.1) if (e%250==249) else lr
             callback = tf.keras.callbacks.EarlyStopping(patience=50, restore_best_weights=True)
             lrsched = tf.keras.callbacks.LearningRateScheduler(plip)
-            epochs = 500
+            epochs = 5
             # epochs = 2
-            _hist = gene_ae.train(train_genes, val_genes, 30, epochs+_epoch_count, callbacks=[callback, lrsched], verbose=1, initial_epoch=_epoch_count)
+            _hist, fucker = gene_ae.train(train_genes, val_genes, 5, epochs+_epoch_count, callbacks=[callback, lrsched], 
+                                  n_devices=strategy.num_replicas_in_sync, verbose=1, initial_epoch=_epoch_count)
             _epoch_count += len(_hist["loss"])
 
             ## Store the training history
@@ -158,6 +163,21 @@ if __name__ == "__main__":
 
         break
 
+    '''
+    Test something
+    '''
+    m_acc = MaskedAccuracy()
+    v_x, v_y, v_w = next(fucker.as_numpy_iterator())
+    print(v_x)
+    print(v_y)
+    v_pred = gene_ae.predict(v_x)
+
+    m_acc.update_state(v_y, v_pred)
+
+    print("\nFINAL_OUT")
+    print(m_acc.acc.numpy)
+
+    exit()
 
     '''
     Plot the training metrics
@@ -192,6 +212,7 @@ if __name__ == "__main__":
     # plt.savefig(f"figures/small_test_seqmask_{filestr}.png")
     # plt.savefig(f"figures/small_test_query_stuff_{filestr}.png")
     # plt.savefig(f"figures/small_test_perciever_{filestr}_includestart_.png")
+
 
 
     '''

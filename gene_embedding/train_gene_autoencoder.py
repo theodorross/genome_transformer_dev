@@ -261,6 +261,7 @@ if __name__ == "__main__":
         
         break
 
+    print()
     wandb.finish()
 
     ## Save the histories
