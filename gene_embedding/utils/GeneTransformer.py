@@ -183,21 +183,13 @@ class GeneTransformer(models.Model):
         ## Select a batch size that requires discarding the fewest validation samples
         discard_options = cardinality % batch_size_options
         new_batch_size = batch_size_options[np.argmin(discard_options)]
-        
-        ## Discard the necessary amount of validation samples
         needed_discards = min(discard_options)
-        new_cardinality = cardinality - needed_discards
-        if needed_discards != 0:
-            new_data = data.take(new_cardinality)
-        else:
-            new_data = data
         
         if verbose:
             # print(f"Resetting batch size from {batch_size} to {new_batch_size} to fit dataset of length {cardinality}")
-            print("Changing batch size and dataset cardinality:")
+            print(f"Changing batch size and dataset cardinality, will lose {needed_discards} validation samples of {cardianlity}")
             print(f"\tbatch_size: {batch_size} -> {new_batch_size}")
-            print(f"\tdataset cardinality: {cardinality} -> {new_cardinality}")
-        return new_batch_size, new_data
+        return new_batch_size
     
 
 
@@ -270,8 +262,8 @@ class GeneTransformer(models.Model):
         _training = _training.prefetch(tf.data.AUTOTUNE)
 
         _validation = self._preprocess_dataset(val_data, weight_table)
-        _validation_batch, _validation = self._align_data_to_devices(_validation, batch_size)
-        _validation = _validation.batch(batch_size).cache()
+        _validation_batch = self._align_data_to_devices(_validation, batch_size)
+        _validation = _validation.batch(_validation_batch).cache()
         _validation = _validation.prefetch(tf.data.AUTOTUNE)
         
         ## Train the model
