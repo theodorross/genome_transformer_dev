@@ -92,17 +92,21 @@ if __name__ == "__main__":
                        "learning_rate_decay_start":args.learning_rate_decay_start,
                        "seq_length_steps":args.seq_length_steps}
     
-    wandb_config = sys_config | model_config | training_config
 
+    ## Instantiate the multi-device training strategy
+    strategy = tf.distribute.MirroredStrategy()
+    if args.batch_size % strategy.num_replicas_in_sync != 0:
+        raise ValueError(f"batch_size must be evenly divisible by the number of devices in use:\n\tbatch_size: {args.batch_size}\n\tnumber of devices: {strategy.num_replicas_in_sync}")
+    print(f"\nNumber of devices: {strategy.num_replicas_in_sync}\n")
+
+    ## Initialize wandb
+    wandb_config = sys_config | model_config | training_config
     wandb.init(
         project="gene-encoder",
         config=wandb_config,
         sync_tensorboard=True
     )
 
-    ## Instantiate the multi-GPU training strategy
-    strategy = tf.distribute.MirroredStrategy()
-    print(f"\nNumber of devices: {strategy.num_replicas_in_sync}\n")
 
 
     '''
@@ -197,8 +201,7 @@ if __name__ == "__main__":
             ## Train the model
             _epochs = args.epochs // len(decode_lengths)        # number of epochs per decode length
             _hist = gene_ae.train(_training_fold, _validation_fold, args.batch_size, _epochs*(ix+1), 
-                                  callbacks=callbacks, n_devices=strategy.num_replicas_in_sync, 
-                                  verbose=1, initial_epoch=_epoch_count)
+                                  callbacks=callbacks, verbose=1, initial_epoch=_epoch_count)
             _epoch_count += len(_hist["loss"])
             
             ## Store the training history
