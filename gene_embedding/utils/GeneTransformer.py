@@ -187,7 +187,7 @@ class GeneTransformer(models.Model):
         
         if verbose:
             # print(f"Resetting batch size from {batch_size} to {new_batch_size} to fit dataset of length {cardinality}")
-            print(f"Changing batch size and dataset cardinality, will lose {needed_discards} validation samples of {cardianlity}")
+            print(f"Changing batch size and dataset cardinality, will lose {needed_discards} validation samples of {cardinality}")
             print(f"\tbatch_size: {batch_size} -> {new_batch_size}")
         return new_batch_size
     
