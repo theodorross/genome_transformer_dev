@@ -188,10 +188,16 @@ class GeneTransformer(models.Model):
         needed_discards = min(discard_options)
         samples_to_keep = cardinality - needed_discards
         new_data = data.take(samples_to_keep)
+
+        new_card=0
+        for _ in enumerate(new_data):
+            new_card += 1
+        
         
         if verbose:
             # print(f"Resetting batch size from {batch_size} to {new_batch_size} to fit dataset of length {cardinality}")
             print(f"Changing batch size and dataset cardinality, will lose {needed_discards} validation samples of {cardinality}")
+            print(f"\tdata cardinality: {cardinality} -> {new_card}")
             print(f"\tbatch_size: {batch_size} -> {new_batch_size}")
         return new_batch_size, new_data
     
