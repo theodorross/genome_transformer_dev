@@ -5,7 +5,7 @@
 --embedding-dim=8
 --learning-rate=5e-3
 --learning-rate-decay=1e-3
---learning-rate-decay-start=1000
+--learning-rate-decay-start=150
 --masking-rate=0.0
 --dropout-rate=0.0
 --batch-size=1024
