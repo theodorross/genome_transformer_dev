@@ -279,6 +279,7 @@ class GeneTransformer(models.Model):
         _training = _training.prefetch(tf.data.AUTOTUNE)
 
         _validation = self._preprocess_dataset(val_data, weight_table)
+        print("Debug replicas before:", tf.distribute.get_replica_context().num_replicas_in_sync)
         _validation_batch, _validation = self._align_data_to_devices(_validation, batch_size)
         _validation = _validation.batch(_validation_batch).cache()
         _validation = _validation.prefetch(tf.data.AUTOTUNE)
