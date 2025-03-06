@@ -118,8 +118,6 @@ class GeneTransformer(models.Model):
         self.build(input_shape=(None,))
         self.compile(optimizer=opt, loss=loss, metrics=track_metrics, weighted_metrics=[])
 
-        print("INIT DEBUG:", tf.distribute.get_replica_context().num_replicas_in_sync)
-
 
     def call(self, x, **kwargs):
         # x = tf.cast(x, tf.string)
@@ -166,7 +164,7 @@ class GeneTransformer(models.Model):
         
 
 
-    def _align_data_to_devices(self, data:tf.data.Dataset, batch_size:int, verbose:bool=True) -> tuple[int,tf.data.Dataset]:
+    def _align_data_to_devices(self, data:tf.data.Dataset, batch_size:int, n_replicas:int=1, verbose:bool=True) -> tuple[int,tf.data.Dataset]:
         ## Determine the cardinality of the input dataset
         if data.cardinality() > 0:
             cardinality = data.cardinality()
@@ -176,7 +174,6 @@ class GeneTransformer(models.Model):
                 cardinality += 1
 
         ## Define a set of alternative options for the batch sizes
-        n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
         batch_size_offsets = np.arange(-5, 6)*n_replicas
         batch_size_options = batch_size - batch_size_offsets
         
@@ -265,6 +262,7 @@ class GeneTransformer(models.Model):
               batch_size:int, 
               epochs:int, 
               callbacks:list,
+              num_devices:int,
               **kwargs):
 
         ## Compute token frequencies to inform class weights
@@ -279,8 +277,7 @@ class GeneTransformer(models.Model):
         _training = _training.prefetch(tf.data.AUTOTUNE)
 
         _validation = self._preprocess_dataset(val_data, weight_table)
-        print("Debug replicas before:", tf.distribute.get_replica_context().num_replicas_in_sync)
-        _validation_batch, _validation = self._align_data_to_devices(_validation, batch_size)
+        _validation_batch, _validation = self._align_data_to_devices(_validation, batch_size, num_devices)
         _validation = _validation.batch(_validation_batch).cache()
         _validation = _validation.prefetch(tf.data.AUTOTUNE)
         
