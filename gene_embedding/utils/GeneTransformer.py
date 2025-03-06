@@ -180,9 +180,15 @@ class GeneTransformer(models.Model):
         batch_size_offsets = np.arange(-5, 6)*n_replicas
         batch_size_options = batch_size - batch_size_offsets
         
+        ## @TODO something is going on with batch size vs number of batches
         ## Select a batch size that requires discarding the fewest validation samples
         discard_options = cardinality % batch_size_options
         new_batch_size = batch_size_options[np.argmin(discard_options)]
+        print("DEBUG:")
+        print("batch_size_options:", batch_size_options)
+        print("discard_options:", discard_options)
+        print("new_batch_size:", new_batch_size)
+        exit()
 
         ## Discard samples until the dataset size is evenly divisible by the new batch size
         needed_discards = min(discard_options)
