@@ -185,6 +185,7 @@ class GeneTransformer(models.Model):
         discard_options = cardinality % batch_size_options
         new_batch_size = batch_size_options[np.argmin(discard_options)]
         print("DEBUG:")
+        print("n_replicas:", n_replicas)
         print("batch_size_options:", batch_size_options)
         print("discard_options:", discard_options)
         print("new_batch_size:", new_batch_size)
