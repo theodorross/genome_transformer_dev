@@ -8,7 +8,7 @@
 --learning-rate-decay-start=150
 --masking-rate=0.0
 --dropout-rate=0.0
---batch-size=128
+--batch-size=64
 --epochs=2000
 --patience=150
 --encoder-layers=10
