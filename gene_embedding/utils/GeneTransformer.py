@@ -173,9 +173,11 @@ class GeneTransformer(models.Model):
             for _ in enumerate(data):
                 cardinality += 1
 
-        ## Define a set of alternative options for the batch sizes
+        ## Define a set of alternative options for the batch sizes and ensure the batch sizes 
+        ## are greater than the number of devices
         batch_size_offsets = np.arange(-5, 6)*n_replicas
         batch_size_options = batch_size + batch_size_offsets
+        batch_size_options = batch_size_options[batch_size_options > n_replicas] 
         
         ## @TODO something is going on with batch size vs number of batches
         ## Select a batch size that requires discarding the fewest validation samples
@@ -187,7 +189,6 @@ class GeneTransformer(models.Model):
         print("discard_options:   ", discard_options)
         print("argmin:", np.argmin(discard_options))
         print("new_batch_size:", new_batch_size)
-        exit()
 
         ## Discard samples until the dataset size is evenly divisible by the new batch size
         needed_discards = min(discard_options)
