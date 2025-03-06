@@ -175,7 +175,7 @@ class GeneTransformer(models.Model):
 
         ## Define a set of alternative options for the batch sizes
         batch_size_offsets = np.arange(-5, 6)*n_replicas
-        batch_size_options = batch_size - batch_size_offsets
+        batch_size_options = batch_size + batch_size_offsets
         
         ## @TODO something is going on with batch size vs number of batches
         ## Select a batch size that requires discarding the fewest validation samples
