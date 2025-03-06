@@ -19,8 +19,6 @@ class GeneTransformer(models.Model):
     Transformer model for embedding gene sequences
     - default values taken from "Attention is All You Need": https://arxiv.org/pdf/1706.03762
     - no longer resembles a normal transformer...
-    
-    @TODO: 
     '''
 
     def __init__(self, tokenization_method:str, 
@@ -119,6 +117,8 @@ class GeneTransformer(models.Model):
 
         self.build(input_shape=(None,))
         self.compile(optimizer=opt, loss=loss, metrics=track_metrics, weighted_metrics=[])
+
+        print("INIT DEBUG:", tf.distribute.get_replica_context().num_replicas_in_sync)
 
 
     def call(self, x, **kwargs):
