@@ -17,6 +17,8 @@ module load singularity-AI-bindings
 # module use /appl/local/training/modules/AI-20240529
 # module load singularity-CPEbits
 
+export ROCR_VISIBLE_DEVICES=\$SLURM_LOCALID
+
 # To have RCCL use the Slingshot interfaces:
 export NCCL_SOCKET_IFNAME=hsn0,hsn1,hsn2,hsn3
 
