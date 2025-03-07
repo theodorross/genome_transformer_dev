@@ -78,6 +78,7 @@ class GeneTransformer(models.Model):
                                        n_sequence_tokens=n_sequence_tokens, 
                                        max_length=max_length,
                                        decode_length=decode_length)
+        self.encoder.build()
         
         self.vocab_size = self.encoder.vocab_size
         self.vocabulary = self.encoder.vocabulary
@@ -94,6 +95,7 @@ class GeneTransformer(models.Model):
                                        n_sequence_tokens=n_sequence_tokens,
                                        max_length=max_length,
                                        decode_length=decode_length)
+        self.decoder.build()
         
 
         ## Compile the model
