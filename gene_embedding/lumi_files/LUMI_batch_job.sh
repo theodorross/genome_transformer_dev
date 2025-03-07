@@ -18,10 +18,11 @@ module load singularity-AI-bindings
 # module load singularity-CPEbits
 
 # To have RCCL use the Slingshot interfaces:
-# export NCCL_SOCKET_IFNAME=hsn0,hsn1,hsn2,hsn3
+export NCCL_SOCKET_IFNAME=hsn0,hsn1,hsn2,hsn3
 
 # To have RCCL use GPU RDMA:
-# export NCCL_NET_GDR_LEVEL=PHB
+export NCCL_NET_GDR_LEVEL=PHB
+export NCLL_DEBUG=WARN
 
 ## Define CPU binding
 # CPU_BIND_MASKS="0x00fe000000000000,0xfe00000000000000,0x0000000000fe0000,0x00000000fe000000,0x00000000000000fe,0x000000000000fe00,0x000000fe00000000,0x0000fe0000000000"
