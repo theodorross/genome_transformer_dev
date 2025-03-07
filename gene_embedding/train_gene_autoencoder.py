@@ -101,11 +101,11 @@ if __name__ == "__main__":
 
     ## Initialize wandb
     wandb_config = sys_config | model_config | training_config
-    wandb.init(
-        project="gene-encoder",
-        config=wandb_config,
-        sync_tensorboard=True
-    )
+    # wandb.init(
+    #     project="gene-encoder",
+    #     config=wandb_config,
+    #     sync_tensorboard=True
+    # )
 
 
 
@@ -140,11 +140,11 @@ if __name__ == "__main__":
     '''
     Define training callbacks
     '''
-    wandb_callback = wandb.keras.WandbMetricsLogger()
+    # wandb_callback = wandb.keras.WandbMetricsLogger()
     early_stopper = keras.callbacks.EarlyStopping(patience=args.patience,
                                                   restore_best_weights=True)
-    callbacks = [wandb_callback, early_stopper]
-    # callbacks = [early_stopper]
+    # callbacks = [wandb_callback, early_stopper]
+    callbacks = [early_stopper]
 
     if (args.learning_rate_decay is not None) and (args.learning_rate_decay_start is not None):
         # def schedule_func(ep,lr):
@@ -199,9 +199,9 @@ if __name__ == "__main__":
             _validation_fold = validation_fold.filter(lambda x: tf.strings.length(x) < gene_length).cache()
 
             print("DEBUG TEST INPUT:")
-            sample = next(_training_fold.as_numpy_iterator())
+            sample = next(_training_fold.batch(4).as_numpy_iterator())
             print(sample)
-            out = gene_ae.predict(sample)
+            out = gene_ae(sample)
             print(out)
             exit()
 

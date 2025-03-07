@@ -53,7 +53,7 @@ class TransformerDecoderBlock(layers.Layer):
                                            attention_mask=attention_mask, 
                                            use_causal_mask=use_causal_mask, 
                                            return_attention_scores=True,
-                                           training=kwargs["training"])
+                                           training=kwargs.get("training"))
         self.last_attention = attn_score
 
         ## Add and norm
