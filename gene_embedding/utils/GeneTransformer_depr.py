@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.models import Model
 from keras import layers
-from keras.saving import serialize_keras_object, deserialize_keras_object
+from keras.utils import serialize_keras_object, deserialize_keras_object
 # from keras.utils import to_categorical
 import itertools
 import numpy as np
