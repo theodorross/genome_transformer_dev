@@ -1,5 +1,8 @@
 import tensorflow as tf
 
+print("DEBUG:")
+print("tf:", tf.__version__)
+print("keras:", tf.keras.__version__)
 
 @tf.keras.saving.register_keras_serializable()
 class LevenshteinDistance(tf.keras.metrics.Metric):
