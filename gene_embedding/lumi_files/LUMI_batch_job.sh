@@ -36,7 +36,7 @@ export SIF=/project/project_465001381/rosstheo/genome_transformer_dev/container/
 ## Run the training script
 srun singularity exec \
     -B /project/project_465001381/rosstheo \
-    $GITDIR/container/tensorflow-experiments_rocm-v0.3.sif /bin/bash \
+    $SIF /bin/bash \
     lumi_files/login_and_train.sh
 
 
