@@ -4,7 +4,7 @@ print("DEBUG:")
 print("tf:", tf.__version__)
 print("keras:", tf.keras.__version__)
 
-@tf.keras.saving.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable()
 class LevenshteinDistance(tf.keras.metrics.Metric):
 
     def __init__(self, vocabulary, mask_token=0, name="mean_levenshtein_distance", **kwargs):
@@ -85,7 +85,7 @@ class LevenshteinDistance(tf.keras.metrics.Metric):
     
 
 
-@tf.keras.saving.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable()
 class MaskedAccuracy(tf.keras.metrics.Metric):
 
     def __init__(self, mask_category=0, name="masked_accuracy", **kwargs):
@@ -141,7 +141,7 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
 
 
 
-@tf.keras.saving.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable()
 class MaskedSparseCategoricalCrossentropy(tf.keras.losses.Loss):
 
     def __init__(self, mask_category=0, name="masked_sparse_categorical_crossentropy", **kwargs):

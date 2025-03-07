@@ -6,7 +6,7 @@ import pandas as pd
 
 
 
-@tf.keras.saving.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable()
 class DNATokenizer(layers.Layer):
 
     def __init__(self, tokenization_method, max_length=5000, **kwargs):

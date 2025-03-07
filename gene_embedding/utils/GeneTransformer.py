@@ -13,7 +13,7 @@ from utils.SequenceDecoder import SequenceDecoder
 
 
 
-@tf.keras.saving.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable()
 class GeneTransformer(models.Model):
     '''
     Transformer model for embedding gene sequences

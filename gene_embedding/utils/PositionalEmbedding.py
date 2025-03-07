@@ -44,7 +44,7 @@ def positional_encoding(length, depth):
 
 
 
-@tf.keras.saving.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable()
 class PositionalEmbedding(layers.Layer):
     def __init__(self, vocab_size, embedding_dim, max_length=100):
         super().__init__()

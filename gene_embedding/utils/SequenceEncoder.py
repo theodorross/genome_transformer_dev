@@ -11,7 +11,7 @@ from utils.DNATokenizer import DNATokenizer
 
 
 
-@tf.keras.saving.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable()
 class SequenceEncoder(models.Model):
 
     '''

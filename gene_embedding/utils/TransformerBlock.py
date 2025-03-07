@@ -6,7 +6,7 @@ import pandas as pd
 # from matplotlib import pyplot as plt
 
 
-@tf.keras.saving.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable()
 class TransformerDecoderBlock(layers.Layer):
     '''
     Transformer model for whole genome assemblies.
@@ -104,7 +104,7 @@ class TransformerDecoderBlock(layers.Layer):
 
 
 
-@tf.keras.saving.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable()
 class TransformerEncoderBlock(layers.Layer):
     '''
     Transformer model for whole genome assemblies.

@@ -7,7 +7,7 @@ import itertools
 import numpy as np
 
 
-@tf.keras.saving.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable()
 class GeneTransformer(Model):
     '''
     Transformer model for embedding gene sequences
@@ -318,7 +318,7 @@ class TransformerBlock(layers.Layer):
     # @classmethod
     # def from_config(cls, config):
     #     attn_config = config.pop("multihead-attention")
-    #     sublayer = tf.keras.saving.deserialize_keras_object(sublayer_config)
+    #     sublayer = tf.keras.utils.deserialize_keras_object(sublayer_config)
     #     return cls(sublayer, **config)
     
     # @classmethod
