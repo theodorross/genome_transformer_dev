@@ -123,6 +123,9 @@ class SequenceEncoder(models.Model):
         self.tokenizing_layer.max_length.assign(new_length)
 
 
+    def build(self, input_shape):
+        super().build(input_shape)
+
 
     def get_config(self):
         base_config = super().get_config()

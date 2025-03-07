@@ -112,6 +112,10 @@ class SequenceDecoder(models.Model):
     def _update_decode_length(self, new_length):
         # self.decode_length = new_length
         self.decode_length.assign(new_length)
+
+
+    def build(self, input_shape):
+        super().build(input_shape)
     
 
     def get_config(self):
