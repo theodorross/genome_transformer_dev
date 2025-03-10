@@ -36,13 +36,15 @@ class DNATokenizer(layers.Layer):
         ## Zero-pad the token sequence to desired length
         # print("DEBUG 3:", self.max_length-tf.shape(tokens)[1])
         paddings = [[0,0],[0,self.max_length-tf.shape(tokens)[1]]]
-        paddedd_tokens = tf.pad(tokens, paddings)
-        return paddedd_tokens
-        
+        padded_tokens = tf.pad(tokens, paddings)
+        return padded_tokens
     
     def compute_output_shape(self, input_shape):
-        return super().compute_output_shape(input_shape)
-
+        # return super().compute_output_shape(*args, **kwargs)
+        # return tf.TensorShape([None, None])
+        return [None, None]
+        
+    
     def get_config(self):
         base_config = super().get_config()
         config = {

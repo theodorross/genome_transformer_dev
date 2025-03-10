@@ -1,9 +1,5 @@
 import tensorflow as tf
 
-print("DEBUG:")
-print("tf:", tf.__version__)
-print("keras:", tf.keras.__version__)
-
 @tf.keras.utils.register_keras_serializable()
 class LevenshteinDistance(tf.keras.metrics.Metric):
 
@@ -150,6 +146,10 @@ class MaskedSparseCategoricalCrossentropy(tf.keras.losses.Loss):
 
     def call(self, y_true, y_pred):
         ## Compute the base loss
+        print("LOSS DEBUG:", tf.shape(y_true), tf.shape(y_pred))
+        print("y_true:", y_true)
+        print("y_pred:", y_pred)
+
         loss = tf.keras.losses.sparse_categorical_crossentropy(y_true, y_pred, from_logits=False)
 
         ## Mask the computed loss

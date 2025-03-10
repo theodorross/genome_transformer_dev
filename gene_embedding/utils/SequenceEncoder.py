@@ -14,9 +14,6 @@ from utils.DNATokenizer import DNATokenizer
 @tf.keras.utils.register_keras_serializable()
 class SequenceEncoder(models.Model):
 
-    '''
-    @TODO
-    '''
 
     def __init__(self, tokenization_method:str,
                        encoder_layers:int, 
@@ -31,7 +28,7 @@ class SequenceEncoder(models.Model):
                        max_length:int=5000,
                        decode_length:int=5000,
                        **kwargs):
-        super().__init__(**kwargs)
+        super(SequenceEncoder, self).__init__(**kwargs)
 
         self.tokenization_method = tokenization_method
         self.encoder_layers = encoder_layers
@@ -46,49 +43,34 @@ class SequenceEncoder(models.Model):
         self.max_length = max_length
         self.decode_length = decode_length
 
-        ## Define initializers according to Huang et. al. : https://proceedings.mlr.press/v119/huang20f.html
-        # embedding_init = tf.keras.initializers.RandomNormal(0, embedding_dim**-0.5)
 
         ## Define the tokenizing and positional embedding
-        self.tokenizing_layer = DNATokenizer(tokenization_method=tokenization_method,
-                                             max_length=decode_length)
+        self.tokenizing_layer = DNATokenizer(tokenization_method=self.tokenization_method,
+                                             max_length=self.decode_length)
         self.vocabulary = self.tokenizing_layer.tokenizing_layer.get_vocabulary()
         self.vocab_size = len(self.vocabulary)
 
-        self.token_masker = layers.Dropout(rate=masking_rate)
+        self.token_masker = layers.Dropout(rate=self.masking_rate)
         self.embedding_layer = layers.Embedding(input_dim=self.vocab_size, 
-                                                output_dim=embedding_dim, 
+                                                output_dim=self.embedding_dim, 
                                                 mask_zero=True)
-        self.position_encoder = RotaryPositionEncoding(max_length, embedding_dim)
-        self.latent_position_encoder = RotaryPositionEncoding(n_sequence_tokens, latent_dim)
-
-        ## Define cross-attention layers
-        # self.cross_attn_layer = TransformerEncoderBlock(output_dim=latent_dim, ff_dim=ff_dim, num_heads=num_heads,
-        #                                                 key_dim=key_dim, dropout_rate=dropout_rate)
-        # self.cross_attn_layer = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, dropout=dropout_rate)
+        self.position_encoder = RotaryPositionEncoding(self.max_length, self.embedding_dim)
+        self.latent_position_encoder = RotaryPositionEncoding(self.n_sequence_tokens, self.latent_dim)
 
         ## Define the transformer block layers
         self.transformer_layers = [
-            TransformerEncoderBlock(output_dim=latent_dim, ff_dim=ff_dim, num_heads=num_heads, 
-                                    key_dim=key_dim, dropout_rate=dropout_rate)
-            # TransformerDecoderBlock(output_dim=latent_dim, ff_dim=ff_dim, num_heads=num_heads, 
-            #                         key_dim=key_dim, dropout_rate=dropout_rate) 
-            for _ in range(encoder_layers)
+            TransformerEncoderBlock(output_dim=self.latent_dim, ff_dim=self.ff_dim, num_heads=self.num_heads, 
+                                    key_dim=self.key_dim, dropout_rate=self.dropout_rate)
+            for _ in range(self.encoder_layers)
         ]
-        # self.transformer_layer = TransformerEncoderBlock(output_dim=latent_dim, ff_dim=ff_dim, num_heads=num_heads, 
-        #                             key_dim=key_dim, dropout_rate=dropout_rate)
 
         ## Define the querry token sequence
         self.latent_tokens = self.add_weight(
             name="latent_tokens",
-            shape=(1,1,latent_dim),
+            shape=(1,1,self.latent_dim),
             initializer="uniform",
             trainable=True
         )
-
-        # self.test_out = tf.keras.layers.Activation("softmax")
-
-        self.build(input_shape=(None,))
 
 
     def call(self, x, **kwargs):
@@ -115,11 +97,14 @@ class SequenceEncoder(models.Model):
             latent_seq = enc_layer(query=latent_seq, value=enc_z, use_residuals=True, **kwargs)
         return latent_seq
         # return self.test_out(latent_seq)
+
+
+    # def compute_output_shape(self, input_shape):
+    #     return tf.convert_to_tensor([input_shape[0], self.n_sequence_tokens, self.latent_dim])
     
     
     def _update_decode_length(self, new_length):
         self.decode_length = new_length
-        # self.tokenizing_layer.max_length = new_length
         self.tokenizing_layer.max_length.assign(new_length)
 
 

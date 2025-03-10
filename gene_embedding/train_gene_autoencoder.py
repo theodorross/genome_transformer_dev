@@ -107,6 +107,8 @@ if __name__ == "__main__":
     #     sync_tensorboard=True
     # )
 
+    print(wandb_config)
+
 
 
     '''
@@ -181,6 +183,10 @@ if __name__ == "__main__":
         with strategy.scope():
             gene_ae = GeneTransformer(**model_config)
         print(gene_ae.summary())
+        gene_ae.get_weights()
+        # print(gene_ae.encoder.summary())
+        # print(gene_ae.encoder.get_pa)
+        exit()
         
         # ## Train the model
         # fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)

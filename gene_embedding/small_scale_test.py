@@ -41,8 +41,8 @@ if __name__ == "__main__":
     config = {'embedding_dim':8,
               "latent_dim":32,
               'n_sequence_tokens':8,
-              'encoder_layers':1,
-              'decoder_layers':1,
+              'encoder_layers':2,
+              'decoder_layers':2,
               'dropout_rate':0,
               'key_dim':8,
               'num_heads':12,
@@ -57,7 +57,8 @@ if __name__ == "__main__":
     print(f"\nNumber of devices: {strategy.num_replicas_in_sync}\n")
     print(type(tf.distribute.get_replica_context().num_replicas_in_sync))
     # print(device_lib.list_local_devices())
-    exit()
+
+    keras.config.disable_traceback_filtering()
 
 
     '''
@@ -110,6 +111,9 @@ if __name__ == "__main__":
         ## Define the model
         gene_ae = GeneTransformer("nucleotide", **config)
         print(gene_ae.summary())
+        print(gene_ae.encoder.summary())
+        print(gene_ae.decoder.summary())
+
 
         ## Loop for increasing gene lengths
         train_history = {}
@@ -121,8 +125,8 @@ if __name__ == "__main__":
             ## Trim the genes
             # val_genes = _val_genes.map(clip_gene(25))
             # train_genes = _train_genes.map(clip_gene(25))
-            val_genes = _val_genes.filter(lambda x: tf.strings.length(x) < gene_len).cache()
-            train_genes = _train_genes.filter(lambda x: tf.strings.length(x) < gene_len).cache()
+            val_genes = _val_genes.filter(lambda x: tf.strings.length(x) < gene_len)
+            train_genes = _train_genes.filter(lambda x: tf.strings.length(x) < gene_len)
 
             ## Train the model
             # plip = lambda e,lr: lr*tf.exp(-0.1) if (e%250==249 and e>1000) else lr
@@ -131,9 +135,11 @@ if __name__ == "__main__":
             lrsched = tf.keras.callbacks.LearningRateScheduler(plip)
             epochs = 5
             # epochs = 2
+
             _hist = gene_ae.train(train_genes, val_genes, 5, epochs+_epoch_count, callbacks=[callback, lrsched], 
-                                  n_devices=strategy.num_replicas_in_sync, verbose=1, initial_epoch=_epoch_count)
+                                  num_devices=strategy.num_replicas_in_sync, verbose=1, initial_epoch=_epoch_count)
             _epoch_count += len(_hist["loss"])
+            exit()
 
             ## Store the training history
             for key,val in _hist.items():

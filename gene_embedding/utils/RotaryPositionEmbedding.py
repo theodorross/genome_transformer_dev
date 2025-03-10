@@ -21,7 +21,6 @@ class RotaryPositionEncoding(keras.layers.Layer):
         self.num_positions = num_positions
         self.supports_masking = True
 
-    def build(self, input_shape: tf.TensorShape):
         ## Define the angle vector
         d_idx = tf.range(self.embedding_dim//2)
         theta = 10000 ** ((-1*d_idx)/self.embedding_dim)
@@ -33,7 +32,10 @@ class RotaryPositionEncoding(keras.layers.Layer):
 
         ## Define the positonally encoded angles with an outer product
         self.m_theta = tf.einsum("s,d->sd", m,theta)
-        super().build(input_shape)
+
+    # def compute_output_shape(self, input_shape):
+    #     # return super().compute_output_shape(*args, **kwargs)
+    #     return input_shape
 
     def compute_mask(self, inputs, mask=None):
         return super().compute_mask(inputs, mask)
@@ -56,6 +58,7 @@ class RotaryPositionEncoding(keras.layers.Layer):
 
         ## Apply the alternating indices and signs
         return tf.gather( tf.multiply(x,sgn), idx, axis=2)
+
 
     def call(self, x: tf.Tensor):
         """Input is expected to be of size [bsz x seqlen]."""

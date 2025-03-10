@@ -36,7 +36,7 @@ class GeneTransformer(models.Model):
                        learning_rate:float=1e-6,
                        n_sequence_tokens:int=2,
                        **kwargs):
-        super().__init__(**kwargs)
+        super(GeneTransformer, self).__init__(**kwargs)
 
         ## Store configuration arguments
         self.tokenization_method = tokenization_method
@@ -54,57 +54,53 @@ class GeneTransformer(models.Model):
         self.n_sequence_tokens = n_sequence_tokens
 
         if tokenization_method.lower() == "nucleotide":
-            # self.sequence_token = "x"
-            # self.sequence_token = None
             self.max_length = max_length
             self.decode_length = decode_length
         elif tokenization_method.lower() == "codon":
-            # self.sequence_token = "seq"
-            # self.sequence_token = None
             self.max_length = int(np.ceil(max_length/3))
             self.decode_length = int(np.ceil(decode_length/3))
 
-        ## Build the sub-models
+        ## Build the sub-models        
         # Encoder
-        self.encoder = SequenceEncoder(tokenization_method=tokenization_method, 
-                                       encoder_layers=encoder_layers, 
-                                       embedding_dim=embedding_dim, 
-                                       latent_dim=latent_dim,
-                                       key_dim=key_dim, 
-                                       num_heads=num_heads,
-                                       dropout_rate=dropout_rate, 
-                                       ff_dim=ff_dim,
-                                       masking_rate=masking_rate, 
-                                       n_sequence_tokens=n_sequence_tokens, 
-                                       max_length=max_length,
-                                       decode_length=decode_length)
-        
+        self.encoder = SequenceEncoder(tokenization_method=self.tokenization_method, 
+                                       encoder_layers=self.encoder_layers, 
+                                       embedding_dim=self.embedding_dim, 
+                                       latent_dim=self.latent_dim,
+                                       key_dim=self.key_dim, 
+                                       num_heads=self.num_heads,
+                                       dropout_rate=self.dropout_rate, 
+                                       ff_dim=self.ff_dim,
+                                       masking_rate=self.masking_rate, 
+                                       n_sequence_tokens=self.n_sequence_tokens, 
+                                       max_length=self.max_length,
+                                       decode_length=self.decode_length)
         self.vocab_size = self.encoder.vocab_size
         self.vocabulary = self.encoder.vocabulary
 
         # Decoder
-        self.decoder = SequenceDecoder(decoder_layers=decoder_layers, 
-                                       embedding_dim=embedding_dim, 
-                                       latent_dim=latent_dim, 
-                                       key_dim=key_dim, 
-                                       num_heads=num_heads,
-                                       dropout_rate=dropout_rate, 
-                                       ff_dim=ff_dim, 
+        self.decoder = SequenceDecoder(decoder_layers=self.decoder_layers, 
+                                       embedding_dim=self.embedding_dim, 
+                                       latent_dim=self.latent_dim, 
+                                       key_dim=self.key_dim, 
+                                       num_heads=self.num_heads,
+                                       dropout_rate=self.dropout_rate, 
+                                       ff_dim=self.ff_dim, 
                                        vocab_size=self.vocab_size, 
-                                       n_sequence_tokens=n_sequence_tokens,
-                                       max_length=max_length,
-                                       decode_length=decode_length)
-        
+                                       n_sequence_tokens=self.n_sequence_tokens,
+                                       max_length=self.max_length,
+                                       decode_length=self.decode_length)
+
 
         ## Compile the model
         # Define the optimizer
         opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        # opt = "adam"
         # opt2 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         # opt3 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Define the objective function
-        loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
-        # loss = "sparse_categorical_crossentropy"
+        # self.loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
+        self.loss = "sparse_categorical_crossentropy"
 
         # Define performance metrics to track
         levenshtein_metric = LevenshteinDistance(self.vocabulary)
@@ -114,19 +110,24 @@ class GeneTransformer(models.Model):
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
+        self.compile(optimizer=opt, loss=self.loss, metrics=track_metrics, weighted_metrics=[])
 
-        self.build(input_shape=(None,))
-        self.compile(optimizer=opt, loss=loss, metrics=track_metrics, weighted_metrics=[])
+        ## Run a dummy input through the model
+        dummy_in = tf.convert_to_tensor([["atgatgatg"]])
+        self(dummy_in)
+
+
+    def build(self, input_shape):
+        super().build(input_shape)
+
 
 
     def call(self, x, **kwargs):
-        # x = tf.cast(x, tf.string)
         ## Pass through the encoder
         z = self.encoder(x, **kwargs)
-        # return z
         ## Pass through the decoder
-        return self.decoder(z, **kwargs)
-        # return self.decoder(x, **kwargs)
+        y = self.decoder(z, **kwargs)
+        return y
 
 
     def encode(self, x, **kwargs):
@@ -134,7 +135,7 @@ class GeneTransformer(models.Model):
 
     def decode(self, z, **kwargs):
         return self.decoder.predict(z, **kwargs)
-    
+
 
     def update_decode_length(self, new_length):
         ## Compute the new decoding length
@@ -146,8 +147,6 @@ class GeneTransformer(models.Model):
         ## Set sub-objects to have the new decoding length
         self.encoder._update_decode_length(self.decode_length)
         self.decoder._update_decode_length(self.decode_length)
-        
-        
 
 
     def tokenize(self, x, one_hot=False):
@@ -157,10 +156,15 @@ class GeneTransformer(models.Model):
             x = tf.expand_dims(x, axis=0)
         ## Convert a DNA sequence to a sequence of tokens, optionally one-hot encoded
         tokens = self.encoder.tokenizing_layer(x)
+        tokens = tf.ensure_shape(tokens, [None, None])
         if one_hot:
-            return tf.squeeze( tf.one_hot(tokens, depth=self.vocab_size) )
+            tokens = tf.squeeze( tf.one_hot(tokens, depth=self.vocab_size), axis=0 )
+            # tokens = tf.one_hot(tokens, depth=self.vocab_size)
+            return tokens
         else:
-            return tf.squeeze(tokens)
+            tokens = tf.squeeze(tokens, axis=0)
+            print("tokenize debug:", x.shape, tokens.shape)
+            return tokens
         
 
 
@@ -179,31 +183,25 @@ class GeneTransformer(models.Model):
         batch_size_options = batch_size + batch_size_offsets
         batch_size_options = batch_size_options[batch_size_options > n_replicas] 
         
-        ## @TODO something is going on with batch size vs number of batches
         ## Select a batch size that requires discarding the fewest validation samples
         discard_options = cardinality % batch_size_options
         new_batch_size = batch_size_options[np.argmin(discard_options)]
-        print("DEBUG:")
-        print("n_replicas:", n_replicas)
-        print("batch_size_options:", batch_size_options)
-        print("discard_options:   ", discard_options)
-        print("argmin:", np.argmin(discard_options))
-        print("new_batch_size:", new_batch_size)
+        # print("DEBUG:")
+        # print("n_replicas:", n_replicas)
+        # print("batch_size_options:", batch_size_options)
+        # print("discard_options:   ", discard_options)
+        # print("argmin:", np.argmin(discard_options))
+        # print("new_batch_size:", new_batch_size)
 
         ## Discard samples until the dataset size is evenly divisible by the new batch size
         needed_discards = min(discard_options)
         samples_to_keep = cardinality - needed_discards
         new_data = data.take(samples_to_keep)
-
-        new_card=0
-        for _ in enumerate(new_data):
-            new_card += 1
-        
         
         if verbose:
             # print(f"Resetting batch size from {batch_size} to {new_batch_size} to fit dataset of length {cardinality}")
             print(f"Changing batch size and dataset cardinality, will lose {needed_discards} validation samples of {cardinality}")
-            print(f"\tdata cardinality: {cardinality} -> {new_card}")
+            print(f"\tdata cardinality: {cardinality} -> {samples_to_keep}")
             print(f"\tbatch_size: {batch_size} -> {new_batch_size}")
         return new_batch_size, new_data
     
@@ -212,7 +210,10 @@ class GeneTransformer(models.Model):
     def _preprocess_dataset(self, data:tf.data.Dataset, weights:tf.lookup.StaticHashTable=None) -> tf.data.Dataset:
         ## Map the dataset to a label dataset and randomly mask the inputs
         y = data.map(self.tokenize)
-        _y = data.map(lambda x: self.tokenize(x, one_hot=True))
+        # temp = tf.keras.Sequential()
+        # temp.add(layers.Input(shape=(50,)))
+        # y = y.map(temp)
+        # _y = data.map(lambda x: self.tokenize(x, one_hot=True))
         if weights is None:
             return tf.data.Dataset.zip(data,y)
             # return tf.data.Dataset.zip(_y,y)
@@ -264,7 +265,7 @@ class GeneTransformer(models.Model):
               batch_size:int, 
               epochs:int, 
               callbacks:list,
-              num_devices:int,
+              num_devices:int=1,
               **kwargs):
 
         ## Compute token frequencies to inform class weights
@@ -272,26 +273,33 @@ class GeneTransformer(models.Model):
 
         ## Preprocess the input data for training
         _training = self._preprocess_dataset(data, weight_table)
-        _training = _training.shuffle(buffer_size=_training.cardinality())
-        # _training = _training.shuffle(buffer_size=batch_size*5)
-        # _training = _training.shuffle(buffer_size=100)
+        # _training = self._preprocess_dataset(data)
+        # _training = _training.shuffle(buffer_size=_training.cardinality())
         _training = _training.batch(batch_size).cache()
         _training = _training.prefetch(tf.data.AUTOTUNE)
 
         _validation = self._preprocess_dataset(val_data, weight_table)
+        # _validation = self._preprocess_dataset(val_data)
         _validation_batch, _validation = self._align_data_to_devices(_validation, batch_size, num_devices)
         _validation = _validation.batch(_validation_batch).cache()
         _validation = _validation.prefetch(tf.data.AUTOTUNE)
+
+        # print("generator debug:")
+        # print(_training.element_spec)
+        # for x,y,w in _training:
+        #     print(x.shape)
+        #     print(y.shape)
+        #     print(w.shape)
+        #     break
+        # exit()
         
         ## Train the model
         H = self.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
-        # H = self.decoder.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
-        # H = self.encoder.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
+        # H = self.fit(_training, epochs=epochs)
 
         return H.history
 
     
-
     def get_config(self):
         base_config = super().get_config()
         config = {

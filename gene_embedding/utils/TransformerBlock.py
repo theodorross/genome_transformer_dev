@@ -30,7 +30,7 @@ class TransformerDecoderBlock(layers.Layer):
         # self.supports_masking = True
 
         ## Attention layer
-        self.attn = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, dropout=dropout_rate)
+        self.attn = layers.MultiHeadAttention(num_heads=self.num_heads, key_dim=self.key_dim, dropout=self.dropout_rate)
 
         ## Normalization layers
         self.norm1 = layers.LayerNormalization()
@@ -41,10 +41,10 @@ class TransformerDecoderBlock(layers.Layer):
         self.add2 = layers.Add()
 
         ## Feed forward layers
-        self.ff1 = layers.Dense(ff_dim, activation=activation)
-        self.ff2 = layers.Dense(output_dim)
-        if dropout_rate != 0:
-            self.dropout = layers.Dropout(rate=dropout_rate)
+        self.ff1 = layers.Dense(self.ff_dim, activation=self.activation)
+        self.ff2 = layers.Dense(self.output_dim)
+        if self.dropout_rate != 0:
+            self.dropout = layers.Dropout(rate=self.dropout_rate)
 
 
     def call(self, query, value, key=None, attention_mask=None, use_causal_mask=False, use_residuals=True, **kwargs):
@@ -80,13 +80,17 @@ class TransformerDecoderBlock(layers.Layer):
         
         return out2
     
+
+    def build(self, input_shape):
+        super().build(input_shape)
+
+    
     def compute_mask(self, inputs, mask=None):
         return super().compute_mask(inputs, mask)
     
     def compute_output_shape(self, input_shape):
-        # b,s,_ = input_shape
-        # return (b, s, self.output_dim)
         return input_shape
+    
     
     def get_config(self):
         base_config = super().get_config()
@@ -148,6 +152,10 @@ class TransformerEncoderBlock(layers.Layer):
         self.ff2 = layers.Dense(output_dim)
         if dropout_rate != 0:
             self.dropout = layers.Dropout(rate=dropout_rate)
+
+
+    def build(self, input_shape):
+        super().build(input_shape)
 
 
     def compute_mask(self, inputs, mask=None):
@@ -220,9 +228,8 @@ class TransformerEncoderBlock(layers.Layer):
         return out3
     
     def compute_output_shape(self, input_shape):
-        # b,s,_ = input_shape
-        # return (b, s, self.output_dim)
         return input_shape
+    
     
     def get_config(self):
         base_config = super().get_config()
