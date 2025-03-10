@@ -188,7 +188,6 @@ if __name__ == "__main__":
         gene_ae.get_weights()
         # print(gene_ae.encoder.summary())
         # print(gene_ae.encoder.get_pa)
-        exit()
         
         # ## Train the model
         # fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
