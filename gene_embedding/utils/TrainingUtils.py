@@ -112,11 +112,11 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
         mask = tf.cast(mask, tf.float32)
 
         ## Normalize the accuracy by the number of replicas
-        n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
         acc = tf.reduce_sum(matches)/tf.reduce_sum(mask)
-        if n_replicas is not None:
+        try:
+            n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
             self.acc.assign( acc / n_replicas )
-        else:
+        except:
             self.acc.assign( acc )
     
     def result(self):
