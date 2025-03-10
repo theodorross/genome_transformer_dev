@@ -1,5 +1,9 @@
 #!/bin/bash
 
+## Export SLURM stuff
+export RANK=\$SLURM_PROCID
+export LOCAL_RANK=\$SLURM_LOCALID
+
 ## Activate the venv
 $WITH_CONDA
 source wandb-env/bin/activate
