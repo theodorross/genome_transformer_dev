@@ -30,7 +30,7 @@ class TransformerDecoderBlock(layers.Layer):
         # self.supports_masking = True
 
         ## Attention layer
-        self.attn = layers.MultiHeadAttention(num_heads=self.num_heads, key_dim=self.key_dim, dropout=self.dropout_rate)
+        self.attn = layers.MultiHeadAttention(num_heads=self.num_heads, key_dim=self.key_dim, value_dim=self.key_dim, dropout=self.dropout_rate)
 
         ## Normalization layers
         self.norm1 = layers.LayerNormalization()
@@ -134,8 +134,8 @@ class TransformerEncoderBlock(layers.Layer):
         # self.value_dim = value_dim
 
         ## Attention layer
-        self.cross_attn = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, dropout=dropout_rate)
-        self.self_attn = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, dropout=dropout_rate)
+        self.cross_attn = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, value_dim=self.key_dim, dropout=dropout_rate)
+        self.self_attn = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim, value_dim=self.key_dim, dropout=dropout_rate)
 
         ## Normalization layers
         self.norm1 = layers.LayerNormalization()
