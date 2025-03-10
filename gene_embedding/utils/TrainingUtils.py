@@ -54,9 +54,12 @@ class LevenshteinDistance(tf.keras.metrics.Metric):
         sparse_pred = tf.sparse.from_dense(tokens_pred)
 
         ## Compute the Levenshtein distance and normalize it by the number of replicas
-        n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
         dists = tf.edit_distance(sparse_pred, sparse_true)
-        self.levenshtein_dist.assign(tf.reduce_mean(dists) / n_replicas)
+        try:
+            n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
+            self.levenshtein_dist.assign(tf.reduce_mean(dists) / n_replicas)
+        except:
+            self.levenshtein_dist.assign(tf.reduce_mean(dists))
 
     def result(self):
         return self.levenshtein_dist
