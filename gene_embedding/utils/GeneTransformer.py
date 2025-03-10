@@ -156,14 +156,14 @@ class GeneTransformer(models.Model):
             x = tf.expand_dims(x, axis=0)
         ## Convert a DNA sequence to a sequence of tokens, optionally one-hot encoded
         tokens = self.encoder.tokenizing_layer(x)
-        tokens = tf.ensure_shape(tokens, [None, None])
+        # tokens = tf.ensure_shape(tokens, [None, None])
         if one_hot:
             tokens = tf.squeeze( tf.one_hot(tokens, depth=self.vocab_size), axis=0 )
             # tokens = tf.one_hot(tokens, depth=self.vocab_size)
             return tokens
         else:
             tokens = tf.squeeze(tokens, axis=0)
-            print("tokenize debug:", x.shape, tokens.shape)
+            # print("tokenize debug:", x.shape, tokens.shape)
             return tokens
         
 

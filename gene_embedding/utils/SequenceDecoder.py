@@ -120,8 +120,8 @@ class SequenceDecoder(models.Model):
         self.decode_length.assign(new_length)
 
 
-    # def compute_output_shape(self, input_shape):
-    #     return [input_shape[0], self.decode_length.numpy(), self.vocab_size]
+    def compute_output_shape(self, input_shape):
+        return [input_shape[0], None, self.vocab_size]
 
 
     def build(self, input_shape):
