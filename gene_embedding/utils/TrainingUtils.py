@@ -103,6 +103,10 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
         pred = tf.argmax(y_pred, axis=-1)
         label = tf.cast(y_true, pred.dtype)
 
+        print("accuracy debug:")
+        print("pred:", pred.shape)
+        print('label:', label.shape)
+
         ## Find category matches
         matches = tf.equal(label, pred)
 
