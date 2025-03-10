@@ -1,7 +1,7 @@
 --platform=LUMI
 --dataset=full
---n-sequence-tokens=8
---latent-dim=32
+--n-sequence-tokens=32
+--latent-dim=8
 --embedding-dim=8
 --learning-rate=5e-3
 --learning-rate-decay=1e-3
