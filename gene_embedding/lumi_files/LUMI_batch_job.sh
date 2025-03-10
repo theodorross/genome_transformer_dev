@@ -6,8 +6,8 @@
 #SBATCH --time=00:10:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gpus-per-node=1
-#SBATCH --cpus-per-task=7
+#SBATCH --gpus-per-node=4
+#SBATCH --cpus-per-task=28
 #SBATCH --partition=dev-g
 
 
