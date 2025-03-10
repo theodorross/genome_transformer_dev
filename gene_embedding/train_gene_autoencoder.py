@@ -30,6 +30,7 @@ def concatenate_datasets(*datasets) -> tf.data.Dataset:
 
 
 if __name__ == "__main__":
+    keras.config.disable_traceback_filtering()
 
     '''
     Initialize run parameters
