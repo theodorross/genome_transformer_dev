@@ -114,7 +114,10 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
         ## Normalize the accuracy by the number of replicas
         n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
         acc = tf.reduce_sum(matches)/tf.reduce_sum(mask)
-        self.acc.assign( acc / n_replicas )
+        if n_replicas is not None:
+            self.acc.assign( acc / n_replicas )
+        else:
+            self.acc.assign( acc )
     
     def result(self):
         return self.acc
@@ -146,10 +149,6 @@ class MaskedSparseCategoricalCrossentropy(tf.keras.losses.Loss):
 
     def call(self, y_true, y_pred):
         ## Compute the base loss
-        print("LOSS DEBUG:", tf.shape(y_true), tf.shape(y_pred))
-        print("y_true:", y_true)
-        print("y_pred:", y_pred)
-
         loss = tf.keras.losses.sparse_categorical_crossentropy(y_true, y_pred, from_logits=False)
 
         ## Mask the computed loss
