@@ -107,7 +107,7 @@ class GeneTransformer(models.Model):
         # masked_accuracy = MaskedAccuracy(mask_category=0)
         # track_metrics = [masked_accuracy,
         #                  levenshtein_metric]
-        track_metrics = "accuracy"
+        track_metrics = ["accuracy"]
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
