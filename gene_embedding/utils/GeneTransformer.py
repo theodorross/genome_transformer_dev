@@ -99,15 +99,14 @@ class GeneTransformer(models.Model):
         # opt3 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Define the objective function
-        # self.loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
-        self.loss = "sparse_categorical_crossentropy"
+        self.loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
+        # self.loss = "sparse_categorical_crossentropy"
 
         # Define performance metrics to track
-        # levenshtein_metric = LevenshteinDistance(self.vocabulary)
-        # masked_accuracy = MaskedAccuracy(mask_category=0)
-        # track_metrics = [masked_accuracy,
-        #                  levenshtein_metric]
-        track_metrics = ["accuracy"]
+        levenshtein_metric = LevenshteinDistance(self.vocabulary)
+        masked_accuracy = MaskedAccuracy(mask_category=0)
+        track_metrics = [masked_accuracy,
+                         levenshtein_metric]
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
@@ -160,11 +159,10 @@ class GeneTransformer(models.Model):
         # tokens = tf.ensure_shape(tokens, [None, None])
         if one_hot:
             tokens = tf.squeeze( tf.one_hot(tokens, depth=self.vocab_size), axis=0 )
-            # tokens = tf.one_hot(tokens, depth=self.vocab_size)
+            tokens = tf.one_hot(tokens, depth=self.vocab_size)
             return tokens
         else:
             tokens = tf.squeeze(tokens, axis=0)
-            # print("tokenize debug:", x.shape, tokens.shape)
             return tokens
         
 
@@ -187,12 +185,6 @@ class GeneTransformer(models.Model):
         ## Select a batch size that requires discarding the fewest validation samples
         discard_options = cardinality % batch_size_options
         new_batch_size = batch_size_options[np.argmin(discard_options)]
-        # print("DEBUG:")
-        # print("n_replicas:", n_replicas)
-        # print("batch_size_options:", batch_size_options)
-        # print("discard_options:   ", discard_options)
-        # print("argmin:", np.argmin(discard_options))
-        # print("new_batch_size:", new_batch_size)
 
         ## Discard samples until the dataset size is evenly divisible by the new batch size
         needed_discards = min(discard_options)
@@ -295,8 +287,8 @@ class GeneTransformer(models.Model):
         # exit()
         
         ## Train the model
-        # H = self.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
-        H = self.fit(_training, epochs=epochs)
+        H = self.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
+        # H = self.fit(_training, epochs=epochs)
 
         return H.history
 

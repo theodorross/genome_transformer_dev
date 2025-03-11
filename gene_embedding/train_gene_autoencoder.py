@@ -105,14 +105,11 @@ if __name__ == "__main__":
 
     ## Initialize wandb
     wandb_config = sys_config | model_config | training_config
-    # wandb.init(
-    #     project="gene-encoder",
-    #     config=wandb_config,
-    #     sync_tensorboard=True
-    # )
-
-    print(wandb_config)
-
+    wandb.init(
+        project="gene-encoder",
+        config=wandb_config,
+        sync_tensorboard=True
+    )
 
 
     '''
@@ -146,11 +143,11 @@ if __name__ == "__main__":
     '''
     Define training callbacks
     '''
-    # wandb_callback = wandb.keras.WandbMetricsLogger()
+    wandb_callback = wandb.keras.WandbMetricsLogger()
     early_stopper = keras.callbacks.EarlyStopping(patience=args.patience,
                                                   restore_best_weights=True)
-    # callbacks = [wandb_callback, early_stopper]
-    callbacks = [early_stopper]
+    callbacks = [wandb_callback, early_stopper]
+    # callbacks = [early_stopper]
 
     if (args.learning_rate_decay is not None) and (args.learning_rate_decay_start is not None):
         # def schedule_func(ep,lr):

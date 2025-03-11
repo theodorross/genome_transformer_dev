@@ -108,10 +108,6 @@ class SequenceDecoder(models.Model):
             query_seq = dec_layer(query=query_seq, value=x, use_residuals=True, **kwargs)
         # return layers.Softmax()(query_seq)
         out = self.final_layer(query_seq)
-        # out.set_shape(self.compute_output_shape(x.shape))
-        # print("decode length debug:", self.decode_length.numpy())
-        # out = tf.ensure_shape(out, [x.shape[0], self.decode_length, self.vocab_size])
-        # print("decoder call debug:", out.shape)
         return out
     
 
