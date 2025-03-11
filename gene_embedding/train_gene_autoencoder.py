@@ -7,7 +7,7 @@ import argparse
 import os
 # import datetime
 # import pickle
-from tensorflow import keras
+from tensorflow.keras import Layers
 from utils import *
 
 print("tensorflow version:", tf.__version__)
