@@ -7,7 +7,7 @@ import argparse
 import os
 # import datetime
 # import pickle
-
+from tensorflow import keras
 from utils import *
 
 print("tensorflow version:", tf.__version__)
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     '''
     Define training callbacks
     '''
-    wandb_callback = wandb.integration.keras3.WandbMetricsLogger()
+    wandb_callback = wandb.keras.WandbMetricsLogger()
     early_stopper = keras.callbacks.EarlyStopping(patience=args.patience,
                                                   restore_best_weights=True)
     callbacks = [wandb_callback, early_stopper]
