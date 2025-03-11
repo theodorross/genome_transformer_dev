@@ -110,7 +110,7 @@ class GeneTransformer(models.Model):
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
-        self.compile(optimizer=opt, loss=self.loss, metrics=["accuracy"])
+        self.compile(optimizer=opt, loss=self.loss, metrics=[MaskedAccuracy(mask_category=0)])
         # self.compile(optimizer=opt, loss=self.loss, metrics=track_metrics, weighted_metrics=[])
 
         ## Run a dummy input through the model
