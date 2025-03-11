@@ -104,7 +104,8 @@ class GeneTransformer(models.Model):
 
         # Define performance metrics to track
         levenshtein_metric = LevenshteinDistance(self.vocabulary)
-        masked_accuracy = MaskedAccuracy(mask_category=0)
+        # masked_accuracy = MaskedAccuracy(mask_category=0)
+        masked_accuracy = "accuracy"
         track_metrics = [masked_accuracy,
                          levenshtein_metric]
 
