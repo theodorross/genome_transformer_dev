@@ -12,6 +12,7 @@ from utils import *
 
 print("tensorflow version:", tf.__version__)
 print("keras version:", keras.__version__, tf.keras.__version__)
+print("wandb version:", wandb.__version__)
 
 
 def clip_gene(length):
