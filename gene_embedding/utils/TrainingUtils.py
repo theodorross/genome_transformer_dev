@@ -21,7 +21,7 @@ class LevenshteinDistance(tf.keras.metrics.Metric):
         )
 
         ## Define the distance variables
-        self.levenshtein_dist = self.add_weight(
+        self.levenshtein_dist = self.add_variable(
             shape=(),
             initializer='zeros',
             name='levenshtein_dist'
@@ -91,7 +91,7 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
         super().__init__(name=name, **kwargs)
 
         self.mask_category = mask_category
-        self.acc = self.add_weight(
+        self.acc = self.add_variable(
             shape=(),
             initializer='zeros',
             name='masked_acc'
