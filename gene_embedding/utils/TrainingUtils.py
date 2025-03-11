@@ -25,7 +25,7 @@ class LevenshteinDistance(tf.keras.metrics.Metric):
             shape=(),
             initializer='zeros',
             name='levenshtein_dist',
-            dtype=float
+            dtype=tf.float32
         )
 
     def untokenizer(self, x, from_one_hot=False):
@@ -96,7 +96,7 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
             shape=(),
             initializer='zeros',
             name='masked_acc',
-            dtype=float
+            dtype=tf.float32
         )
 
     def update_state(self, y_true, y_pred, **kwargs):
