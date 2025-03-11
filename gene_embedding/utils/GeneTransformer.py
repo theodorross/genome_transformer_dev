@@ -276,13 +276,13 @@ class GeneTransformer(models.Model):
         _training = self._preprocess_dataset(data, weight_table)
         # _training = self._preprocess_dataset(data)
         # _training = _training.shuffle(buffer_size=_training.cardinality())
-        _training = _training.batch(batch_size).cache()
+        _training = _training.batch(batch_size, drop_remainder=True).cache()
         _training = _training.prefetch(tf.data.AUTOTUNE)
 
         _validation = self._preprocess_dataset(val_data, weight_table)
         # _validation = self._preprocess_dataset(val_data)
-        _validation_batch, _validation = self._align_data_to_devices(_validation, batch_size, num_devices)
-        _validation = _validation.batch(_validation_batch).cache()
+        # _validation_batch, _validation = self._align_data_to_devices(_validation, batch_size, num_devices)
+        _validation = _validation.batch(batch_size, drop_remainder=True).cache()
         _validation = _validation.prefetch(tf.data.AUTOTUNE)
 
         # print("generator debug:")
