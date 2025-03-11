@@ -159,7 +159,7 @@ class GeneTransformer(models.Model):
         # tokens = tf.ensure_shape(tokens, [None, None])
         if one_hot:
             tokens = tf.squeeze( tf.one_hot(tokens, depth=self.vocab_size), axis=0 )
-            tokens = tf.one_hot(tokens, depth=self.vocab_size)
+            # tokens = tf.one_hot(tokens, depth=self.vocab_size)
             return tokens
         else:
             tokens = tf.squeeze(tokens, axis=0)
