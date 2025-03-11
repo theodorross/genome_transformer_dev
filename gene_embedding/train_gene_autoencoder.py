@@ -143,7 +143,7 @@ if __name__ == "__main__":
     '''
     Define training callbacks
     '''
-    wandb_callback = wandb.keras.WandbMetricsLogger()
+    wandb_callback = wandb.integration.keras3.WandbMetricsLogger()
     early_stopper = keras.callbacks.EarlyStopping(patience=args.patience,
                                                   restore_best_weights=True)
     callbacks = [wandb_callback, early_stopper]
