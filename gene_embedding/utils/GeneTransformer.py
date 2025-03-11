@@ -110,7 +110,8 @@ class GeneTransformer(models.Model):
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
-        self.compile(optimizer=opt, loss=self.loss, metrics=track_metrics, weighted_metrics=[])
+        self.compile(optimizer=opt, loss=self.loss)
+        # self.compile(optimizer=opt, loss=self.loss, metrics=track_metrics, weighted_metrics=[])
 
         ## Run a dummy input through the model
         dummy_in = tf.convert_to_tensor([["atgatgatg"]])
