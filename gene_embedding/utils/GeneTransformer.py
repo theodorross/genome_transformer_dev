@@ -103,11 +103,11 @@ class GeneTransformer(models.Model):
         self.loss = "sparse_categorical_crossentropy"
 
         # Define performance metrics to track
-        levenshtein_metric = LevenshteinDistance(self.vocabulary)
+        # levenshtein_metric = LevenshteinDistance(self.vocabulary)
         # masked_accuracy = MaskedAccuracy(mask_category=0)
-        masked_accuracy = "accuracy"
-        track_metrics = [masked_accuracy,
-                         levenshtein_metric]
+        # track_metrics = [masked_accuracy,
+        #                  levenshtein_metric]
+        track_metrics = "accuracy"
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
