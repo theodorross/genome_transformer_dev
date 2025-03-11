@@ -92,7 +92,7 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
         super().__init__(name=name, **kwargs)
 
         self.mask_category = mask_category
-        self.acc = self.add_variable(
+        self.acc = self.add_weight(
             shape=(),
             initializer='zeros',
             name='masked_acc',
