@@ -1,10 +1,12 @@
+import os
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
+
 import numpy as np
 import tensorflow as tf
 import keras
 import wandb
 import argparse
 # import json
-import os
 # import datetime
 # import pickle
 # from tensorflow.keras import Layers
@@ -159,7 +161,7 @@ if __name__ == "__main__":
         if args.dataset.lower() == "dev":
             schedule_func = lambda e,lr: lr*tf.exp(-0.1) if (e%250==249 and e>args.learning_rate_decay_start) else lr
         else:
-            schedule_func = lambda e,lr: lr*tf.exp(-0.1) if (e%250==249 and e>args.learning_rate_decay_start) else lr
+            schedule_func = lambda e,lr: float(lr*tf.exp(-0.1)) if (e%50==249 and e>args.learning_rate_decay_start) else float(lr)
         lr_scheduler = keras.callbacks.LearningRateScheduler(schedule_func)
         callbacks.append(lr_scheduler)
 
