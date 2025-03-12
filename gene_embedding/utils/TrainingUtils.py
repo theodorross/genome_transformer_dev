@@ -92,12 +92,13 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
         super().__init__(name=name, **kwargs)
 
         self.mask_category = mask_category
-        self.acc = self.add_variable(
-            shape=(),
-            initializer='zeros',
-            name='masked_acc',
-            dtype=tf.float32
-        )
+        # self.acc = self.add_variable(
+        #     shape=(),
+        #     initializer='zeros',
+        #     name='masked_acc',
+        #     dtype=tf.float32
+        # )
+        self.acc = 0
 
     def update_state(self, y_true, y_pred, **kwargs):
         
@@ -120,10 +121,11 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
         acc = tf.reduce_sum(matches)/tf.reduce_sum(mask)
         try:
             n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
-            acc = acc / n_replicas
-            self.acc.assign( acc )
+            # self.acc.assign( acc / n_replicas )
+            self.acc = acc / n_replicas
         except:
-            self.acc.assign( acc )
+            # self.acc.assign( acc )
+            self.acc = acc
     
     def result(self):
         return self.acc
