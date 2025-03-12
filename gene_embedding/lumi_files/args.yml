@@ -1,7 +1,7 @@
 --platform=LUMI
 --dataset=full
 --n-sequence-tokens=8
---latent-dim=64
+--latent-dim=32
 --embedding-dim=8
 --learning-rate=5e-3
 --learning-rate-decay=1e-3
@@ -12,10 +12,10 @@
 --epochs=2000
 --patience=150
 --encoder-layers=10
---decoder-layers=5
+--decoder-layers=1
 --key-dim=16
 --num-heads=12
---ff-dim=64
+--ff-dim=32
 --max-seq-length=300
 --decode-length=300
 --seq-length-steps=1
