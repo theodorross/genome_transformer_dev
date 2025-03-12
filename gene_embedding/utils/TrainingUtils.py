@@ -125,7 +125,7 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
             self.acc.assign( acc )
     
     def result(self):
-        return self.acc.value()
+        return self.acc
     
     def get_config(self):
         base_config = super().get_config()
