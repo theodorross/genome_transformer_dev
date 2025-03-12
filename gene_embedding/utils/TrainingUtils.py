@@ -120,7 +120,8 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
         acc = tf.reduce_sum(matches)/tf.reduce_sum(mask)
         try:
             n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
-            self.acc.assign( acc / n_replicas )
+            acc = acc / n_replicas
+            self.acc.assign( acc )
         except:
             self.acc.assign( acc )
     
