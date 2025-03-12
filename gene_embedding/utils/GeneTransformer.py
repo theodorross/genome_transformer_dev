@@ -105,9 +105,9 @@ class GeneTransformer(models.Model):
         # Define performance metrics to track
         levenshtein_metric = LevenshteinDistance(self.vocabulary)
         masked_accuracy = MaskedAccuracy(mask_category=0)
-        # track_metrics = [masked_accuracy,
-        #                  levenshtein_metric]
-        track_metrics = [masked_accuracy]
+        track_metrics = [masked_accuracy,
+                         levenshtein_metric]
+        # track_metrics = [self.masked_accuracy]
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
@@ -290,8 +290,8 @@ class GeneTransformer(models.Model):
         # exit()
         
         ## Train the model
-        # H = self.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
-        H = self.fit(_training, epochs=epochs, callbacks=callbacks, **kwargs)
+        H = self.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
+        # H = self.fit(_training, epochs=epochs, callbacks=callbacks, **kwargs)
         # H = self.fit(_training, epochs=epochs)
 
         return H.history
