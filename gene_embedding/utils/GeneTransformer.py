@@ -289,7 +289,8 @@ class GeneTransformer(models.Model):
         # exit()
         
         ## Train the model
-        H = self.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
+        # H = self.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
+        H = self.fit(_training, epochs=epochs, callbacks=callbacks, **kwargs)
         # H = self.fit(_training, epochs=epochs)
 
         return H.history
