@@ -63,7 +63,7 @@ class LevenshteinDistance(tf.keras.metrics.Metric):
             self.levenshtein_dist.assign(tf.reduce_mean(dists))
 
     def result(self):
-        return self.levenshtein_dist
+        return self.levenshtein_dist.numpy()
     
     def get_config(self):
         base_config = super().get_config()
@@ -125,7 +125,7 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
             self.acc.assign( acc )
     
     def result(self):
-        return self.acc
+        return self.acc.numpy()
     
     def get_config(self):
         base_config = super().get_config()

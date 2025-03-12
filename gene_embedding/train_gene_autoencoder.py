@@ -207,6 +207,7 @@ if __name__ == "__main__":
             _training_fold = training_fold.filter(lambda x: tf.strings.length(x) < gene_length).cache()
             _validation_fold = validation_fold.filter(lambda x: tf.strings.length(x) < gene_length).cache()
 
+
             ## Train the model
             _epochs = args.epochs // len(decode_lengths)        # number of epochs per decode length
             _hist = gene_ae.train(_training_fold, _validation_fold, args.batch_size, _epochs*(ix+1), 
