@@ -159,17 +159,17 @@ if __name__ == "__main__":
         #     else:
         #         return args.learning_rate
         if args.dataset.lower() == "dev":
-            schedule_func = lambda e,lr: lr*tf.exp(-0.1) if (e%250==249 and e>args.learning_rate_decay_start) else lr
+            schedule_func = lambda e,lr: lr*tf.exp(-0.1) if (e%250==249 and e>args.learning_rate_decay_start) else lr*1.0
         else:
-            # schedule_func = lambda e,lr: float(lr*tf.exp(-0.1)) if (e%50==249 and e>args.learning_rate_decay_start) else float(lr)
-            def schedule_func(e,lr):
-                if e > args.learning_rate_decay_start:
-                    if e%50 ==49:
-                        return lr*tf.exp(-0.1)
-                    else:
-                        return lr
-                else:
-                    return lr
+            schedule_func = lambda e,lr: lr*tf.exp(-0.1) if (e%50==249 and e>args.learning_rate_decay_start) else lr*1.0
+            # def schedule_func(e,lr):
+            #     if e > args.learning_rate_decay_start:
+            #         if e%50 ==49:
+            #             return lr*tf.exp(-0.1)
+            #         else:
+            #             return lr*1
+            #     else:
+            #         return lr*1
         lr_scheduler = keras.callbacks.LearningRateScheduler(schedule_func)
         callbacks.append(lr_scheduler)
 
