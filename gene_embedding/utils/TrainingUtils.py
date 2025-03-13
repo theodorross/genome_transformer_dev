@@ -56,14 +56,14 @@ class LevenshteinDistance(tf.keras.metrics.Metric):
 
         ## Compute the Levenshtein distance and normalize it by the number of replicas
         dists = tf.edit_distance(sparse_pred, sparse_true)
-        try:
-            n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
-            self.levenshtein_dist.assign(tf.reduce_mean(dists) / n_replicas)
-        except:
-            self.levenshtein_dist.assign(tf.reduce_mean(dists))
+        # try:
+        #     n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
+        #     self.levenshtein_dist.assign(tf.reduce_mean(dists) / n_replicas)
+        # except:
+        self.levenshtein_dist.assign(tf.reduce_mean(dists))
 
     def result(self):
-        return tf.math.multiply( self.levenshtein_dist, 1)
+        return tf.math.multiply( self.levenshtein_dist, 1 )
     
     def get_config(self):
         base_config = super().get_config()
@@ -120,17 +120,17 @@ class MaskedAccuracy(tf.keras.metrics.Metric):
         ## Normalize the accuracy by the number of replicas
         # acc = tf.reduce_sum(matches)/tf.reduce_sum(mask)
         acc = tf.math.divide(tf.reduce_sum(matches), tf.reduce_sum(mask))
-        try:
-            n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
-            self.acc.assign( tf.divide(acc, n_replicas) )
-        except:
-            self.acc.assign( acc )
+        # try:
+        #     n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
+        #     self.acc.assign( tf.divide(acc, n_replicas) )
+        # except:
+        self.acc.assign( acc )
 
     def reset_state(self):
         self.acc.assign(0)
     
     def result(self):
-        return tf.math.multiply_no_nan( self.acc, 1)
+        return tf.math.multiply_no_nan( self.acc, 1 )
     
     def get_config(self):
         base_config = super().get_config()
