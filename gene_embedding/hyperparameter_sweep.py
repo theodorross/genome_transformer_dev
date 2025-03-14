@@ -190,7 +190,7 @@ if __name__ == "__main__":
     }
 
     sweep_id = wandb.sweep(sweep=sweep_config, project="gene-encoder")
-    wandb.agent(sweep_id, function=main, count=2)
+    wandb.agent(sweep_id, function=main, count=16)
 
 
     # ## parse the model configuration
