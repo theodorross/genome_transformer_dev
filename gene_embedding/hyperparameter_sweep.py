@@ -86,7 +86,7 @@ def train_gene_ae(config):
     ## Load the dataset and remove genes over the max sequence length
     datapath = f"{data_dir}/unique_dna_seqs_dev.txt"
     gene_dataset = tf.data.TextLineDataset(datapath)
-    gene_dataset = gene_dataset.map(clip_gene(config["max_seq_length"]))
+    gene_dataset = gene_dataset.map(clip_gene(config["max_length"]))
 
 
     '''
@@ -111,7 +111,7 @@ def train_gene_ae(config):
         callbacks = [early_stopper, lr_scheduler]
 
     ## Define incrementing gene lengths for training
-    decode_lengths = np.linspace(config['decode_length'], config['max_seq_length'],
+    decode_lengths = np.linspace(config['decode_length'], config['max_length'],
                                  config['seq_length_steps'], dtype=int)
     
 
