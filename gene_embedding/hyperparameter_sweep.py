@@ -134,7 +134,7 @@ def train_gene_ae(config):
         _epochs = config['epochs'] // len(decode_lengths)        # number of epochs per decode length
         _hist = gene_ae.fit(_training, validation_data=_validation, epochs=_epochs*(ix+1),
                             callbacks=callbacks, verbose=1, initial_epoch=_epoch_count)
-        _epoch_count += len(_hist['loss'])
+        _epoch_count += len(_hist.history['loss'])
 
         ## Store the training history
         for key,val in _hist.history.items():
