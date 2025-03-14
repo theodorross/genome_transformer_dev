@@ -147,6 +147,16 @@ def train_gene_ae(config):
         _training, _validation = gene_ae.preprocess_dataset(_training,
                                                             config['batch_size'],
                                                             _validation)
+        
+        print("debug training datasets:")
+        for x,y,w in _training:
+            print(x.shape, y.shape, w.shape)
+
+        print('debug validation dataset:')
+        for x,y,w in _validation:
+            print(x.shape, y.shape, w.shape)
+        exit()
+        
         ## Fit the model to the data
         _epochs = config['epochs'] // len(decode_lengths)        # number of epochs per decode length
         _hist = gene_ae.fit(_training, validation_data=_validation, epochs=_epochs*(ix+1),
