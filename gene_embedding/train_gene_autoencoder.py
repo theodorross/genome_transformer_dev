@@ -224,8 +224,6 @@ if __name__ == "__main__":
             _epochs = args.epochs // len(decode_lengths)        # number of epochs per decode length
             _hist = gene_ae.fit(_training_fold, validation_data=_validation_fold, epochs=_epochs*(ix+1), 
                                 callbacks=callbacks, verbose=1, initial_epoch=_epoch_count)
-            # _hist = gene_ae.train(_training_fold, validation_data=_validation_fold, _epochs*(ix+1), 
-            #                       callbacks=callbacks, num_devices=strategy.num_replicas_in_sync, verbose=1, initial_epoch=_epoch_count)
             _epoch_count += len(_hist["loss"])
             
             ## Store the training history
