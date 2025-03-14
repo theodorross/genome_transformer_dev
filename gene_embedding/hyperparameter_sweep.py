@@ -137,7 +137,7 @@ def train_gene_ae(config):
         _epoch_count += len(_hist['loss'])
 
         ## Store the training history
-        for key,val in _hist.items():
+        for key,val in _hist.history.items():
             if key in history.keys():
                 history[key] += val
             else:

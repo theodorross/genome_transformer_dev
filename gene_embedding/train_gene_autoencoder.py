@@ -227,7 +227,7 @@ if __name__ == "__main__":
             _epoch_count += len(_hist["loss"])
             
             ## Store the training history
-            for key,val in _hist.items():
+            for key,val in _hist.history.items():
                 if key in fold_history.keys():
                     fold_history[key] += _hist[key]
                 else:
