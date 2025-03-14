@@ -95,9 +95,10 @@ def train_gene_ae(config):
     '''
     Define training callbacks
     '''
-    # wandb_callback = wandb.keras.WandbMetricsLogger()
+    wandb_callback = wandb.keras.WandbMetricsLogger()
     early_stopper = keras.callbacks.EarlyStopping(patience=config['patience'],
                                                   restore_best_weights=True)
+    callbacks = [early_stopper, wandb_callback]
 
     if (config['learning_rate_decay'] is not None) and (config['learning_rate_decay_start'] is not None):
         # schedule_func = lambda e,lr: lr*config['learning_rate_decay'] if (e%50==49 and e>config['learning_rate_decay_start']) else lr*1.0
@@ -111,7 +112,7 @@ def train_gene_ae(config):
                 return lr*1.0
     
         lr_scheduler = keras.callbacks.LearningRateScheduler(schedule_func)
-        callbacks = [early_stopper, lr_scheduler]
+        callbacks.append(lr_scheduler)
 
     ## Define incrementing gene lengths for training
     decode_lengths = np.linspace(config['decode_length'], config['max_length'],
