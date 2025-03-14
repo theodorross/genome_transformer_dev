@@ -143,6 +143,9 @@ def train_gene_ae(config):
             else:
                 history[key] = val
 
+    ## Save the model
+    gene_ae.save(f"models/geneAE_{wandb.run.name}.keras")
+
     ## Return the latest validation loss 
     # return history['val_loss'][-1]
     _eval = gene_ae.evaluate(_validation, return_dict=True)
