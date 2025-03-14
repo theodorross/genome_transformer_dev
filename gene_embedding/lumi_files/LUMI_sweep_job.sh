@@ -10,12 +10,6 @@
 #SBATCH --cpus-per-task=56
 #SBATCH --partition=standard-g
 
-## Update the codebase
-git pull origin working
-
-## Ensure the working directory is correct
-cd /project/project_465001381/rosstheo/genome_transformer_dev/gene_embedding
-
 ## Load the needed LUMI bindings
 module use /appl/local/containers/ai-modules
 module load singularity-AI-bindings
