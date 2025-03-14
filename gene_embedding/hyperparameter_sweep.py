@@ -44,7 +44,7 @@ def train_gene_ae(config):
 
     ## parse the model configuration
     model_config = {
-        'tokenizing_method': config.get("tokenizing_method", 'nucleotide'),
+        'tokenization_method': config.get("tokenization_method", 'nucleotide'),
         'embedding_dim': config['embedding_dim'],
         'latent_dim': config['latent_dim'],
         'encoder_layers': config['encoder_layers'],
