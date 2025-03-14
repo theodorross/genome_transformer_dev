@@ -216,7 +216,9 @@ if __name__ == "__main__":
             _validation_fold = validation_fold.filter(lambda x: tf.strings.length(x) < gene_length).cache()
 
             ## Preprocess the datasets
-            _training_fold, _validation_fold = gene_ae.preprocess_dataset(_training_fold, _validation_fold, batch_size=args.batch_size)
+            _training_fold, _validation_fold = gene_ae.preprocess_dataset(_training_fold, 
+                                                                          batch_size=args.batch_size, 
+                                                                          validation_data=_validation_fold)
 
             ## Train the model
             _epochs = args.epochs // len(decode_lengths)        # number of epochs per decode length
