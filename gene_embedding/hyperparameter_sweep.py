@@ -117,6 +117,7 @@ def train_gene_ae(config):
     ## Define incrementing gene lengths for training
     decode_lengths = np.linspace(config['decode_length'], config['max_length'],
                                  config['seq_length_steps'], dtype=int)
+    print("decode_lengths debug:", decode_lengths)
     
 
     '''
