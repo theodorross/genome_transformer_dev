@@ -152,7 +152,16 @@ def train_gene_ae(config):
             else:
                 history[key] = val
 
-    return
+    ## Return the latest validation loss 
+    # return history['val_loss'][-1]
+    _eval = gene_ae.evaluate(_validation, return_dict=True)
+    return _eval["loss"]
+
+
+def main():
+    wandb.init(project="gene-encoder")
+    val_loss = train_gene_ae(wandb.config)
+    wandb.log({"val_loss":val_loss})
 
 
 
@@ -175,7 +184,7 @@ if __name__ == "__main__":
             "n_sequence_tokens": {'values': [2,4]},
             'patience': {'values': [50]},
             'batch_size': {'values': [256]},
-            'epochs': {'values': [50]},
+            'epochs': {'values': [25]},
             'learning_rate_decay': {'values':[0.95]},
             'learning_rate_decay_start': {'values': [150]},
             'seq_length_steps': {'values': [1]}
@@ -183,5 +192,5 @@ if __name__ == "__main__":
     }
 
     sweep_id = wandb.sweep(sweep=sweep_config, project="gene-encoder")
-    wandb.agent(sweep_id, function=train_gene_ae, count=2)
+    wandb.agent(sweep_id, function=main, count=2)
 

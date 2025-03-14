@@ -103,41 +103,41 @@ if __name__ == "__main__":
 
         exit()
 
-        y_indices = np.argmax(y, axis=-1).squeeze()
-        letters = vocab_arr[y_indices]
-        recon = "".join(letters).upper()
+        # y_indices = np.argmax(y, axis=-1).squeeze()
+        # letters = vocab_arr[y_indices]
+        # recon = "".join(letters).upper()
 
-        ## Compute the levenshtein distance
-        print("input:", inp.upper())
-        print("recon:", recon)
-        print("input:", inp.upper()[:60])
-        print("recon:", recon[:60])
-        exit()
+        # ## Compute the levenshtein distance
+        # print("input:", inp.upper())
+        # print("recon:", recon)
+        # print("input:", inp.upper()[:60])
+        # print("recon:", recon[:60])
+        # exit()
         # dist = nltk.edit_distance(inp.upper(),recon)
         # print(f"{dist} / {len(inp)}")
         # df.loc[ix.numpy(), :] = [dist, len(inp)]
 
-    # # print(df)
-    # plt.scatter(df["length"], df["distance"])
-    # plt.xlabel("gene length")
-    # plt.ylabel("input-output Leveshtein distance")
-    # # plt.show()
+    # # # print(df)
+    # # plt.scatter(df["length"], df["distance"])
+    # # plt.xlabel("gene length")
+    # # plt.ylabel("input-output Leveshtein distance")
+    # # # plt.show()
 
 
-    ## plot embeddings
-    fig = plt.figure()
+    # ## plot embeddings
+    # fig = plt.figure()
 
-    # pca_embeddings = PCA(n_components=3).fit_transform(embedding_arr)
-    # ax = fig.add_subplot(projection="3d")
-    # pos = ax.scatter(pca_embeddings[:,0], pca_embeddings[:,1], pca_embeddings[:,2], c=gene_lens)
-    # ax.set_zlabel("e3")
+    # # pca_embeddings = PCA(n_components=3).fit_transform(embedding_arr)
+    # # ax = fig.add_subplot(projection="3d")
+    # # pos = ax.scatter(pca_embeddings[:,0], pca_embeddings[:,1], pca_embeddings[:,2], c=gene_lens)
+    # # ax.set_zlabel("e3")
 
-    pca_embeddings = PCA(n_components=2).fit_transform(embedding_arr)
-    ax = fig.add_subplot()
-    pos = ax.scatter(pca_embeddings[:,0], pca_embeddings[:,1], c=gene_lens)
+    # pca_embeddings = PCA(n_components=2).fit_transform(embedding_arr)
+    # ax = fig.add_subplot()
+    # pos = ax.scatter(pca_embeddings[:,0], pca_embeddings[:,1], c=gene_lens)
 
-    ax.set_xlabel("e1")
-    ax.set_ylabel("e2")
-    fig.colorbar(pos, ax=ax, label="Gene Length")
-    plt.show()
+    # ax.set_xlabel("e1")
+    # ax.set_ylabel("e2")
+    # fig.colorbar(pos, ax=ax, label="Gene Length")
+    # plt.show()
 
