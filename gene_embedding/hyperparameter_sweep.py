@@ -87,7 +87,7 @@ def train_gene_ae(config):
         data_dir = "/project/project_465001381/rosstheo/genome_transformer_dev/data/gene_sequences"
 
     ## Load the dataset and remove genes over the max sequence length
-    datapath = f"{data_dir}/unique_dna_seqs_dev.txt"
+    datapath = f"{data_dir}/train_unique_gene_seqs.txt"
     gene_dataset = tf.data.TextLineDataset(datapath)
     gene_dataset = gene_dataset.map(clip_gene(config["max_length"]))
 
@@ -143,27 +143,27 @@ def train_gene_ae(config):
         _training = training_genes.filter(lambda x: tf.strings.length(x) < gene_length)
         _validation = validation_genes.filter(lambda x: tf.strings.length(x) < gene_length)
 
-        count = 0
-        for _ in _training:
-            count += 1
-            pass
-        print(f"{count} in _training after filtering")
+        # count = 0
+        # for _ in _training:
+        #     count += 1
+        #     pass
+        # print(f"{count} in _training after filtering")
 
         ## Preprocess the data
         _training, _validation = gene_ae.preprocess_dataset(_training,
                                                             config['batch_size'],
                                                             _validation)
         
-        print(f"{count} in _training after preprocessing")
+        # print(f"{count} in _training after preprocessing")
         
-        print("debug training datasets:")
-        for x,y,w in _training:
-            print(x.shape, y.shape, w.shape)
+        # print("debug training datasets:")
+        # for x,y,w in _training:
+        #     print(x.shape, y.shape, w.shape)
 
-        print('debug validation dataset:')
-        for x,y,w in _validation:
-            print(x.shape, y.shape, w.shape)
-        exit()
+        # print('debug validation dataset:')
+        # for x,y,w in _validation:
+        #     print(x.shape, y.shape, w.shape)
+        # exit()
         
         ## Fit the model to the data
         _epochs = config['epochs'] // len(decode_lengths)        # number of epochs per decode length
