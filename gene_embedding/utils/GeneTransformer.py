@@ -224,7 +224,7 @@ class GeneTransformer(models.Model):
                 new_val_data = tf.data.Dataset.zip(validation_data, val_y)
 
         ## Shuffle and batch the training data
-        new_data = new_data.shuffle(buffer_size=new_data.cardinality)
+        new_data = new_data.shuffle(buffer_size=new_data.cardinality())
         new_data = new_data.batch(batch_size=batch_size, drop_remainder=True).cache()
         if validation_data is not None:     # Only batch the validation data
             new_val_data = new_val_data.batch(batch_size=batch_size, drop_remainder=True).cache()
