@@ -49,7 +49,7 @@ def train_gene_ae(config):
         'key_dim': config["key_dim"],
         'num_heads': config['num_heads'],
         'dropout_rate': config['dropout_rate'],
-        'ff_dim': config['ff_dim'],
+        'ff_dim': config['latent_dim'],             ## Ensure latent_dim and ff_dim are equal
         'max_length' :config['max_length'],
         'decode_length': config['decode_length'],
         'masking_rate': config['masking_rate'],
@@ -146,7 +146,8 @@ def train_gene_ae(config):
     ## Return the latest validation loss 
     # return history['val_loss'][-1]
     _eval = gene_ae.evaluate(_validation, return_dict=True)
-    print("output debug:", _eval)
+    print("Final validation loss:", _eval['loss'])
+    print("\n\n")
     return _eval["loss"]
 
 
@@ -161,27 +162,26 @@ if __name__ == "__main__":
     keras.config.disable_traceback_filtering()
 
     sweep_config = {
-        "method":"grid",
+        "method":"random",
         "metric": {'goal':'minimize', 'name':'val_loss'},
         "parameters":{
-            "embedding_dim": {'values': [8]},
-            'latent_dim': {'values': [32]},
-            'encoder_layers': {'values': [4]},
-            'decoder_layers': {'values': [1]},
-            'key_dim': {'values': [15]},
-            'num_heads': {'values': [12]},
+            "embedding_dim": {'values': [4,8]},
+            'latent_dim': {'values': [16, 32, 64]},
+            'encoder_layers': {'values': [4, 8, 10, 20]},
+            'decoder_layers': {'values': [1, 2, 4]},
+            'key_dim': {'values': [16, 32]},
+            'num_heads': {'values': [12, 24]},
             'dropout_rate': {'values': [0.0]},
-            'ff_dim': {'values': [32]},
             'max_length': {'values': [300]},
             'decode_length': {'values': [300]},
             'masking_rate': {'values': [0.0]},
             'learning_rate': {'values': [1e-3]},
-            "n_sequence_tokens": {'values': [2,4]},
-            'patience': {'values': [50]},
+            "n_sequence_tokens": {'values': [2,4,8,16]},
+            'patience': {'values': [100]},
             'batch_size': {'values': [256]},
-            'epochs': {'values': [5]},
+            'epochs': {'values': [2000]},
             'learning_rate_decay': {'values':[0.95]},
-            'learning_rate_decay_start': {'values': [150]},
+            'learning_rate_decay_start': {'values': [100, 200]},
             'seq_length_steps': {'values': [1]}
         },
     }
