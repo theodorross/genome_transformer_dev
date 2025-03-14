@@ -179,6 +179,9 @@ if __name__ == "__main__":
             'key_dim': {'values': [15]},
             'num_heads': {'values': [12]},
             'dropout_rate': {'values': [0.0]},
+            'ff_dim': {'values': [32]},
+            'max_length': {'values': [300]},
+            'decode_length': {'values': [300]},
             'masking_rate': {'values': [0.0]},
             'learning_rate': {'values': [1e-3]},
             "n_sequence_tokens": {'values': [2,4]},
@@ -194,3 +197,32 @@ if __name__ == "__main__":
     sweep_id = wandb.sweep(sweep=sweep_config, project="gene-encoder")
     wandb.agent(sweep_id, function=main, count=2)
 
+
+    # ## parse the model configuration
+    # model_config = {
+    #     'tokenizing_method': config.get("tokenizing_method", 'nucleotide'),
+    #     'embedding_dim': config['embedding_dim'],
+    #     'latent_dim': config['latent_dim'],
+    #     'encoder_layers': config['encoder_layers'],
+    #     'decoder_layers': config['decoder_layers'],
+    #     'key_dim': config["key_dim"],
+    #     'num_heads': config['num_heads'],
+    #     'dropout_rate': config['dropout_rate'],
+    #     'ff_dim': config['ff_dim'],
+    #     'max_length' :config['max_length'],
+    #     'decode_length': config['decode_length'],
+    #     'masking_rate': config['masking_rate'],
+    #     'learning_rate': config['learning_rate'],
+    #     'n_sequence_tokens': config['n_sequence_tokens'],
+    # }
+
+    # ## Parse the training configuration
+    # training_config = {
+    #     "patience": config['patience'],
+    #     # "cross_folds": config['cross_folds'],
+    #     "batch_size": config['batch_size'],
+    #     "epochs": config['epochs'],
+    #     "learning_rate_decay": config['learning_rate_decay'],
+    #     "learning_rate_decay_start": config['learning_rate_decay_start'],
+    #     "seq_length_steps": config['seq_length_steps']
+    # }
