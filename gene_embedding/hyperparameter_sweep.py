@@ -39,6 +39,9 @@ def train_gene_ae(config):
     '''
     Parse the input configuration
     '''
+    print("config debug:")
+    print(config)
+
     ## parse the model configuration
     model_config = {
         'tokenizing_method': config.get("tokenizing_method", 'nucleotide'),
