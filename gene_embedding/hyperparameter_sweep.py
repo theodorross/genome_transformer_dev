@@ -39,9 +39,6 @@ def train_gene_ae(config):
     '''
     Parse the input configuration
     '''
-    # print("config debug:")
-    # print(config)
-
     ## parse the model configuration
     model_config = {
         'tokenization_method': config.get("tokenization_method", 'nucleotide'),
@@ -59,20 +56,6 @@ def train_gene_ae(config):
         'learning_rate': config['learning_rate'],
         'n_sequence_tokens': config['n_sequence_tokens'],
     }
-
-    print("model_config debug:")
-    print(model_config)
-
-    # ## Parse the training configuration
-    # training_config = {
-    #     "patience": config['patience'],
-    #     # "cross_folds": config['cross_folds'],
-    #     "batch_size": config['batch_size'],
-    #     "epochs": config['epochs'],
-    #     "learning_rate_decay": config['learning_rate_decay'],
-    #     "learning_rate_decay_start": config['learning_rate_decay_start'],
-    #     "seq_length_steps": config['seq_length_steps']
-    # }
 
     '''
     Load the gene data
@@ -117,7 +100,6 @@ def train_gene_ae(config):
     ## Define incrementing gene lengths for training
     decode_lengths = np.linspace(config['decode_length'], config['max_length'],
                                  config['seq_length_steps'], dtype=int)
-    print("decode_lengths debug:", decode_lengths)
     
 
     '''
@@ -143,27 +125,10 @@ def train_gene_ae(config):
         _training = training_genes.filter(lambda x: tf.strings.length(x) < gene_length)
         _validation = validation_genes.filter(lambda x: tf.strings.length(x) < gene_length)
 
-        # count = 0
-        # for _ in _training:
-        #     count += 1
-        #     pass
-        # print(f"{count} in _training after filtering")
-
         ## Preprocess the data
         _training, _validation = gene_ae.preprocess_dataset(_training,
                                                             config['batch_size'],
                                                             _validation)
-        
-        # print(f"{count} in _training after preprocessing")
-        
-        # print("debug training datasets:")
-        # for x,y,w in _training:
-        #     print(x.shape, y.shape, w.shape)
-
-        # print('debug validation dataset:')
-        # for x,y,w in _validation:
-        #     print(x.shape, y.shape, w.shape)
-        # exit()
         
         ## Fit the model to the data
         _epochs = config['epochs'] // len(decode_lengths)        # number of epochs per decode length
