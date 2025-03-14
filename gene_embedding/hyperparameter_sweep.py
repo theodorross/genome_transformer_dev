@@ -127,7 +127,7 @@ def train_gene_ae(config):
         gene_ae = GeneTransformer(**model_config)
 
     ## Split the dataset into training and validation
-    dataset_cuts = gene_dataset.shard(5)
+    dataset_cuts = [gene_dataset.shard(5, k) for k in range(5)]
     validation_genes = dataset_cuts[5]
     training_genes = dataset_cuts[:5]
     training_genes = concatenate_datasets(*training_genes)
