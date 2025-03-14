@@ -170,53 +170,67 @@ class GeneTransformer(models.Model):
         
 
 
-    def _align_data_to_devices(self, data:tf.data.Dataset, batch_size:int, n_replicas:int=1, verbose:bool=True) -> tuple[int,tf.data.Dataset]:
-        ## Determine the cardinality of the input dataset
-        if data.cardinality() > 0:
-            cardinality = data.cardinality()
-        else:
-            cardinality = 0
-            for _ in enumerate(data):
-                cardinality += 1
+    # def _align_data_to_devices(self, data:tf.data.Dataset, batch_size:int, n_replicas:int=1, verbose:bool=True) -> tuple[int,tf.data.Dataset]:
+    #     ## Determine the cardinality of the input dataset
+    #     if data.cardinality() > 0:
+    #         cardinality = data.cardinality()
+    #     else:
+    #         cardinality = 0
+    #         for _ in enumerate(data):
+    #             cardinality += 1
 
-        ## Define a set of alternative options for the batch sizes and ensure the batch sizes 
-        ## are greater than the number of devices
-        batch_size_offsets = np.arange(-5, 6)*n_replicas
-        batch_size_options = batch_size + batch_size_offsets
-        batch_size_options = batch_size_options[batch_size_options > n_replicas] 
+    #     ## Define a set of alternative options for the batch sizes and ensure the batch sizes 
+    #     ## are greater than the number of devices
+    #     batch_size_offsets = np.arange(-5, 6)*n_replicas
+    #     batch_size_options = batch_size + batch_size_offsets
+    #     batch_size_options = batch_size_options[batch_size_options > n_replicas] 
         
-        ## Select a batch size that requires discarding the fewest validation samples
-        discard_options = cardinality % batch_size_options
-        new_batch_size = batch_size_options[np.argmin(discard_options)]
+    #     ## Select a batch size that requires discarding the fewest validation samples
+    #     discard_options = cardinality % batch_size_options
+    #     new_batch_size = batch_size_options[np.argmin(discard_options)]
 
-        ## Discard samples until the dataset size is evenly divisible by the new batch size
-        needed_discards = min(discard_options)
-        samples_to_keep = cardinality - needed_discards
-        new_data = data.take(samples_to_keep)
+    #     ## Discard samples until the dataset size is evenly divisible by the new batch size
+    #     needed_discards = min(discard_options)
+    #     samples_to_keep = cardinality - needed_discards
+    #     new_data = data.take(samples_to_keep)
         
-        if verbose:
-            # print(f"Resetting batch size from {batch_size} to {new_batch_size} to fit dataset of length {cardinality}")
-            print(f"Changing batch size and dataset cardinality, will lose {needed_discards} validation samples of {cardinality}")
-            print(f"\tdata cardinality: {cardinality} -> {samples_to_keep}")
-            print(f"\tbatch_size: {batch_size} -> {new_batch_size}")
-        return new_batch_size, new_data
+    #     if verbose:
+    #         # print(f"Resetting batch size from {batch_size} to {new_batch_size} to fit dataset of length {cardinality}")
+    #         print(f"Changing batch size and dataset cardinality, will lose {needed_discards} validation samples of {cardinality}")
+    #         print(f"\tdata cardinality: {cardinality} -> {samples_to_keep}")
+    #         print(f"\tbatch_size: {batch_size} -> {new_batch_size}")
+    #     return new_batch_size, new_data
     
 
 
-    def _preprocess_dataset(self, data:tf.data.Dataset, weights:tf.lookup.StaticHashTable=None) -> tf.data.Dataset:
+    def preprocess_dataset(self, data:tf.data.Dataset, batch_size:int, validation_data:tf.data.Dataset=None, weighted:bool=True) -> tf.data.Dataset:
         ## Map the dataset to a label dataset and randomly mask the inputs
-        y = data.map(self.tokenize)
-        # temp = tf.keras.Sequential()
-        # temp.add(layers.Input(shape=(50,)))
-        # y = y.map(temp)
-        # _y = data.map(lambda x: self.tokenize(x, one_hot=True))
-        if weights is None:
-            return tf.data.Dataset.zip(data,y)
-            # return tf.data.Dataset.zip(_y,y)
+        train_y = data.map(self.tokenize)
+        if validation_data is not None:
+            val_y = validation_data.map(self.tokenize)
+
+        # If class weighs are to be used
+        if weighted:
+            _,weights = self._compute_token_weights(data)
+            w = train_y.map(weights.lookup)
+            new_data = tf.data.Dataset.zip(data,train_y,w)
+            if validation_data is not None:
+                new_val_data = tf.data.Dataset.zip(validation_data, val_y, w)
+
+        # If no class weights will be used
         else:
-            w = y.map(weights.lookup)
-            return tf.data.Dataset.zip(data,y,w)
-            # return tf.data.Dataset.zip(_y,y,w)
+            new_data = tf.data.Dataset.zip(data, train_y)
+            if validation_data is not None:
+                new_val_data = tf.data.Dataset.zip(validation_data, val_y)
+
+        ## Shuffle and batch the training data
+        new_data = new_data.shuffle(buffer_size=new_data.cardinality)
+        new_data = new_data.batch(batch_size=batch_size, drop_remainder=True).cache()
+        if validation_data is not None:     # Only batch the validation data
+            new_val_data = new_val_data.batch(batch_size=batch_size, drop_remainder=True).cache()
+            return new_data, new_val_data
+        else:
+            return new_data
         
 
 
@@ -255,46 +269,46 @@ class GeneTransformer(models.Model):
     
 
 
-    def train(self, 
-              data:tf.data.Dataset, 
-              val_data:tf.data.Dataset,
-              batch_size:int, 
-              epochs:int, 
-              callbacks:list,
-              num_devices:int=1,
-              **kwargs):
+    # def train(self, 
+    #           data:tf.data.Dataset, 
+    #           val_data:tf.data.Dataset,
+    #           batch_size:int, 
+    #           epochs:int, 
+    #           callbacks:list,
+    #           num_devices:int=1,
+    #           **kwargs):
 
-        ## Compute token frequencies to inform class weights
-        _,weight_table = self._compute_token_weights(data)
+    #     ## Compute token frequencies to inform class weights
+    #     _,weight_table = self._compute_token_weights(data)
 
-        ## Preprocess the input data for training
-        _training = self._preprocess_dataset(data, weight_table)
-        # _training = self._preprocess_dataset(data)
-        # _training = _training.shuffle(buffer_size=_training.cardinality())
-        _training = _training.batch(batch_size, drop_remainder=True).cache()
-        _training = _training.prefetch(tf.data.AUTOTUNE)
+    #     ## Preprocess the input data for training
+    #     _training = self._preprocess_dataset(data, weight_table)
+    #     # _training = self._preprocess_dataset(data)
+    #     # _training = _training.shuffle(buffer_size=_training.cardinality())
+    #     _training = _training.batch(batch_size, drop_remainder=True).cache()
+    #     _training = _training.prefetch(tf.data.AUTOTUNE)
 
-        _validation = self._preprocess_dataset(val_data, weight_table)
-        # _validation = self._preprocess_dataset(val_data)
-        # _validation_batch, _validation = self._align_data_to_devices(_validation, batch_size, num_devices)
-        _validation = _validation.batch(batch_size, drop_remainder=True).cache()
-        _validation = _validation.prefetch(tf.data.AUTOTUNE)
+    #     _validation = self._preprocess_dataset(val_data, weight_table)
+    #     # _validation = self._preprocess_dataset(val_data)
+    #     # _validation_batch, _validation = self._align_data_to_devices(_validation, batch_size, num_devices)
+    #     _validation = _validation.batch(batch_size, drop_remainder=True).cache()
+    #     _validation = _validation.prefetch(tf.data.AUTOTUNE)
 
-        # print("generator debug:")
-        # print(_training.element_spec)
-        # for x,y,w in _training:
-        #     print(x.shape)
-        #     print(y.shape)
-        #     print(w.shape)
-        #     break
-        # exit()
+    #     # print("generator debug:")
+    #     # print(_training.element_spec)
+    #     # for x,y,w in _training:
+    #     #     print(x.shape)
+    #     #     print(y.shape)
+    #     #     print(w.shape)
+    #     #     break
+    #     # exit()
         
-        ## Train the model
-        H = self.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
-        # H = self.fit(_training, epochs=epochs, callbacks=callbacks, **kwargs)
-        # H = self.fit(_training, epochs=epochs)
+    #     ## Train the model
+    #     H = self.fit(_training, validation_data=_validation, epochs=epochs, callbacks=callbacks, **kwargs)
+    #     # H = self.fit(_training, epochs=epochs, callbacks=callbacks, **kwargs)
+    #     # H = self.fit(_training, epochs=epochs)
 
-        return H.history
+    #     return H.history
 
     
     def get_config(self):
