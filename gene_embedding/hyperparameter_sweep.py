@@ -39,8 +39,8 @@ def train_gene_ae(config):
     '''
     Parse the input configuration
     '''
-    print("config debug:")
-    print(config)
+    # print("config debug:")
+    # print(config)
 
     ## parse the model configuration
     model_config = {
@@ -59,6 +59,9 @@ def train_gene_ae(config):
         'learning_rate': config['learning_rate'],
         'n_sequence_tokens': config['n_sequence_tokens'],
     }
+
+    print("model_config debug:")
+    print(model_config)
 
     # ## Parse the training configuration
     # training_config = {
