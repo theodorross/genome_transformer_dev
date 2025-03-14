@@ -34,7 +34,7 @@ def concatenate_datasets(*datasets) -> tf.data.Dataset:
 
 
 
-def train_gene_ae(*config):
+def train_gene_ae(config):
 
     '''
     Parse the input configuration
@@ -57,16 +57,16 @@ def train_gene_ae(*config):
         'n_sequence_tokens': config['n_sequence_tokens'],
     }
 
-    ## Parse the training configuration
-    training_config = {
-        "patience": config['patience'],
-        # "cross_folds": config['cross_folds'],
-        "batch_size": config['batch_size'],
-        "epochs": config['epochs'],
-        "learning_rate_decay": config['learning_rate_decay'],
-        "learning_rate_decay_start": config['learning_rate_decay_start'],
-        "seq_length_steps": config['seq_length_steps']
-    }
+    # ## Parse the training configuration
+    # training_config = {
+    #     "patience": config['patience'],
+    #     # "cross_folds": config['cross_folds'],
+    #     "batch_size": config['batch_size'],
+    #     "epochs": config['epochs'],
+    #     "learning_rate_decay": config['learning_rate_decay'],
+    #     "learning_rate_decay_start": config['learning_rate_decay_start'],
+    #     "seq_length_steps": config['seq_length_steps']
+    # }
 
     '''
     Load the gene data
