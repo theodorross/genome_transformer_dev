@@ -181,6 +181,7 @@ def train_gene_ae(config):
     ## Return the latest validation loss 
     # return history['val_loss'][-1]
     _eval = gene_ae.evaluate(_validation, return_dict=True)
+    print("output debug:", _eval)
     return _eval["loss"]
 
 
@@ -213,7 +214,7 @@ if __name__ == "__main__":
             "n_sequence_tokens": {'values': [2,4]},
             'patience': {'values': [50]},
             'batch_size': {'values': [256]},
-            'epochs': {'values': [25]},
+            'epochs': {'values': [5]},
             'learning_rate_decay': {'values':[0.95]},
             'learning_rate_decay_start': {'values': [150]},
             'seq_length_steps': {'values': [1]}
