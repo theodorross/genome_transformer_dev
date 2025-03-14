@@ -143,10 +143,18 @@ def train_gene_ae(config):
         _training = training_genes.filter(lambda x: tf.strings.length(x) < gene_length)
         _validation = validation_genes.filter(lambda x: tf.strings.length(x) < gene_length)
 
+        count = 0
+        for _ in _training:
+            count += 1
+            pass
+        print(f"{count} in _training after filtering")
+
         ## Preprocess the data
         _training, _validation = gene_ae.preprocess_dataset(_training,
                                                             config['batch_size'],
                                                             _validation)
+        
+        print(f"{count} in _training after preprocessing")
         
         print("debug training datasets:")
         for x,y,w in _training:
