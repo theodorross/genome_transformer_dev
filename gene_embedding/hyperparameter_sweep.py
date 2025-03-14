@@ -175,7 +175,7 @@ if __name__ == "__main__":
     keras.config.disable_traceback_filtering()
 
     sweep_config = {
-        "method":"random",
+        "method":"grid",
         "metric": {'goal':'minimize', 'name':'val_loss'},
         "parameters":{
             "embedding_dim": {'values': [8]},
