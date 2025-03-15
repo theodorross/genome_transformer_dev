@@ -88,7 +88,7 @@ def train_gene_ae(config):
         def schedule_func(e, lr):
             if (config['learning_rate_decay'] is not None) and (config['learning_rate_decay_start'] is not None):
                 if (e%50==49) and (e>config['learning_rate_decay_start']):
-                    lr*config['learning_rate_decay']
+                    return lr*config['learning_rate_decay']
                 else:
                     return lr*1.0
             else:
