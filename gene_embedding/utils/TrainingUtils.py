@@ -211,7 +211,8 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
         neg_matches = tf.logical_not(pos_matches)
 
         # Force the lower triangle and diagonal of the mask matrices to be FALSE
-        upper_mask = tf.linalg.band_part(tf.ones(pos_matches.shape, bool), -1,0)
+
+        upper_mask = tf.linalg.band_part( tf.ones(tf.shape(pos_matches), bool) , -1,0)
         upper_mask = tf.logical_not(upper_mask)
         pos_matches = tf.logical_and(pos_matches, upper_mask)
         neg_matches = tf.logical_and(neg_matches, upper_mask)
