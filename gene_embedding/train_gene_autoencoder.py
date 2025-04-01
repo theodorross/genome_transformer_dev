@@ -10,7 +10,9 @@ import argparse
 # import datetime
 # import pickle
 # from tensorflow.keras import Layers
-from utils import *
+
+from utils.GeneTransformer import GeneTransformer
+# from utils import *
 
 print("tensorflow version:", tf.__version__)
 print("keras version:", keras.__version__, tf.keras.__version__)
@@ -119,17 +121,17 @@ if __name__ == "__main__":
     Load the unique gene sequences and get rid of genes longer than 5 kb
     '''
     ## Define the data path depending ont the dataset and platform
-    if args.platform.lower() == "local":
-        data_dir = "../data/gene_sequences"
-    if args.platform.lower() == "springfield":
-        data_dir = "/storage/data/e_faecium/gene_embedding"
-    if args.platform.upper() == "LUMI":
-        data_dir = "/project/project_465001381/rosstheo/genome_transformer_dev/data/gene_sequences"
+    # if args.platform.lower() == "local":
+    #     data_dir = "../data/gene_sequences"
+    # if args.platform.lower() == "springfield":
+    #     data_dir = "/storage/data/e_faecium/gene_embedding"
+    # if args.platform.upper() == "LUMI":
+    #     data_dir = "/project/project_465001381/rosstheo/genome_transformer_dev/data/gene_sequences"
     
-    if args.dataset.lower() == "dev":   
-        datapath = f"{data_dir}/unique_dna_seqs_dev.txt"
-    elif args.dataset.lower() == "full":
-        datapath = f"{data_dir}/train_unique_gene_seqs.txt"
+    # if args.dataset.lower() == "dev":   
+    #     datapath = f"{data_dir}/unique_dna_seqs_dev.txt"
+    # elif args.dataset.lower() == "full":
+    #     datapath = f"{data_dir}/train_unique_gene_seqs.txt"
 
 
     ## Load the dataset and remove genes over the max sequence length
