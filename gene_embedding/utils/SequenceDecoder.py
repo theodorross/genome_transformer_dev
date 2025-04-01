@@ -61,13 +61,10 @@ class SequenceDecoder(models.Model):
         # self.test_embed = layers.Embedding(input_dim=self.vocab_size, 
         #                               output_dim=embedding_dim, 
         #                               mask_zero=True)
+        ## Define the layer that reshapes the input into (batch_size, n_sequence_tokens, latent_dim)
+        self.unflatten = layers.Reshape((n_sequence_tokens, latent_dim))
 
         ## Define the transformer block layers
-        # self.transformer_layer = TransformerEncoderBlock(output_dim=embedding_dim, ff_dim=ff_dim, num_heads=num_heads,
-        #                                                  key_dim=key_dim, dropout_rate=dropout_rate)
-        # self.transformer_layer = TransformerDecoderBlock(output_dim=self.embedding_dim, ff_dim=self.ff_dim, num_heads=self.num_heads,
-        #                                                  key_dim=self.key_dim, dropout_rate=self.dropout_rate)
-
         self.transformer_layers = [
             TransformerDecoderBlock(output_dim=self.embedding_dim, ff_dim=self.ff_dim, num_heads=self.num_heads,
                                     key_dim=self.key_dim, dropout_rate=self.dropout_rate)
@@ -99,9 +96,7 @@ class SequenceDecoder(models.Model):
         query_seq = tf.tile(self.query_tokens, [tf.shape(x)[0], self.decode_length, 1])
         query_seq = self.query_position_encoder(query_seq)
         ## Apply positional encoding to the key sequence
-        # x = self.test_token(x)
-        # x = tf.cast(x, "float32")
-        # x = self.test_embed(x)
+        x = self.unflatten(x)
         x = self.latent_position_encoder(x)
         ## Pass through the decoding layers
         for dec_layer in self.transformer_layers: 

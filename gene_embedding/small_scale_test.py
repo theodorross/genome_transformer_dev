@@ -11,11 +11,12 @@ from scipy.stats import entropy
 from sklearn.decomposition import PCA
 
 from utils.GeneTransformer import GeneTransformer
-from utils.TrainingUtils import MaskedSparseCategoricalCrossentropy, MaskedAccuracy
+from utils.TrainingUtils import MaskedSparseCategoricalCrossentropy, MaskedAccuracy, OnlineMarginTripletLoss
 
-from tensorflow.python.client import device_lib
+# from tensorflow.python.client import device_lib
 
 print("tensorflow version:", tf.__version__)
+
 
 def clip_gene(len):
     # num = tf.random.categorical( tf.math.log([[.2,.2,.2,.2,.2]]), num_samples=1, dtype=tf.int32) + 30
@@ -44,23 +45,32 @@ if __name__ == "__main__":
               "latent_dim":32,
               'n_sequence_tokens':8,
               'encoder_layers':2,
-              'decoder_layers':2,
+              'decoder_layers':1,
               'dropout_rate':0,
               'key_dim':8,
               'num_heads':12,
               'ff_dim':64,
-              'max_length':50,
-              'decode_length':50,
+              'max_length':300,
+              'decode_length':300,
               'masking_rate':0.00,
               'learning_rate':5e-3}
     
     ## Instantiate the multi-GPU training strategy
     strategy = tf.distribute.MirroredStrategy()
     print(f"\nNumber of devices: {strategy.num_replicas_in_sync}\n")
-    print(type(tf.distribute.get_replica_context().num_replicas_in_sync))
     # print(device_lib.list_local_devices())
 
-    keras.config.disable_traceback_filtering()
+    # keras.config.disable_traceback_filtering()
+
+    # print("TESTING LOSS")
+    # lossfunc = OnlineMarginTripletLoss(1)
+
+    # ypred = np.random.random((10,8))
+    # ytrue = np.random.choice([0,1], (10,20), replace=True, p=[0.9,0.1])
+    # test = lossfunc(ytrue, ypred)
+    # print(test)
+
+    # exit()
 
 
     '''
@@ -74,23 +84,8 @@ if __name__ == "__main__":
     # exit()
 
 
-    ## Load the genes
-    # gene_dataset = tf.data.TextLineDataset("../data/gene_sequences/unique_dna_seqs_dev.txt")
-    gene_dataset = tf.data.TextLineDataset("../data/gene_sequences/unique_dna_seqs.txt")
-    # gene_dataset = tf.data.TextLineDataset("../data/gene_sequences/rsmD_alleles.txt")
-    # gene_dataset = gene_dataset.concatenate(tf.data.TextLineDataset("../data/gene_sequences/coaD_alleles.txt"))
-    # gene_dataset = gene_dataset.concatenate(tf.data.TextLineDataset("../data/gene_sequences/unique_dna_seqs_dev.txt"))
-
-    # test = np.asarray(list(gene_dataset.as_numpy_iterator()))
-    # print("Debug:", gene_dataset.cardinality().numpy())
-    # print(test.shape)
-
-    ## Shorten them dramatically
-    # gene_dataset = gene_dataset.map(clip_gene)
-
-    ## Add the class token
-    # gene_dataset = gene_ae.preprocess_genes(gene_dataset)
-    # gene_dataset = gene_ae.preprocess_genes(gene_dataset)
+    ## Load the gene data
+    gene_dataset = tf.data.Dataset.load("../data/gene_sequences/training_dataset")
 
     ## Cut the datset into training and validation
     dataset_cuts = [gene_dataset.shard(5, k) for k in range(5)]
@@ -100,6 +95,12 @@ if __name__ == "__main__":
     Train a model on each split
     '''
 
+    ## Define training callbacks
+    plip = lambda e,lr: lr*tf.exp(-0.1) if (e%250==249) else lr
+    callback = tf.keras.callbacks.EarlyStopping(patience=50, restore_best_weights=True)
+    lrsched = tf.keras.callbacks.LearningRateScheduler(plip)
+    callbacks = [callback, lrsched]
+    
     ## Initialize a dataframe for plotting
     df_list = []
 
@@ -112,36 +113,30 @@ if __name__ == "__main__":
 
         ## Define the model
         gene_ae = GeneTransformer("nucleotide", **config)
-        print(gene_ae.summary())
-        print(gene_ae.encoder.summary())
-        print(gene_ae.decoder.summary())
+        # print(gene_ae.summary())
+        # print(gene_ae.encoder.summary())
+        # print(gene_ae.decoder.summary())
 
 
         ## Loop for increasing gene lengths
         train_history = {}
         # for ix, gene_len in enumerate([50,75,100,125]):
         _epoch_count = 0
-        for ix, gene_len in enumerate([50]):
+        for ix, gene_len in enumerate([300]):
             gene_ae.update_decode_length(gene_len)
 
             ## Trim the genes
-            # val_genes = _val_genes.map(clip_gene(25))
-            # train_genes = _train_genes.map(clip_gene(25))
-            val_genes = _val_genes.filter(lambda x: tf.strings.length(x) < gene_len)
-            train_genes = _train_genes.filter(lambda x: tf.strings.length(x) < gene_len)
+            val_genes = _val_genes.filter(lambda g,d: tf.strings.length(g) <= gene_len)
+            train_genes = _train_genes.filter(lambda g,d: tf.strings.length(g) <= gene_len)
 
-            ## Train the model
-            # plip = lambda e,lr: lr*tf.exp(-0.1) if (e%250==249 and e>1000) else lr
-            plip = lambda e,lr: lr*tf.exp(-0.1) if (e%250==249) else lr
-            callback = tf.keras.callbacks.EarlyStopping(patience=50, restore_best_weights=True)
-            lrsched = tf.keras.callbacks.LearningRateScheduler(plip)
-            epochs = 5
-            # epochs = 2
+            ## Preprocess the datasets
+            train_genes, val_genes = gene_ae.preprocess_dataset(train_genes, 128, validation_data=val_genes, weighted=True)
 
-            _hist = gene_ae.train(train_genes, val_genes, 5, epochs+_epoch_count, callbacks=[callback, lrsched], 
-                                  num_devices=strategy.num_replicas_in_sync, verbose=1, initial_epoch=_epoch_count)
-            _epoch_count += len(_hist["loss"])
-            exit()
+            ## Train the model            
+            epochs = 3
+            _hist = gene_ae.fit(train_genes, validation_data=val_genes, epochs=epochs+_epoch_count, 
+                                callbacks=[callback, lrsched], verbose=1, initial_epoch=_epoch_count)
+            _epoch_count += len(_hist.history["loss"])
 
             ## Store the training history
             for key,val in _hist.items():
@@ -178,26 +173,25 @@ if __name__ == "__main__":
     '''
     Test something
     '''
-    # m_acc = MaskedAccuracy()
-    for val_seqs in val_genes.batch(3):
-        break
+    # # m_acc = MaskedAccuracy()
+    # for val_seqs in val_genes.batch(3):
+    #     break
 
-    print(val_seqs)
-    preds = gene_ae(val_seqs)
-    # print(type(preds._keras_mask))
-    print(preds)
-    print(tf.keras.backend.get_keras_mask(preds))
+    # print(val_seqs)
+    # preds = gene_ae(val_seqs)
+    # # print(type(preds._keras_mask))
+    # print(preds)
+    # print(tf.keras.backend.get_keras_mask(preds))
 
-    # print(v_x)
-    # print(v_y)
-    # v_pred = gene_ae.predict(v_x)
+    # # print(v_x)
+    # # print(v_y)
+    # # v_pred = gene_ae.predict(v_x)
 
-    # m_acc.update_state(v_y, v_pred)
+    # # m_acc.update_state(v_y, v_pred)
 
-    # print("\nFINAL_OUT")
-    # print(m_acc.acc.numpy)
+    # # print("\nFINAL_OUT")
+    # # print(m_acc.acc.numpy)
 
-    exit()
 
     '''
     Plot the training metrics

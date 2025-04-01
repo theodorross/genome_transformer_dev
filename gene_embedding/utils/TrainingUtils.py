@@ -158,6 +158,7 @@ class MaskedSparseCategoricalCrossentropy(tf.keras.losses.Loss):
         self.mask_category = mask_category
 
     def call(self, y_true, y_pred):
+        
         ## Compute the base loss
         loss = tf.keras.losses.sparse_categorical_crossentropy(y_true, y_pred, from_logits=False)
 
@@ -183,3 +184,62 @@ class MaskedSparseCategoricalCrossentropy(tf.keras.losses.Loss):
         mask_category = config.pop("mask_category")
         name = config.pop("name")
         return cls(mask_category, name, **config)
+    
+
+
+
+@tf.keras.utils.register_keras_serializable()
+class OnlineMarginTripletLoss(tf.keras.losses.Loss):
+
+    def __init__(self, margin, p_norm=2, name="triplet_loss", **kwargs):
+        super().__init__(name=name, **kwargs)
+        self.margin = margin
+        self.p_norm = p_norm
+
+    def call(self, y_true, y_pred):
+        ## Assume a decently large batch size of y_pred
+        
+        # Compute pairwise distances
+        z0 = tf.expand_dims(y_pred, axis=0)
+        z1 = tf.expand_dims(y_pred, axis=1)
+        z_dif = tf.square( tf.norm(z0-z1, ord=self.p_norm, axis=-1) )
+
+        # Compute masks for samples with shared features
+        b0 = tf.expand_dims(y_true, axis=0)
+        b1 = tf.expand_dims(y_true, axis=1)
+        pos_matches = tf.greater( tf.reduce_sum( tf.multiply(b0, b1), axis=-1), 0 )
+        neg_matches = tf.logical_not(pos_matches)
+
+        # Force the lower triangle and diagonal of the mask matrices to be FALSE
+        upper_mask = tf.linalg.band_part(tf.ones(pos_matches.shape, bool), -1,0)
+        upper_mask = tf.logical_not(upper_mask)
+        pos_matches = tf.logical_and(pos_matches, upper_mask)
+        neg_matches = tf.logical_and(neg_matches, upper_mask)
+
+        # Isolate positive and negative pair distances
+        pos_idx = tf.where(pos_matches)
+        neg_idx = tf.where(neg_matches)
+        pos_distances = tf.gather_nd(z_dif, pos_idx)
+        neg_distances = tf.gather_nd(z_dif, neg_idx)
+        
+        # Compute the margined difference between the mean postive-pair and negative-pair distances
+        loss = tf.reduce_mean(pos_distances) - tf.reduce_mean(neg_distances) + self.margin
+        loss = tf.maximum(loss, 0)
+        loss = tf.keras.ops.nan_to_num(loss, nan=0.0)   # just in case there are no positive distances, force the value to 0
+        return loss
+    
+    def get_config(self):
+        base_config = super().get_config()
+        config = {
+            "margin":self.margin,
+            "p_norm":self.p_norm, 
+            "name":self.name
+        }
+        return {**base_config, **config}
+    
+    @classmethod
+    def from_config(cls, config):
+        margin = config.pop("mask_category")
+        p_norm = config.pop("p_norm")
+        name = config.pop("name")
+        return cls(margin, p_norm, name, **config)

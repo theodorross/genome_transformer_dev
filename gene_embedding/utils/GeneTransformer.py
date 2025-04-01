@@ -99,21 +99,25 @@ class GeneTransformer(models.Model):
         # opt3 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Define the objective function
-        self.loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
+        self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
+        self.triplet_loss = OnlineMarginTripletLoss(margin=5)
         # self.loss = "sparse_categorical_crossentropy"
 
         # Define performance metrics to track
         levenshtein_metric = LevenshteinDistance(self.vocabulary)
         masked_accuracy = MaskedAccuracy(mask_category=0)
-        track_metrics = [masked_accuracy,
+        recon_metrics = [masked_accuracy,
                          levenshtein_metric]
+        latent_metrics = []
         # track_metrics = [self.masked_accuracy]
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.compile(optimizer=opt, loss=self.loss, metrics=[MaskedAccuracy(mask_category=0)])
         # self.compile(optimizer=opt, loss=self.loss, metrics=['accuracy'], weighted_metrics=[])
-        self.compile(optimizer=opt, loss=self.loss, metrics=track_metrics, weighted_metrics=[])
+        self.compile(optimizer=opt, 
+                     loss=[self.triplet_loss, self.reconstruction_loss], 
+                     metrics=[latent_metrics, recon_metrics])
 
         ## Run a dummy input through the model
         dummy_in = tf.convert_to_tensor([["atgatgatg"]])
@@ -130,7 +134,7 @@ class GeneTransformer(models.Model):
         z = self.encoder(x, **kwargs)
         ## Pass through the decoder
         y = self.decoder(z, **kwargs)
-        return y
+        return z,y
 
 
     def encode(self, x, **kwargs):
@@ -169,26 +173,32 @@ class GeneTransformer(models.Model):
 
     def preprocess_dataset(self, data:tf.data.Dataset, batch_size:int, validation_data:tf.data.Dataset=None, weighted:bool=True) -> tf.data.Dataset:
         ## Map the dataset to a label dataset and randomly mask the inputs
-        train_y = data.map(self.tokenize)
+        train_genes = data.map(lambda g,d: g)
+        train_domains = data.map(lambda g,d: d)
+        train_y = train_genes.map(self.tokenize)
+        new_train_y = tf.data.Dataset.zip(train_domains, train_y)
         if validation_data is not None:
-            val_y = validation_data.map(self.tokenize)
+            val_genes = validation_data.map(lambda g,d: g)
+            val_domains = validation_data.map(lambda g,d: d)
+            val_y = val_genes.map(self.tokenize)
+            new_val_y = tf.data.Dataset.zip(val_domains, val_y)
 
         # If class weighs are to be used
         if weighted:
-            _,weights = self._compute_token_weights(data)
+            _,weights = self._compute_token_weights(train_genes)
             w = train_y.map(weights.lookup)
-            new_data = tf.data.Dataset.zip(data,train_y,w)
+            new_data = tf.data.Dataset.zip(train_genes,new_train_y,w)
             if validation_data is not None:
-                new_val_data = tf.data.Dataset.zip(validation_data, val_y, w)
+                new_val_data = tf.data.Dataset.zip(val_genes, new_val_y, w)
 
         # If no class weights will be used
         else:
-            new_data = tf.data.Dataset.zip(data, train_y)
+            new_data = tf.data.Dataset.zip(train_genes, new_train_y)
             if validation_data is not None:
-                new_val_data = tf.data.Dataset.zip(validation_data, val_y)
+                new_val_data = tf.data.Dataset.zip(val_genes, new_val_y)
 
         ## Shuffle and batch the training data
-        new_data = new_data.shuffle(buffer_size=new_data.cardinality())
+        # new_data = new_data.shuffle(buffer_size=new_data.cardinality())
         new_data = new_data.batch(batch_size=batch_size, drop_remainder=True).cache()
         if validation_data is not None:     # Only batch the validation data
             new_val_data = new_val_data.batch(batch_size=batch_size, drop_remainder=True).cache()
@@ -230,6 +240,18 @@ class GeneTransformer(models.Model):
             default_value=1
         )
         return weight_dict, weight_table
+    
+
+    # def fit(self, x=None, y=None, batch=None, epochs=1, verbose='auto', callbacks=None, validation_split=0.0, validation_data=None,
+    #         shuffle=True, class_weight=None, sample_weight=None, initial_epoch=0, steps_per_epoch=None, validation_steps=None, validation_batch_size=None, validation_freq=1):
+    # def fit(self, x:tf.data.Dataset, validation_data:tf.data.Dataset=None, callbacks=None, steps_per_epoch:int=None, initial_epoch:int=0):
+    #     '''
+    #     Custom training loop for triplet loss
+    #     '''
+        
+
+
+    #     return
     
 
     

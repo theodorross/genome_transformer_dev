@@ -64,6 +64,9 @@ class SequenceEncoder(models.Model):
             for _ in range(self.encoder_layers)
         ]
 
+        ## Define the flattening layer
+        self.flatten = layers.Flatten()
+
         ## Define the querry token sequence
         self.latent_tokens = self.add_weight(
             name="latent_tokens",
@@ -95,7 +98,7 @@ class SequenceEncoder(models.Model):
         ## Pass through the transformer blocks
         for enc_layer in self.transformer_layers:
             latent_seq = enc_layer(query=latent_seq, value=enc_z, use_residuals=True, **kwargs)
-        return latent_seq
+        return self.flatten(latent_seq)
         # return self.test_out(latent_seq)
 
 
