@@ -186,6 +186,9 @@ if __name__ == "__main__":
         with strategy.scope():
             gene_ae = GeneTransformer(**model_config)
         print(gene_ae.summary())
+        print("DEBUGGING LOSSES:")
+        print(gene_ae.reconstruction_loss)
+        print(gene_ae.triplet_loss)
         # print(gene_ae.encoder.summary())
         # print(gene_ae.encoder.get_pa)
         
@@ -209,6 +212,13 @@ if __name__ == "__main__":
             _training_fold, _validation_fold = gene_ae.preprocess_dataset(_training_fold, 
                                                                           batch_size=args.batch_size, 
                                                                           validation_data=_validation_fold)
+            
+            count = 0
+            for tup in _training_fold:
+                print(len(tup), tup[0].shape, (tup[1][0].shape, tup[1][1].shape), tup[2].shape)
+                count += 1
+                if count > 5:
+                    break
 
             ## Train the model
             _epochs = args.epochs // len(decode_lengths)        # number of epochs per decode length
