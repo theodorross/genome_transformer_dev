@@ -133,10 +133,13 @@ if __name__ == "__main__":
 
 
     ## Load the dataset and remove genes over the max sequence length
-    gene_dataset = tf.data.TextLineDataset(datapath)
+    # gene_dataset = tf.data.TextLineDataset(datapath)
+    gene_dataset = tf.data.Dataset.load("../data/gene_sequences/training_dataset")
     if args.dataset == "full":
-        gene_dataset = gene_dataset.filter(lambda x: tf.strings.length(x) <= args.max_seq_length).cache()
+        gene_dataset = gene_dataset.filter(lambda g,d: tf.strings.length(g) <= args.max_seq_length).cache()
     elif args.dataset == "dev":
+        print("'dev' dataset is depreciated.")
+        exit()
         gene_dataset = gene_dataset.map(clip_gene(args.max_seq_length))
 
     ## Cut the dataset into k cross-folds
@@ -150,26 +153,12 @@ if __name__ == "__main__":
     early_stopper = keras.callbacks.EarlyStopping(patience=args.patience,
                                                   restore_best_weights=True)
     callbacks = [wandb_callback, early_stopper]
-    # callbacks = [early_stopper]
 
     if (args.learning_rate_decay is not None) and (args.learning_rate_decay_start is not None):
-        # def schedule_func(ep,lr):
-        #     if ep > args.learning_rate_decay_start:
-        #         return args.learning_rate * np.exp(-args.learning_rate_decay * (ep - args.learning_rate_decay_start))
-        #     else:
-        #         return args.learning_rate
         if args.dataset.lower() == "dev":
             schedule_func = lambda e,lr: lr*0.95 if (e%50==49 and e>args.learning_rate_decay_start) else lr*1.0
         else:
             schedule_func = lambda e,lr: lr*0.95 if (e%50==49 and e>args.learning_rate_decay_start) else lr*1.0
-            # def schedule_func(e,lr):
-            #     if e > args.learning_rate_decay_start:
-            #         if e%50 ==49:
-            #             return lr*tf.exp(-0.1)
-            #         else:
-            #             return lr*1
-            #     else:
-            #         return lr*1
         lr_scheduler = keras.callbacks.LearningRateScheduler(schedule_func)
         callbacks.append(lr_scheduler)
 
@@ -195,7 +184,6 @@ if __name__ == "__main__":
         with strategy.scope():
             gene_ae = GeneTransformer(**model_config)
         print(gene_ae.summary())
-        gene_ae.get_weights()
         # print(gene_ae.encoder.summary())
         # print(gene_ae.encoder.get_pa)
         
@@ -212,8 +200,8 @@ if __name__ == "__main__":
             gene_ae.update_decode_length(gene_length)
 
             ## Filter the datasets
-            _training_fold = training_fold.filter(lambda x: tf.strings.length(x) < gene_length).cache()
-            _validation_fold = validation_fold.filter(lambda x: tf.strings.length(x) < gene_length).cache()
+            _training_fold = training_fold.filter(lambda g,d: tf.strings.length(g) < gene_length)
+            _validation_fold = validation_fold.filter(lambda g,d: tf.strings.length(g) < gene_length)
 
             ## Preprocess the datasets
             _training_fold, _validation_fold = gene_ae.preprocess_dataset(_training_fold, 
