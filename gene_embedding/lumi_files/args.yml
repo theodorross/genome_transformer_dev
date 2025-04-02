@@ -8,7 +8,7 @@
 --learning-rate-decay-start=150
 --masking-rate=0.0
 --dropout-rate=0.0
---batch-size=512
+--batch-size=1024
 --epochs=2000
 --patience=150
 --encoder-layers=10
@@ -16,6 +16,6 @@
 --key-dim=16
 --num-heads=12
 --ff-dim=32
---max-seq-length=300
---decode-length=300
+--max-seq-length=500
+--decode-length=500
 --seq-length-steps=1
