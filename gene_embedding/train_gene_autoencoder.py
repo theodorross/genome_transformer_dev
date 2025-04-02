@@ -189,11 +189,8 @@ if __name__ == "__main__":
         print("DEBUGGING LOSSES:")
         print(gene_ae.reconstruction_loss)
         print(gene_ae.triplet_loss)
-        # print(gene_ae.encoder.summary())
-        # print(gene_ae.encoder.get_pa)
+        print(gene_ae.compiled_loss._losses)
         
-        # ## Train the model
-        # fold_history = gene_ae.train(training_fold, validation_fold, args.batch_size, args.epochs, *callbacks)
 
         ## Initialize a training history
         fold_history = {}
@@ -201,7 +198,7 @@ if __name__ == "__main__":
         ## Loop through the desired gene lengths
         _epoch_count = 0
         for ix,gene_length in enumerate(decode_lengths):
-            print(f"Training on genes of {gene_length} tokens and smaller...")
+            print(f"\nTraining on genes of {gene_length} tokens and smaller...")
             gene_ae.update_decode_length(gene_length)
 
             ## Filter the datasets
