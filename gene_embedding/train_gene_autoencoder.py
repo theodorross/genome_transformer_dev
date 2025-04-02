@@ -190,7 +190,6 @@ if __name__ == "__main__":
         print("DEBUGGING LOSSES:")
         print(gene_ae.reconstruction_loss)
         print(gene_ae.triplet_loss)
-        print(gene_ae.compiled_loss._losses)
         
 
         ## Initialize a training history

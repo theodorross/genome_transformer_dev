@@ -19,7 +19,6 @@ from utils.TrainingUtils import MaskedSparseCategoricalCrossentropy, MaskedAccur
 print("tensorflow version:", tf.__version__)
 print("keras version:", keras.__version__, tf.keras.__version__)
 print("wandb version:", wandb.__version__)
-exit()
 
 def clip_gene(len):
     # num = tf.random.categorical( tf.math.log([[.2,.2,.2,.2,.2]]), num_samples=1, dtype=tf.int32) + 30
