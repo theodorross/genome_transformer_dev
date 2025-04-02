@@ -7,6 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 from scipy.stats import entropy
+import wandb
 
 from sklearn.decomposition import PCA
 
@@ -16,7 +17,9 @@ from utils.TrainingUtils import MaskedSparseCategoricalCrossentropy, MaskedAccur
 # from tensorflow.python.client import device_lib
 
 print("tensorflow version:", tf.__version__)
-
+print("keras version:", keras.__version__, tf.keras.__version__)
+print("wandb version:", wandb.__version__)
+exit()
 
 def clip_gene(len):
     # num = tf.random.categorical( tf.math.log([[.2,.2,.2,.2,.2]]), num_samples=1, dtype=tf.int32) + 30
@@ -113,6 +116,9 @@ if __name__ == "__main__":
 
         ## Define the model
         gene_ae = GeneTransformer("nucleotide", **config)
+
+        # print(gene_ae.compiled_loss)
+        # exit()
         # print(gene_ae.summary())
         # print(gene_ae.encoder.summary())
         # print(gene_ae.decoder.summary())
@@ -139,7 +145,7 @@ if __name__ == "__main__":
             _epoch_count += len(_hist.history["loss"])
 
             ## Store the training history
-            for key,val in _hist.items():
+            for key,val in _hist.history.items():
                 if key in train_history.keys():
                     train_history[key] += _hist[key]
                 else:

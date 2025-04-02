@@ -12,6 +12,7 @@ import argparse
 # from tensorflow.keras import Layers
 
 from utils.GeneTransformer import GeneTransformer
+from utils.TrainingUtils import MaskedSparseCategoricalCrossentropy, MaskedAccuracy, OnlineMarginTripletLoss
 # from utils import *
 
 print("tensorflow version:", tf.__version__)
