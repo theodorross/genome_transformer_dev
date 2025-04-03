@@ -118,7 +118,7 @@ class GeneTransformer(models.Model):
         self.compile(optimizer=opt, 
                      loss=[self.triplet_loss, self.reconstruction_loss], 
                      metrics=[latent_metrics, recon_metrics],
-                     loss_weights=[0,1])
+                     loss_weights=[1e-15,1.0])
 
         ## Run a dummy input through the model
         dummy_in = tf.convert_to_tensor([["atgatgatg"]])
