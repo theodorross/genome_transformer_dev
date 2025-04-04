@@ -118,7 +118,7 @@ class GeneTransformer(models.Model):
         # self.compile(optimizer=opt, loss=self.loss, metrics=[MaskedAccuracy(mask_category=0)])
         # self.compile(optimizer=opt, loss=self.loss, metrics=['accuracy'], weighted_metrics=[])
         self.compile(optimizer=opt, 
-                     loss=[self.triplet_loss, self.reconstruction_loss], 
+                     loss=[None, self.reconstruction_loss], 
                      metrics=[latent_metrics, recon_metrics])
 
         ## Run a dummy input through the model
