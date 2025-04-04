@@ -101,7 +101,7 @@ class GeneTransformer(models.Model):
         # Define the objective function
         # self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
         # self.triplet_loss = OnlineMarginTripletLoss(margin=5)
-        self.loss = "sparse_categorical_crossentropy"
+        self.reconstruction_loss = "sparse_categorical_crossentropy"
 
         # Define performance metrics to track
         levenshtein_metric = LevenshteinDistance(self.vocabulary)
