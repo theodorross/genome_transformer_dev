@@ -121,7 +121,7 @@ class GeneTransformer(models.Model):
         #              loss=[None, self.reconstruction_loss], 
         #              metrics=[latent_metrics, recon_metrics])
         self.compile(optimizer=opt, 
-                     loss=[self.reconstruction_loss], 
+                     loss=self.reconstruction_loss, 
                      metrics=recon_metrics)
 
         ## Run a dummy input through the model
