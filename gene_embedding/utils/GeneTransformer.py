@@ -117,9 +117,12 @@ class GeneTransformer(models.Model):
         # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.compile(optimizer=opt, loss=self.loss, metrics=[MaskedAccuracy(mask_category=0)])
         # self.compile(optimizer=opt, loss=self.loss, metrics=['accuracy'], weighted_metrics=[])
+        # self.compile(optimizer=opt, 
+        #              loss=[None, self.reconstruction_loss], 
+        #              metrics=[latent_metrics, recon_metrics])
         self.compile(optimizer=opt, 
-                     loss=[None, self.reconstruction_loss], 
-                     metrics=[latent_metrics, recon_metrics])
+                     loss=[self.reconstruction_loss], 
+                     metrics=recon_metrics)
 
         ## Run a dummy input through the model
         dummy_in = tf.convert_to_tensor([["atgatgatg"]])
@@ -136,7 +139,8 @@ class GeneTransformer(models.Model):
         z = self.encoder(x, **kwargs)
         ## Pass through the decoder
         y = self.decoder(z, **kwargs)
-        return z,y
+        # return z,y
+        return y
 
 
     def encode(self, x, **kwargs):
