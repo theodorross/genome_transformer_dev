@@ -233,6 +233,7 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
         loss = tf.reduce_mean(pos_distances) - tf.reduce_mean(neg_distances) + self.margin
         loss = tf.maximum(loss, 0)
         loss = tf.keras.ops.nan_to_num(loss, nan=0.0)   # just in case there are no positive distances, force the value to 0
+        print("DEBUG TRIPLET LOSS:", loss)
         return loss
     
     def get_config(self):
