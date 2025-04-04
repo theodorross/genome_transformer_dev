@@ -99,9 +99,9 @@ class GeneTransformer(models.Model):
         # opt3 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Define the objective function
-        self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
+        # self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
         # self.triplet_loss = OnlineMarginTripletLoss(margin=5)
-        # self.loss = "sparse_categorical_crossentropy"
+        self.loss = "sparse_categorical_crossentropy"
 
         # Define performance metrics to track
         levenshtein_metric = LevenshteinDistance(self.vocabulary)
