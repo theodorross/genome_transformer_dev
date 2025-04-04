@@ -110,6 +110,8 @@ class GeneTransformer(models.Model):
                          levenshtein_metric]
         latent_metrics = []
         # track_metrics = [self.masked_accuracy]
+        loss_weights = {self.reconstruction_loss.name: 1.0,
+                        self.triplet_loss: 1.0}
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])

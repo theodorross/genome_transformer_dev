@@ -207,6 +207,10 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
         # Compute masks for samples with shared features
         b0 = tf.expand_dims(y_true, axis=0)
         b1 = tf.expand_dims(y_true, axis=1)
+        print("TRIPLET LOSS DEBUG:")
+        print("y_true:", y_true.shape)
+        print('b0:', b0.shape)
+        print('b1:', b1.shape)
         _xmult = tf.multiply(b0, b1)
         _xsum = tf.reduce_sum( _xmult, axis=-1 )
         pos_matches = tf.greater( _xsum, 0 )
