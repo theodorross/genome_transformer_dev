@@ -89,7 +89,12 @@ class GeneTransformer(models.Model):
                                        n_sequence_tokens=self.n_sequence_tokens,
                                        max_length=self.max_length,
                                        decode_length=self.decode_length)
-
+        
+        ## Run a dummy input through the model
+        dummy_in = layers.Input((), dtype=tf.string)
+        dummy_mid = self.encoder(dummy_in)
+        self.decoder(dummy_mid)
+        self(dummy_in)
 
         ## Compile the model
         # Define the optimizer
@@ -99,9 +104,9 @@ class GeneTransformer(models.Model):
         # opt3 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Define the objective function
-        # self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
-        # self.triplet_loss = OnlineMarginTripletLoss(margin=5)
-        self.reconstruction_loss = "sparse_categorical_crossentropy"
+        self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
+        self.triplet_loss = OnlineMarginTripletLoss(margin=5)
+        # self.reconstruction_loss = "sparse_categorical_crossentropy"
 
         # Define performance metrics to track
         levenshtein_metric = LevenshteinDistance(self.vocabulary)
@@ -110,23 +115,23 @@ class GeneTransformer(models.Model):
                          levenshtein_metric]
         latent_metrics = []
         # track_metrics = [self.masked_accuracy]
-        # loss_weights = {self.reconstruction_loss.name: 1.0,
-        #                 self.triplet_loss: 1.0}
+        loss_weights = {self.reconstruction_loss.name: 1.0,
+                        self.triplet_loss.name: 0.5}
+        # metrics = {self.output[0].name: latent_metrics,
+        #            self.output[1].name: recon_metrics}
+        metrics = [latent_metrics, recon_metrics]
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.compile(optimizer=opt, loss=self.loss, metrics=[MaskedAccuracy(mask_category=0)])
         # self.compile(optimizer=opt, loss=self.loss, metrics=['accuracy'], weighted_metrics=[])
-        # self.compile(optimizer=opt, 
-        #              loss=[None, self.reconstruction_loss], 
-        #              metrics=[latent_metrics, recon_metrics])
         self.compile(optimizer=opt, 
-                     loss=self.reconstruction_loss, 
-                     metrics=recon_metrics)
-
-        ## Run a dummy input through the model
-        dummy_in = tf.convert_to_tensor([["atgatgatg"]])
-        self(dummy_in)
+                     loss=[self.triplet_loss, self.reconstruction_loss],
+                     loss_weights=loss_weights,
+                     metrics=metrics)
+        # self.compile(optimizer=opt, 
+        #              loss=self.reconstruction_loss, 
+        #              metrics=recon_metrics)
 
 
     def build(self, input_shape):
@@ -139,8 +144,8 @@ class GeneTransformer(models.Model):
         z = self.encoder(x, **kwargs)
         ## Pass through the decoder
         y = self.decoder(z, **kwargs)
-        # return z,y
-        return y
+        return z,y
+        # return y
 
 
     def encode(self, x, **kwargs):

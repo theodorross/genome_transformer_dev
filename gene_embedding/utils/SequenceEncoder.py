@@ -75,6 +75,10 @@ class SequenceEncoder(models.Model):
             trainable=True
         )
 
+        ## Run a dummy input through the model
+        dummy_in = tf.convert_to_tensor([["atgatgatg"]])
+        self(dummy_in)
+
 
     def call(self, x, **kwargs):
         x = tf.cast(x, tf.string)

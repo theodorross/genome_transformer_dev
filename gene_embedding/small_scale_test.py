@@ -117,8 +117,7 @@ if __name__ == "__main__":
         gene_ae = GeneTransformer("nucleotide", **config)
 
         # print(gene_ae.compiled_loss)
-        # exit()
-        # print(gene_ae.summary())
+        print(gene_ae.summary())
         # print(gene_ae.encoder.summary())
         # print(gene_ae.decoder.summary())
 
@@ -135,7 +134,10 @@ if __name__ == "__main__":
             train_genes = _train_genes.filter(lambda g,d: tf.strings.length(g) <= gene_len)
 
             ## Preprocess the datasets
-            train_genes, val_genes = gene_ae.preprocess_dataset(train_genes, 128, validation_data=val_genes, weighted=True)
+            train_genes, val_genes = gene_ae.preprocess_dataset(train_genes, 64, validation_data=val_genes, weighted=True)
+
+            # for tup in train_genes:
+            #     print(tup[0].shape, (tup[1][0].shape, tup[1][1].shape), tup[2].shape)
 
             ## Train the model            
             epochs = 3
@@ -146,9 +148,9 @@ if __name__ == "__main__":
             ## Store the training history
             for key,val in _hist.history.items():
                 if key in train_history.keys():
-                    train_history[key] += _hist[key]
+                    train_history[key] += _hist.history[key]
                 else:
-                    train_history[key] = _hist[key]
+                    train_history[key] = _hist.history[key]
 
 
         ## Save the training history

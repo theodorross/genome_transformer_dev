@@ -1,5 +1,6 @@
 import tensorflow as tf
 from keras import models, layers
+import numpy as np
 
 # from utils.PositionalEmbedding import PositionalEmbedding
 from utils.TransformerBlock import TransformerDecoderBlock
@@ -88,6 +89,10 @@ class SequenceDecoder(models.Model):
             initializer="uniform",
             trainable=True
         )
+
+        ## Run a dummy input through the model
+        dummy_in = tf.convert_to_tensor(np.random.random((1, n_sequence_tokens*latent_dim)))
+        self(dummy_in)
 
 
 
