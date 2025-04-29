@@ -9,7 +9,7 @@
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=7
 #SBATCH --mem=64G
-#SBATCH --partition=small-g
+#SBATCH --partition=standard-g
 
 ## Load the needed LUMI bindings
 module use /appl/local/containers/ai-modules
