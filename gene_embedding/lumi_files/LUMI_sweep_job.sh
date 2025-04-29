@@ -8,7 +8,7 @@
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=7
-#SBATCH --mem=128
+#SBATCH --mem=64G
 #SBATCH --partition=small-g
 
 ## Load the needed LUMI bindings
@@ -36,5 +36,6 @@ export SIF=/scratch/project_465001915/rosstheo/genome_transformer_dev/container/
 ## Run the training script
 srun singularity exec \
     -B /scratch/project_465001915/rosstheo \
+    --env SWEEP_ID="wlgfhjyr" \
     $SIF /bin/bash \
     lumi_files/login_and_sweep.sh

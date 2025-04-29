@@ -34,7 +34,6 @@ export NCLL_DEBUG=WARN
 GITDIR=/scratch/project_465001915/rosstheo/genome_transformer_dev
 export SIF=/scratch/project_465001915/rosstheo/genome_transformer_dev/container/lumi-tensorflow-rocm-6.2.0-python-3.10-tensorflow-2.16.1-horovod-0.28.1.sif
 
-
 ## Run the training script
 srun singularity exec \
     -B /scratch/project_465001915/rosstheo \

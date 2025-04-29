@@ -13,4 +13,8 @@ sh ~/wandb_login.sh
 # WANDB_MODE=offline
 
 ## Run the python script
-python hyperparameter_sweep.py
+# python hyperparameter_sweep.py
+
+## Run the sweep
+wandb agent $SWEEP_ID
+

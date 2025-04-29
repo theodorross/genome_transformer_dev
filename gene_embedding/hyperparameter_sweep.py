@@ -164,32 +164,32 @@ def main():
 if __name__ == "__main__":
     keras.config.disable_traceback_filtering()
 
-    sweep_config = {
-        "method":"random",
-        "metric": {'goal':'minimize', 'name':'val_loss'},
-        "parameters":{
-            "embedding_dim": {'values': [4,8]},
-            'latent_dim': {'values': [16, 32, 64]},
-            'encoder_layers': {'values': [4, 8, 10, 20]},
-            'decoder_layers': {'values': [1, 2, 4]},
-            'key_dim': {'values': [16, 32]},
-            'num_heads': {'values': [12, 24]},
-            'dropout_rate': {'values': [0.0]},
-            'max_length': {'values': [300]},
-            'decode_length': {'values': [300]},
-            'masking_rate': {'values': [0.0]},
-            'learning_rate': {'values': [1e-3]},
-            "n_sequence_tokens": {'values': [2,4,8,16]},
-            'patience': {'values': [150]},
-            'batch_size': {'values': [512]},
-            'epochs': {'values': [2000]},
-            'learning_rate_decay': {'values':[0.95]},
-            'learning_rate_decay_start': {'values': [100, 200]},
-            'seq_length_steps': {'values': [1]}
-        },
-    }
+    # sweep_config = {
+    #     "method":"random",
+    #     "metric": {'goal':'minimize', 'name':'val_loss'},
+    #     "parameters":{
+    #         "embedding_dim": {'values': [4,8]},
+    #         'latent_dim': {'values': [16, 32, 64]},
+    #         'encoder_layers': {'values': [4, 8, 10, 20]},
+    #         'decoder_layers': {'values': [1, 2, 4]},
+    #         'key_dim': {'values': [16, 32]},
+    #         'num_heads': {'values': [12, 24]},
+    #         'dropout_rate': {'values': [0.0]},
+    #         'max_length': {'values': [300]},
+    #         'decode_length': {'values': [300]},
+    #         'masking_rate': {'values': [0.0]},
+    #         'learning_rate': {'values': [1e-3]},
+    #         "n_sequence_tokens": {'values': [2,4,8,16]},
+    #         'patience': {'values': [150]},
+    #         'batch_size': {'values': [512]},
+    #         'epochs': {'values': [2000]},
+    #         'learning_rate_decay': {'values':[0.95]},
+    #         'learning_rate_decay_start': {'values': [100, 200]},
+    #         'seq_length_steps': {'values': [1]}
+    #     },
+    # }
 
-    sweep_id = wandb.sweep(sweep=sweep_config, project="gene-encoder")
+    # sweep_id = wandb.sweep(sweep=sweep_config, project="gene-encoder")
     wandb.agent(sweep_id, function=main, count=16)
 
 
