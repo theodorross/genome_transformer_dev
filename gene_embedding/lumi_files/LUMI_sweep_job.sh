@@ -11,6 +11,9 @@
 #SBATCH --mem=64G
 #SBATCH --partition=standard-g
 
+# running now: 10579893
+
+
 ## Load the needed LUMI bindings
 module use /appl/local/containers/ai-modules
 module load singularity-AI-bindings

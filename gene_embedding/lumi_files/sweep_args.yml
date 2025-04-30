@@ -1,5 +1,7 @@
 program: train_gene_autoencoder.py
 name: gene_embedding_sweep
+entity: theodor-a-ross
+project: gene-encoder
 method: bayes
 metric:
   goal: minimize
