@@ -5,13 +5,11 @@
 #SBATCH --account=project_465001915
 #SBATCH --time=00:05:00
 #SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --gpus-per-node=1
+#SBATCH --ntasks-per-node=8
+#SBATCH --gpus-per-node=8
 #SBATCH --cpus-per-task=7
-#SBATCH --mem=64G
-#SBATCH --partition=dev-g
-
-# running now: 10590580
+#SBATCH --mem-per-gpu=60G
+#SBATCH --partition=standard-g
 
 
 ## Load the needed LUMI bindings
@@ -42,11 +40,13 @@ srun singularity exec \
     -B /scratch/project_465001915/rosstheo \
     $SIF /bin/bash \
     -c '$WITH_CONDA && source wandb-env/bin/activate && sh ~/wandb_login.sh && python -m wandb sweep lumi_files/sweep_args.yml &> lumi_files/sweep_info.txt'
+SWEEP_ID=`grep -o -e "ID: [[:alnum:]]*" lumi_files/sweep_info.txt | sed 's/.*ID: //'`
     
 
 ## Run the training script
-SWEEP_ID=`grep -o -e "ID: [[:alnum:]]*" lumi_files/sweep_info.txt | sed 's/.*ID: //'`
-srun singularity exec \
+srun --ntasks=8 \
+    --gres=gpu:1 \
+    singularity exec \
     -B /scratch/project_465001915/rosstheo \
     --env SWEEP_ID=$SWEEP_ID \
     $SIF /bin/bash \
