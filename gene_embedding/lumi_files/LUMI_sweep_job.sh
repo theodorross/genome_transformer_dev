@@ -45,7 +45,7 @@ srun singularity exec \
     
 
 ## Run the training script
-SWEEP_ID=`grep -o -e "ID: [[:alnum:]]*" test.txt | sed 's/.*ID: //'`
+SWEEP_ID=`grep -o -e "ID: [[:alnum:]]*" lumi_files/sweep_info.txt | sed 's/.*ID: //'`
 srun singularity exec \
     -B /scratch/project_465001915/rosstheo \
     --env SWEEP_ID=$SWEEP_ID \
