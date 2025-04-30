@@ -1,46 +1,53 @@
-program: train_gene_autoencoder.py
-name: gene_embedding_sweep
+program: train-gene-autoencoder.py
+name: gene-embedding-sweep
 entity: theodor-a-ross
 project: gene-encoder
 method: bayes
 metric:
   goal: minimize
-  name: validation_loss
+  name: validation-loss
 parameters:
-  embedding_dim:
+  embedding-dim:
     values: [4, 8]
-  latent_dim:
+  latent-dim:
     values: [16, 32, 64]
-  encoder_layers:
+  encoder-layers:
     values: [4, 8, 10, 20]
-  decoder_layers:
+  decoder-layers:
     values: [1, 2, 4]
-  key_dim:
+  key-dim:
     values: [16, 32]
-  num_heads:
+  num-heads:
     values: [12, 24]
-  dropout_rate:
+  dropout-rate:
     min: 0.0
     max: 0.05
-  max_length:
+  max-length:
     values: [300]
-  masking_rate:
+  masking-rate:
     min: 0.0
     max: 0.05
-  learning_rate:
+  learning-rate:
     min: 0.0001
     max: 0.01
-  n_sequence_tokens:
+  n-sequence-tokens:
     values: [2, 4, 8, 16]
   patience:
     values: [150]
-  batch_size:
+  batch-size:
     values: [64,128,256]
   epochs:
     values: [20]
-  learning_rate_decay:
+  learning-rate-decay:
     values: [0.95]
-  learning_rate_decay_start:
+  learning-rate-decay-start:
     values: [100, 200]
-  seq_length_steps:
+  seq-length-steps:
     values: [1]
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - "--platform"
+  - "LUMI"
+  - ${args}
