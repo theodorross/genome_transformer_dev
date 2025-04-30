@@ -36,7 +36,7 @@ export SIF=/scratch/project_465001915/rosstheo/genome_transformer_dev/container/
 
 
 ## Initialize the sweep
-srun singularity exec \
+singularity exec \
     -B /scratch/project_465001915/rosstheo \
     $SIF /bin/bash \
     -c '$WITH_CONDA && source wandb-env/bin/activate && sh ~/wandb_login.sh && python -m wandb sweep lumi_files/sweep_args.yml &> lumi_files/sweep_info.txt'
