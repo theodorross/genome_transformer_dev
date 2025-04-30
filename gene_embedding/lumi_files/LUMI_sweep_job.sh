@@ -36,9 +36,17 @@ export NCLL_DEBUG=WARN
 GITDIR=/scratch/project_465001915/rosstheo/genome_transformer_dev
 export SIF=/scratch/project_465001915/rosstheo/genome_transformer_dev/container/lumi-tensorflow-rocm-6.2.0-python-3.10-tensorflow-2.16.1-horovod-0.28.1.sif
 
-## Run the training script
+
+## Initialize the sweep
 srun singularity exec \
     -B /scratch/project_465001915/rosstheo \
-    --env SWEEP_ID="wlgfhjyr" \
     $SIF /bin/bash \
-    lumi_files/login_and_sweep.sh
+    -c '$WITH_CONDA && source wandb-env/bin/activate && python -m wandb sweep --project gene-encoder sweep_args.yml'
+    
+
+# ## Run the training script
+# srun singularity exec \
+#     -B /scratch/project_465001915/rosstheo \
+#     --env SWEEP_ID="wlgfhjyr" \
+#     $SIF /bin/bash \
+#     lumi_files/login_and_sweep.sh
