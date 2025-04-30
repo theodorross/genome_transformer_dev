@@ -44,9 +44,10 @@ srun singularity exec \
     -c '$WITH_CONDA && source wandb-env/bin/activate && sh ~/wandb_login.sh && python -m wandb sweep lumi_files/sweep_args.yml &> lumi_files/sweep_info.txt'
     
 
-# ## Run the training script
-# srun singularity exec \
-#     -B /scratch/project_465001915/rosstheo \
-#     --env SWEEP_ID="wlgfhjyr" \
-#     $SIF /bin/bash \
-#     lumi_files/login_and_sweep.sh
+## Run the training script
+SWEEP_ID=`grep -o -e "ID: [[:alnum:]]*" test.txt | sed 's/.*ID: //'`
+srun singularity exec \
+    -B /scratch/project_465001915/rosstheo \
+    --env SWEEP_ID=$SWEEP_ID \
+    $SIF /bin/bash \
+    lumi_files/login_and_sweep.sh
