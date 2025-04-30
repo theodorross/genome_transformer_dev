@@ -1,11 +1,11 @@
-program: train-gene-autoencoder.py
+program: train_gene_autoencoder.py
 name: gene-embedding-sweep
 entity: theodor-a-ross
 project: gene-encoder
 method: bayes
 metric:
   goal: minimize
-  name: validation-loss
+  name: validation_loss
 parameters:
   embedding-dim:
     values: [4, 8]
