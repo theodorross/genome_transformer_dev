@@ -14,7 +14,8 @@ sh ~/wandb_login.sh
 
 ## Run the python script
 # python hyperparameter_sweep.py
+echo $SWEEP_ID
 
 ## Run the sweep
-python -m wandb agent theodor-a-ross/$SWEEP_ID
+python -m wandb agent theodor-a-ross/gene-encoder/$SWEEP_ID
 
