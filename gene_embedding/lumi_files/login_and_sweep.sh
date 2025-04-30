@@ -3,6 +3,7 @@
 ## Export SLURM stuff
 export RANK=\$SLURM_PROCID
 export LOCAL_RANK=\$SLURM_LOCALID
+export ROCM_VISIBLE_DEVICES=\$SLURM_LOCALID
 
 ## Activate the venv
 $WITH_CONDA
