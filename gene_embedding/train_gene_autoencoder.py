@@ -104,10 +104,10 @@ if __name__ == "__main__":
     
 
     ## Instantiate the multi-device training strategy
-    strategy = tf.distribute.MirroredStrategy()
-    if args.batch_size % strategy.num_replicas_in_sync != 0:
-        raise ValueError(f"batch_size must be evenly divisible by the number of devices in use:\n\tbatch_size: {args.batch_size}\n\tnumber of devices: {strategy.num_replicas_in_sync}")
-    print(f"\nNumber of devices: {strategy.num_replicas_in_sync}\n")
+    # strategy = tf.distribute.MirroredStrategy()
+    # if args.batch_size % strategy.num_replicas_in_sync != 0:
+    #     raise ValueError(f"batch_size must be evenly divisible by the number of devices in use:\n\tbatch_size: {args.batch_size}\n\tnumber of devices: {strategy.num_replicas_in_sync}")
+    # print(f"\nNumber of devices: {strategy.num_replicas_in_sync}\n")
 
     ## Initialize wandb
     wandb_config = sys_config | model_config | training_config
@@ -184,8 +184,9 @@ if __name__ == "__main__":
         training_fold = concatenate_datasets(*training_fold)
 
         ## Initialize the model
-        with strategy.scope():
-            gene_ae = GeneTransformer(**model_config)
+        # with strategy.scope():
+        #     gene_ae = GeneTransformer(**model_config)
+        gene_ae = GeneTransformer(**model_config)
         print(gene_ae.summary())
         
 
