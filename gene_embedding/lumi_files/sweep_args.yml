@@ -22,7 +22,7 @@ parameters:
   dropout-rate:
     min: 0.0
     max: 0.05
-  max-length:
+  max-seq-length:
     values: [300]
   masking-rate:
     min: 0.0
