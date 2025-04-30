@@ -16,5 +16,5 @@ sh ~/wandb_login.sh
 # python hyperparameter_sweep.py
 
 ## Run the sweep
-python -m wandb agent $SWEEP_ID
+python -m wandb agent theodor-a-ross/$SWEEP_ID
 

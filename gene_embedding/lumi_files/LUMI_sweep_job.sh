@@ -41,7 +41,7 @@ export SIF=/scratch/project_465001915/rosstheo/genome_transformer_dev/container/
 srun singularity exec \
     -B /scratch/project_465001915/rosstheo \
     $SIF /bin/bash \
-    -c '$WITH_CONDA && source wandb-env/bin/activate && python -m wandb sweep sweep_args.yml'
+    -c '$WITH_CONDA && source wandb-env/bin/activate && sh ~/wandb_login.sh && python -m wandb sweep sweep_args.yml'
     
 
 # ## Run the training script
