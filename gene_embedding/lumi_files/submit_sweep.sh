@@ -9,11 +9,10 @@ git pull origin working
 
 ## Submit the batch job(s)
 sbatch lumi_files/LUMI_sweep_job.sh
-# sbatch lumi_files/LUMI_sweep_job.sh
-# sbatch lumi_files/LUMI_sweep_job.sh
-# sbatch lumi_files/LUMI_sweep_job.sh
-# sbatch lumi_files/LUMI_sweep_job.sh
-# sbatch lumi_files/LUMI_sweep_job.sh
-# sbatch lumi_files/LUMI_sweep_job.sh
-# sbatch lumi_files/LUMI_sweep_job.sh
-
+sbatch lumi_files/LUMI_sweep_job.sh
+sbatch lumi_files/LUMI_sweep_job.sh
+sbatch lumi_files/LUMI_sweep_job.sh
+sbatch lumi_files/LUMI_sweep_job.sh
+sbatch lumi_files/LUMI_sweep_job.sh
+sbatch lumi_files/LUMI_sweep_job.sh
+sbatch lumi_files/LUMI_sweep_job.sh

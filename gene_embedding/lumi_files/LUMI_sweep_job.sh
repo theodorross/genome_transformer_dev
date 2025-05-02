@@ -3,7 +3,7 @@
 #SBATCH --output=lumi_files/logs/gene_embedding_sweep.o%j # Name of stdout output file
 #SBATCH --error=lumi_files/logs/gene_embedding_sweep.e%j  # Name of stderr error file
 #SBATCH --account=project_465001915
-#SBATCH --time=00:10:00
+#SBATCH --time=72:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=1

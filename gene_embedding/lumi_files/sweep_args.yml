@@ -37,7 +37,7 @@ parameters:
   batch-size:
     values: [64,128,256]
   epochs:
-    values: [20]
+    values: [2000]
   learning-rate-decay:
     values: [0.95]
   learning-rate-decay-start:
