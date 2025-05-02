@@ -213,7 +213,17 @@ class GeneTransformer(models.Model):
         # new_data = new_data.shuffle(buffer_size=new_data.cardinality())
         new_data = new_data.batch(batch_size=batch_size, drop_remainder=True).cache()
         if validation_data is not None:     # Only batch the validation data
-            new_val_data = new_val_data.batch(batch_size=batch_size, drop_remainder=True).cache()
+
+            # Find the cardinality of the validation data
+            new_val_card = 0
+            for _ in new_val_data:
+                new_val_data_card += 1
+            # If there are fewer validation samples than batch size, use a smaller batch size
+            if batch_size > new_val_data_card:
+                val_batch_size = new_val_card
+            else:
+                val_batch_size = batch_size
+            new_val_data = new_val_data.batch(batch_size=val_batch_size, drop_remainder=True).cache()
             return new_data, new_val_data
         else:
             return new_data
