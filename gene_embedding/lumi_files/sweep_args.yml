@@ -1,5 +1,5 @@
 program: train_gene_autoencoder.py
-name: gene-embedding-sweep
+name: gene-embedding-sweep-300
 entity: theodor-a-ross
 project: gene-encoder
 method: bayes

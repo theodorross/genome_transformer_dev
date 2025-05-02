@@ -3,13 +3,13 @@
 #SBATCH --output=lumi_files/logs/gene_embedding_sweep.o%j # Name of stdout output file
 #SBATCH --error=lumi_files/logs/gene_embedding_sweep.e%j  # Name of stderr error file
 #SBATCH --account=project_465001915
-#SBATCH --time=00:05:00
+#SBATCH --time=72:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=8
-#SBATCH --gpus-per-node=8
+#SBATCH --ntasks-per-node=1
+#SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=7
 #SBATCH --mem-per-gpu=60G
-#SBATCH --partition=standard-g
+#SBATCH --partition=small-g
 
 
 ## Load the needed LUMI bindings
@@ -36,12 +36,12 @@ export SIF=/scratch/project_465001915/rosstheo/genome_transformer_dev/container/
 
 
 ## Initialize the sweep
-singularity exec \
-    -B /scratch/project_465001915/rosstheo \
-    $SIF /bin/bash \
-    -c '$WITH_CONDA && source wandb-env/bin/activate && sh ~/wandb_login.sh && python -m wandb sweep lumi_files/sweep_args.yml &> lumi_files/sweep_info.txt'
-SWEEP_ID=`grep -o -e "ID: [[:alnum:]]*" lumi_files/sweep_info.txt | sed 's/.*ID: //'`
-
+# singularity exec \
+#     -B /scratch/project_465001915/rosstheo \
+#     $SIF /bin/bash \
+#     -c '$WITH_CONDA && source wandb-env/bin/activate && sh ~/wandb_login.sh && python -m wandb sweep lumi_files/sweep_args.yml &> lumi_files/sweep_info.txt'
+# SWEEP_ID=`grep -o -e "ID: [[:alnum:]]*" lumi_files/sweep_info.txt | sed 's/.*ID: //'`
+SWEEP_ID='zbb1i71b'
 
 
 ## Run the training script
