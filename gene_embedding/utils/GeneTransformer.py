@@ -217,9 +217,9 @@ class GeneTransformer(models.Model):
             # Find the cardinality of the validation data
             new_val_card = 0
             for _ in new_val_data:
-                new_val_data_card += 1
+                new_val_card += 1
             # If there are fewer validation samples than batch size, use a smaller batch size
-            if batch_size > new_val_data_card:
+            if batch_size > new_val_card:
                 val_batch_size = new_val_card
             else:
                 val_batch_size = batch_size
