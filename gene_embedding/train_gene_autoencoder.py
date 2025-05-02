@@ -111,11 +111,11 @@ if __name__ == "__main__":
 
     ## Initialize wandb
     wandb_config = sys_config | model_config | training_config
-    wandb.init(
-        project="gene-encoder",
-        config=wandb_config,
-        sync_tensorboard=True
-    )
+    # wandb.init(
+    #     project="gene-encoder",
+    #     config=wandb_config,
+    #     sync_tensorboard=True
+    # )
 
 
     '''
@@ -152,10 +152,11 @@ if __name__ == "__main__":
     '''
     Define training callbacks
     '''
-    wandb_callback = wandb.keras.WandbMetricsLogger()
+    # wandb_callback = wandb.keras.WandbMetricsLogger()
     early_stopper = keras.callbacks.EarlyStopping(patience=args.patience,
                                                   restore_best_weights=True)
-    callbacks = [wandb_callback, early_stopper]
+    # callbacks = [wandb_callback, early_stopper]
+    callbacks = [early_stopper]
 
     if (args.learning_rate_decay is not None) and (args.learning_rate_decay_start is not None):
         if args.dataset.lower() == "dev":
@@ -283,7 +284,7 @@ if __name__ == "__main__":
         break
 
     print()
-    wandb.finish()
+    # wandb.finish()
 
     ## Save the histories
     # with open(f"training_histories/geneAE_{wandb.run.name}.json","w") as f:
