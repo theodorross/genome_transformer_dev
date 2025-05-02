@@ -115,7 +115,7 @@ class GeneTransformer(models.Model):
                          levenshtein_metric]
         latent_metrics = []
         # track_metrics = [self.masked_accuracy]
-        loss_weights = [1, 0.5]
+        loss_weights = [1, 1]
         # loss_weights = {self.reconstruction_loss.name: 1.0,
         #                 self.triplet_loss.name: 0.5}
         # metrics = {self.output[0].name: latent_metrics,

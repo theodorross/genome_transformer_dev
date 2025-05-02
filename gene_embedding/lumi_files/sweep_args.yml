@@ -5,7 +5,7 @@ project: gene-encoder
 method: bayes
 metric:
   goal: minimize
-  name: val_loss
+  name: epoch/val_loss
 parameters:
   embedding-dim:
     values: [4, 8]
