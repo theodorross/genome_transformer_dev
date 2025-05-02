@@ -143,6 +143,8 @@ if __name__ == "__main__":
             epochs = 3
             _hist = gene_ae.fit(train_genes, validation_data=val_genes, epochs=epochs+_epoch_count, 
                                 callbacks=[callback, lrsched], verbose=1, initial_epoch=_epoch_count)
+            print(_hist.history.keys())
+            exit()
             _epoch_count += len(_hist.history["loss"])
 
             ## Store the training history
