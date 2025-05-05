@@ -191,7 +191,7 @@ class MaskedSparseCategoricalCrossentropy(tf.keras.losses.Loss):
 @tf.keras.utils.register_keras_serializable()
 class OnlineMarginTripletLoss(tf.keras.losses.Loss):
 
-    def __init__(self, margin, p_norm=2, name="triplet_loss", **kwargs):
+    def __init__(self, margin, p_norm=2, name="triplet_clustering", **kwargs):
         super().__init__(name=name, **kwargs)
         self.margin = margin
         self.p_norm = p_norm
@@ -251,3 +251,114 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
         p_norm = config.pop("p_norm")
         name = config.pop("name")
         return cls(margin, p_norm, name, **config)
+
+
+
+
+
+@tf.keras.utils.register_keras_serializable()
+class MaskedBinaryCrossentropy(tf.keras.losses.Loss):
+
+    def __init__(self, name="masked_binary_crossentropy", **kwargs):
+        super().__init__(name=name, **kwargs)
+
+    def call(self, y_true, y_pred):
+        
+        ## Compute the base loss
+        loss = tf.keras.losses.binary_crossentropy(y_true, y_pred, from_logits=False)
+
+        ## Mask the computed loss to ignore samples with no predicted category
+        cat_sum = tf.reduce_sum(y_true, axis=-1, keepdims=True)
+        mask = tf.not_equal(cat_sum, 0)
+        mask = tf.cast(mask, dtype=loss.dtype)
+        loss = tf.multiply(loss, mask)
+
+        ## Compute the mean of the loss across the masked values
+        loss = tf.reduce_sum(loss)/tf.reduce_sum(mask)
+        return loss
+    
+    def get_config(self):
+        base_config = super().get_config()
+        config = {
+            "mask_category":self.mask_category, 
+            "name":self.name
+        }
+        return {**base_config, **config}
+    
+    @classmethod
+    def from_config(cls, config):
+        mask_category = config.pop("mask_category")
+        name = config.pop("name")
+        return cls(mask_category, name, **config)
+    
+
+
+@tf.keras.utils.register_keras_serializable()
+class MaskedBinaryAccuracy(tf.keras.metrics.Metric):
+
+    def __init__(self, threshold=0.5, name="masked_binary_accuracy", **kwargs):
+        super().__init__(name=name, **kwargs)
+
+        self._direction = "up"
+        self.threshold = 0.5
+        self.acc = self.add_variable(
+            shape=(),
+            initializer='zeros',
+            name='masked_acc',
+            dtype=tf.float32
+        )
+
+    def update_state(self, y_true, y_pred, **kwargs):
+
+        print("DEBUGGING BINARY ACCURACY")
+        print(y_true.shape, y_pred.shape)
+        
+        ## Compute predicted categories
+        pred = tf.cast(y_pred > self.threshold, y_pred.dtype)
+        label = tf.cast(y_true, pred.dtype)
+
+        ## Find category matches
+        matches = tf.equal(label, pred)
+
+        print("matches:", matches)
+
+        ## Mask the matches to ignore samples with zero positive labels
+        cat_sum = tf.reduce_sum(y_true, axis=-1, keepdims=True)
+        mask = tf.not_equal(cat_sum, 0)
+        print("mask:", mask)
+        matches = tf.logical_and(matches, mask)
+        print("masked matches:", matches)
+
+        ## Compute the accuracy
+        matches = tf.cast(matches, tf.float32)
+        mask = tf.cast(mask, tf.float32)
+
+        ## Normalize the accuracy by the number of replicas
+        # acc = tf.reduce_sum(matches)/tf.reduce_sum(mask)
+        n_categs = tf.cast(tf.shape(y_true)[-1], tf.float32)
+        acc = tf.math.divide(tf.reduce_sum(matches), tf.reduce_sum(mask)*n_categs)
+        # try:
+        #     n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
+        #     self.acc.assign( tf.divide(acc, n_replicas) )
+        # except:
+        self.acc.assign( acc )
+
+    def reset_state(self):
+        self.acc.assign(0)
+    
+    def result(self):
+        return tf.math.multiply_no_nan( self.acc, 1 )
+    
+    def get_config(self):
+        base_config = super().get_config()
+        config = {
+            "mask_category":self.mask_category, 
+            "name":self.name
+        }
+        return {**base_config, **config}
+    
+    @classmethod
+    def from_config(cls, config):
+        mask_category = config.pop("mask_category")
+        name = config.pop("name")
+        return cls(mask_category, name, **config)

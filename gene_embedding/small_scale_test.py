@@ -130,8 +130,8 @@ if __name__ == "__main__":
             gene_ae.update_decode_length(gene_len)
 
             ## Trim the genes
-            val_genes = _val_genes.filter(lambda g,d: tf.strings.length(g) <= gene_len)
-            train_genes = _train_genes.filter(lambda g,d: tf.strings.length(g) <= gene_len)
+            val_genes = _val_genes.filter(lambda g,d,c: tf.strings.length(g) <= gene_len)
+            train_genes = _train_genes.filter(lambda g,d,c: tf.strings.length(g) <= gene_len)
 
             ## Preprocess the datasets
             train_genes, val_genes = gene_ae.preprocess_dataset(train_genes, 64, validation_data=val_genes, weighted=True)

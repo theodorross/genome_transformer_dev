@@ -90,6 +90,12 @@ class GeneTransformer(models.Model):
                                        max_length=self.max_length,
                                        decode_length=self.decode_length)
         
+        # Classifier head
+        self.classifier = models.Sequential(name="category_classifier")
+        self.classifier.add(layers.Input(shape=(latent_dim*n_sequence_tokens,)))
+        self.classifier.add(layers.Dense(128, activation="relu"))
+        self.classifier.add(layers.Dense(23, activation="sigmoid"))
+        
         ## Run a dummy input through the model
         dummy_in = layers.Input((), dtype=tf.string)
         dummy_mid = self.encoder(dummy_in)
@@ -104,30 +110,33 @@ class GeneTransformer(models.Model):
         # opt3 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Define the objective function
-        self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0)
-        self.triplet_loss = OnlineMarginTripletLoss(margin=5)
+        self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0, name="reconstruction")
+        self.triplet_loss = OnlineMarginTripletLoss(margin=5, name="clustering")
+        self.category_loss = MaskedBinaryCrossentropy(name="COG_category")
         # self.reconstruction_loss = "sparse_categorical_crossentropy"
 
         # Define performance metrics to track
         levenshtein_metric = LevenshteinDistance(self.vocabulary)
-        masked_accuracy = MaskedAccuracy(mask_category=0)
+        masked_accuracy = MaskedAccuracy(mask_category=0, name="reconstruction_accuracy")
+        category_accuracy = MaskedBinaryAccuracy(name="COG_category_accuracy")
         recon_metrics = [masked_accuracy,
                          levenshtein_metric]
         latent_metrics = []
+        classifier_metrics = [category_accuracy]
         # track_metrics = [self.masked_accuracy]
-        loss_weights = [1, 1]
+        loss_weights = [1, 1, 1]
         # loss_weights = {self.reconstruction_loss.name: 1.0,
         #                 self.triplet_loss.name: 0.5}
         # metrics = {self.output[0].name: latent_metrics,
         #            self.output[1].name: recon_metrics}
-        metrics = [latent_metrics, recon_metrics]
+        metrics = [latent_metrics, classifier_metrics, recon_metrics]
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
         # self.compile(optimizer=opt, loss=self.loss, metrics=[MaskedAccuracy(mask_category=0)])
         # self.compile(optimizer=opt, loss=self.loss, metrics=['accuracy'], weighted_metrics=[])
         self.compile(optimizer=opt, 
-                     loss=[self.triplet_loss, self.reconstruction_loss],
+                     loss=[self.triplet_loss, self.category_loss, self.reconstruction_loss],
                      loss_weights=loss_weights,
                      metrics=metrics)
         # self.compile(optimizer=opt, 
@@ -143,9 +152,11 @@ class GeneTransformer(models.Model):
     def call(self, x, **kwargs):
         ## Pass through the encoder
         z = self.encoder(x, **kwargs)
+        ## Classify the category
+        z_cat = self.classifier(z)
         ## Pass through the decoder
         y = self.decoder(z, **kwargs)
-        return z,y
+        return z,z_cat,y
         # return y
 
 
@@ -185,21 +196,23 @@ class GeneTransformer(models.Model):
 
     def preprocess_dataset(self, data:tf.data.Dataset, batch_size:int, validation_data:tf.data.Dataset=None, weighted:bool=True) -> tf.data.Dataset:
         ## Map the dataset to a label dataset and randomly mask the inputs
-        train_genes = data.map(lambda g,d: g)
-        train_domains = data.map(lambda g,d: d)
+        train_genes = data.map(lambda g,d,c: g)
+        train_domains = data.map(lambda g,d,c: d)
+        train_categs = data.map(lambda g,d,c:c)
         train_y = train_genes.map(self.tokenize)
-        new_train_y = tf.data.Dataset.zip(train_domains, train_y)
+        new_train_y = tf.data.Dataset.zip(train_domains, train_categs, train_y)
         if validation_data is not None:
-            val_genes = validation_data.map(lambda g,d: g)
-            val_domains = validation_data.map(lambda g,d: d)
+            val_genes = validation_data.map(lambda g,d,c: g)
+            val_domains = validation_data.map(lambda g,d,c: d)
+            val_categs = validation_data.map(lambda g,d,c: c)
             val_y = val_genes.map(self.tokenize)
-            new_val_y = tf.data.Dataset.zip(val_domains, val_y)
+            new_val_y = tf.data.Dataset.zip(val_domains, val_categs, val_y)
 
         # If class weighs are to be used
         if weighted:
             _,weights = self._compute_token_weights(train_genes)
             w = train_y.map(weights.lookup)
-            new_data = tf.data.Dataset.zip(train_genes,new_train_y,w)
+            new_data = tf.data.Dataset.zip(train_genes, new_train_y, w)
             if validation_data is not None:
                 new_val_data = tf.data.Dataset.zip(val_genes, new_val_y, w)
 
