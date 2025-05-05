@@ -30,8 +30,8 @@ parameters:
     min: 0.0
     max: 0.05
   learning-rate:
-    min: 0.0001
-    max: 0.01
+    min: 0.00001
+    max: 0.0001
   n-sequence-tokens:
     values: [2, 4, 8, 16]
   patience:
