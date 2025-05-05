@@ -22,6 +22,8 @@ parameters:
   dropout-rate:
     min: 0.0
     max: 0.05
+  decode-length:
+    values: [300]
   max-seq-length:
     values: [300]
   masking-rate:

@@ -309,9 +309,6 @@ class MaskedBinaryAccuracy(tf.keras.metrics.Metric):
         )
 
     def update_state(self, y_true, y_pred, **kwargs):
-
-        print("DEBUGGING BINARY ACCURACY")
-        print(y_true.shape, y_pred.shape)
         
         ## Compute predicted categories
         pred = tf.cast(y_pred > self.threshold, y_pred.dtype)
@@ -320,14 +317,10 @@ class MaskedBinaryAccuracy(tf.keras.metrics.Metric):
         ## Find category matches
         matches = tf.equal(label, pred)
 
-        print("matches:", matches)
-
         ## Mask the matches to ignore samples with zero positive labels
         cat_sum = tf.reduce_sum(y_true, axis=-1, keepdims=True)
         mask = tf.not_equal(cat_sum, 0)
-        print("mask:", mask)
         matches = tf.logical_and(matches, mask)
-        print("masked matches:", matches)
 
         ## Compute the accuracy
         matches = tf.cast(matches, tf.float32)

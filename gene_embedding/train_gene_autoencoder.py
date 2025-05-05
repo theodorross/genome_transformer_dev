@@ -200,8 +200,8 @@ if __name__ == "__main__":
             gene_ae.update_decode_length(gene_length)
 
             ## Filter the datasets
-            _training_fold = training_fold.filter(lambda g,d: tf.strings.length(g) < gene_length)
-            _validation_fold = validation_fold.filter(lambda g,d: tf.strings.length(g) < gene_length)
+            _training_fold = training_fold.filter(lambda g,d,c: tf.strings.length(g) < gene_length)
+            _validation_fold = validation_fold.filter(lambda g,d,c: tf.strings.length(g) < gene_length)
 
             ## Preprocess the datasets
             _training_fold, _validation_fold = gene_ae.preprocess_dataset(_training_fold, 
