@@ -139,7 +139,7 @@ if __name__ == "__main__":
     # gene_dataset = tf.data.TextLineDataset(datapath)
     gene_dataset = tf.data.Dataset.load("../data/gene_sequences/training_dataset")
     if args.dataset == "full":
-        gene_dataset = gene_dataset.filter(lambda g,d: tf.strings.length(g) <= args.max_seq_length).cache()
+        gene_dataset = gene_dataset.filter(lambda g,d,c: tf.strings.length(g) <= args.max_seq_length).cache()
     elif args.dataset == "dev":
         print("'dev' dataset is depreciated.")
         exit()
