@@ -90,10 +90,9 @@ class GeneTransformer(models.Model):
                                        max_length=self.max_length,
                                        decode_length=self.decode_length)
         
-        # Classifier head
+        # Linear Classifier head
         self.classifier = models.Sequential(name="category_classifier")
         self.classifier.add(layers.Input(shape=(latent_dim*n_sequence_tokens,)))
-        self.classifier.add(layers.Dense(128, activation="relu"))
         self.classifier.add(layers.Dense(23, activation="sigmoid"))
         
         ## Run a dummy input through the model

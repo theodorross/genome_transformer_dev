@@ -225,9 +225,9 @@ if __name__ == "__main__":
             ## Store the training history
             for key,val in _hist.history.items():
                 if key in fold_history.keys():
-                    fold_history[key] += _hist[key]
+                    fold_history[key] += _hist.history[key]
                 else:
-                    fold_history[key] = _hist[key]
+                    fold_history[key] = _hist.history[key]
 
             ## Save the interstitial model after each step up in size
             if not os.path.exists(f"models/geneAE_{wandb.run.name}_fold{k}"):
