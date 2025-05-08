@@ -207,13 +207,6 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
         # Compute masks for samples with shared features
         b0 = tf.expand_dims(y_true, axis=0)
         b1 = tf.expand_dims(y_true, axis=1)
-        # print("TRIPLET LOSS DEBUG:")
-        # print("y_true:", y_true.shape)
-        # print('b0:', b0.shape)
-        # print('b1:', b1.shape)
-        # _xmult = tf.multiply(b0, b1)
-        # _xsum = tf.reduce_sum( _xmult, axis=-1 )
-        # pos_matches = tf.greater( _xsum, 0 )
         pos_matches = tf.greater( tf.reduce_sum( tf.multiply(b0, b1), axis=-1), 0 )
         neg_matches = tf.logical_not(pos_matches)
 
@@ -233,7 +226,6 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
         loss = tf.reduce_mean(pos_distances) - tf.reduce_mean(neg_distances) + self.margin
         loss = tf.maximum(loss, 0)
         loss = tf.keras.ops.nan_to_num(loss, nan=0.0)   # just in case there are no positive distances, force the value to 0
-        # print("DEBUG TRIPLET LOSS:", loss)
         return loss
     
     def get_config(self):
@@ -280,16 +272,14 @@ class MaskedBinaryCrossentropy(tf.keras.losses.Loss):
     def get_config(self):
         base_config = super().get_config()
         config = {
-            "mask_category":self.mask_category, 
             "name":self.name
         }
         return {**base_config, **config}
     
     @classmethod
     def from_config(cls, config):
-        mask_category = config.pop("mask_category")
         name = config.pop("name")
-        return cls(mask_category, name, **config)
+        return cls(name, **config)
     
 
 
@@ -327,13 +317,8 @@ class MaskedBinaryAccuracy(tf.keras.metrics.Metric):
         mask = tf.cast(mask, tf.float32)
 
         ## Normalize the accuracy by the number of replicas
-        # acc = tf.reduce_sum(matches)/tf.reduce_sum(mask)
         n_categs = tf.cast(tf.shape(y_true)[-1], tf.float32)
         acc = tf.math.divide(tf.reduce_sum(matches), tf.reduce_sum(mask)*n_categs)
-        # try:
-        #     n_replicas = tf.distribute.get_replica_context().num_replicas_in_sync
-        #     self.acc.assign( tf.divide(acc, n_replicas) )
-        # except:
         self.acc.assign( acc )
 
     def reset_state(self):
@@ -345,13 +330,13 @@ class MaskedBinaryAccuracy(tf.keras.metrics.Metric):
     def get_config(self):
         base_config = super().get_config()
         config = {
-            "mask_category":self.mask_category, 
+            "threshold":self.threshold, 
             "name":self.name
         }
         return {**base_config, **config}
     
     @classmethod
     def from_config(cls, config):
-        mask_category = config.pop("mask_category")
+        threshold = config.pop("threshold")
         name = config.pop("name")
-        return cls(mask_category, name, **config)
+        return cls(threshold, name, **config)
