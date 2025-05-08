@@ -41,7 +41,7 @@ export SIF=/scratch/project_465001915/rosstheo/genome_transformer_dev/container/
 #     $SIF /bin/bash \
 #     -c '$WITH_CONDA && source wandb-env/bin/activate && sh ~/wandb_login.sh && python -m wandb sweep lumi_files/sweep_args.yml &> lumi_files/sweep_info.txt'
 # SWEEP_ID=`grep -o -e "ID: [[:alnum:]]*" lumi_files/sweep_info.txt | sed 's/.*ID: //'`
-SWEEP_ID='e7o8pguv'
+SWEEP_ID='up2ixgvf'
 
 
 ## Run the training script

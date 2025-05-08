@@ -6,7 +6,7 @@ import tensorflow as tf
 import keras
 import wandb
 import argparse
-# import json
+import json
 # import datetime
 # import pickle
 # from tensorflow.keras import Layers
@@ -58,19 +58,19 @@ if __name__ == "__main__":
     parser.add_argument("--dropout-rate", default=0.1, type=float, help="Dropout rate used in feed-forward layers.")
     parser.add_argument("--ff-dim", default=32, type=int, help="Dimensionality of the hidden feed-forward layer in the transformer blocks.")
     parser.add_argument("--n-sequence-tokens", default=4, type=int, help="Number of latent sequence tokens to use.")
-    parser.add_argument("--decode-length", default=100, type=int, help="Number of sequence tokens to use during reconstruction at the beginning of training.")
+    parser.add_argument("--decode-length", default=300, type=int, help="Number of sequence tokens to use during reconstruction at the beginning of training.")
     parser.add_argument("--masking-rate", default=0.05, type=float, help="Probability of masking each input token during training.")
     parser.add_argument("--learning-rate", default=1e-6, type=float, help="Learning rate for the optimizer.", required=False)
-    parser.add_argument("--max-seq-length", default=100, type=int, help="Maximum sequence length to use during training.")
+    parser.add_argument("--max-seq-length", default=600, type=int, help="Maximum sequence length to use during training.")
 
     ## Training hyperparameters
     parser.add_argument("--learning-rate-decay", default=None, type=float, help="Decay rate for learning rate schedule.")
     parser.add_argument("--learning-rate-decay-start", default=None, type=float, help="Epoch to begin learning rate decay.")
-    parser.add_argument("--batch-size", "-b", default=4, type=int, help="Batch size for training.", required=False)
-    parser.add_argument("--epochs", default=100, type=int, help="Maximum number of training epochs to perform.", required=False)
+    parser.add_argument("--batch-size", "-b", default=64, type=int, help="Batch size for training.", required=False)
+    parser.add_argument("--epochs", default=6, type=int, help="Maximum number of training epochs to perform.", required=False)
     parser.add_argument("--patience", default=25, type=int, help="Patience for early stopping.", required=False)
     parser.add_argument("--cross-folds", default=5, type=int, help="Number of cross-folds for validation of training.", required=False)
-    parser.add_argument("--seq-length-steps", default=1, type=int, help="Number of linear steps for increasing the sequence length from decode-length to max-seq-length.")
+    parser.add_argument("--seq-length-steps", default=2, type=int, help="Number of linear steps for increasing the sequence length from decode-length to max-seq-length.")
     args = parser.parse_args()
 
     '''
@@ -156,6 +156,7 @@ if __name__ == "__main__":
     early_stopper = keras.callbacks.EarlyStopping(patience=args.patience,
                                                   restore_best_weights=True)
     callbacks = [wandb_callback, early_stopper]
+    # callbacks = [early_stopper]
 
     if (args.learning_rate_decay is not None) and (args.learning_rate_decay_start is not None):
         if args.dataset.lower() == "dev":
@@ -195,8 +196,9 @@ if __name__ == "__main__":
 
         ## Loop through the desired gene lengths
         _epoch_count = 0
+        _epochs_per_length = args.epochs // len(decode_lengths)
         for ix,gene_length in enumerate(decode_lengths):
-            print(f"\nTraining on genes of {gene_length} tokens and smaller...")
+            print(f"\nTraining on genes of {gene_length} tokens and smaller, starting at epoch {_epoch_count}")
             gene_ae.update_decode_length(gene_length)
 
             ## Filter the datasets
@@ -207,20 +209,13 @@ if __name__ == "__main__":
             _training_fold, _validation_fold = gene_ae.preprocess_dataset(_training_fold, 
                                                                           batch_size=args.batch_size, 
                                                                           validation_data=_validation_fold)
-            
-            # count = 0
-            # for tup in _training_fold:
-            #     print(len(tup), tup[0].shape, (tup[1][0].shape, tup[1][1].shape), tup[2].shape)
-            #     count += 1
-            #     if count > 5:
-            #         break
 
             ## Train the model
-            _epochs = args.epochs // len(decode_lengths)        # number of epochs per decode length
-            _hist = gene_ae.fit(_training_fold, validation_data=_validation_fold, epochs=_epochs*(ix+1), 
+            _last_epoch = _epoch_count + _epochs_per_length
+            _hist = gene_ae.fit(_training_fold, validation_data=_validation_fold, epochs=_last_epoch, 
                                 callbacks=callbacks, verbose=1, initial_epoch=_epoch_count)
             print(_hist.history.keys())
-            _epoch_count += len(_hist.history["loss"])
+            _epoch_count += len( _hist.history["loss"] )
             
             ## Store the training history
             for key,val in _hist.history.items():
@@ -286,6 +281,6 @@ if __name__ == "__main__":
     wandb.finish()
 
     ## Save the histories
-    # with open(f"training_histories/geneAE_{wandb.run.name}.json","w") as f:
-    #     json.dump(training_histories, f)
+    with open(f"training_histories/geneAE_{wandb.run.name}.json","w") as f:
+        json.dump(training_histories, f)
 

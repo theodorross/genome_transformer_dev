@@ -46,7 +46,7 @@ command:
   - "5000"
   - "--patience"
   - "150"
-  - "--batch-siz"
+  - "--batch-size"
   - "256"
   - "--epochs"
   - "2000"
