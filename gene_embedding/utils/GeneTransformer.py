@@ -110,7 +110,7 @@ class GeneTransformer(models.Model):
 
         # Define the objective function
         self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0, name="reconstruction")
-        self.triplet_loss = OnlineMarginTripletLoss(margin=5, name="clustering")
+        self.triplet_loss = OnlineMarginTripletLoss(margin=15, name="clustering")
         self.category_loss = MaskedBinaryCrossentropy(name="COG_category")
         # self.reconstruction_loss = "sparse_categorical_crossentropy"
 
@@ -122,12 +122,7 @@ class GeneTransformer(models.Model):
                          levenshtein_metric]
         latent_metrics = []
         classifier_metrics = [category_accuracy]
-        # track_metrics = [self.masked_accuracy]
-        loss_weights = [1, 1, 1]
-        # loss_weights = {self.reconstruction_loss.name: 1.0,
-        #                 self.triplet_loss.name: 0.5}
-        # metrics = {self.output[0].name: latent_metrics,
-        #            self.output[1].name: recon_metrics}
+        loss_weights = [0, 1, 1]
         metrics = [latent_metrics, classifier_metrics, recon_metrics]
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
