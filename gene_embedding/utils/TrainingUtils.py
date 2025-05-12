@@ -260,13 +260,14 @@ class MaskedBinaryCrossentropy(tf.keras.losses.Loss):
         loss = tf.keras.losses.binary_crossentropy(y_true, y_pred, from_logits=False)
 
         ## Mask the computed loss to ignore samples with no predicted category
-        cat_sum = tf.reduce_sum(y_true, axis=-1, keepdims=True)
+        cat_sum = tf.reduce_sum(y_true, axis=-1)
         mask = tf.not_equal(cat_sum, 0)
         mask = tf.cast(mask, dtype=loss.dtype)
         loss = tf.multiply(loss, mask)
 
         ## Compute the mean of the loss across the masked values
-        loss = tf.reduce_sum(loss)/tf.reduce_sum(mask)
+        n_categs = tf.cast(tf.shape(y_true)[-1], tf.float32)
+        loss = tf.divide( tf.reduce_sum(loss), tf.reduce_sum(mask)*n_categs )
         return loss
     
     def get_config(self):
@@ -340,3 +341,23 @@ class MaskedBinaryAccuracy(tf.keras.metrics.Metric):
         threshold = config.pop("threshold")
         name = config.pop("name")
         return cls(threshold, name, **config)
+    
+
+
+
+if __name__=="__main__":
+    
+    testloss = MaskedBinaryCrossentropy()
+    testacc = MaskedBinaryAccuracy()
+
+    test_pred = tf.convert_to_tensor([[0.01,0.05,0.9, 0.4, 0.75],[0.4,0.02,0.13,0.58,0.92]])
+    test_true = tf.convert_to_tensor([[0,0,1,0,1], [0,0,1,0,0]])
+    # test_pred = tf.convert_to_tensor([[0.01,0.05,0.9, 0.4, 0.75]])
+    # test_true = tf.convert_to_tensor([[0,0,1,0,1]])
+
+    print("loss:    ", testloss(test_true, test_pred).numpy())
+    print("accuracy:", testacc(test_true, test_pred).numpy())
+    
+    pass
+
+
