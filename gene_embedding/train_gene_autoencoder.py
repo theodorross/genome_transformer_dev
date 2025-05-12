@@ -213,8 +213,8 @@ if __name__ == "__main__":
             ## Train the model
             _last_epoch = _epoch_count + _epochs_per_length
             _hist = gene_ae.fit(_training_fold, validation_data=_validation_fold, epochs=_last_epoch, 
-                                callbacks=callbacks, verbose=1, initial_epoch=_epoch_count)
-            print(_hist.history.keys())
+                                callbacks=callbacks, verbose=1, initial_epoch=_epoch_count,
+                                steps_per_epoch=100)
             _epoch_count += len( _hist.history["loss"] )
             
             ## Store the training history
