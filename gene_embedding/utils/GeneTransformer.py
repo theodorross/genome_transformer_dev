@@ -122,7 +122,7 @@ class GeneTransformer(models.Model):
                          levenshtein_metric]
         latent_metrics = []
         classifier_metrics = [category_accuracy]
-        loss_weights = [0, 0.1, 1]
+        loss_weights = [0, 1, 1]
         metrics = [latent_metrics, classifier_metrics, recon_metrics]
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
@@ -217,8 +217,9 @@ class GeneTransformer(models.Model):
                 new_val_data = tf.data.Dataset.zip(val_genes, new_val_y)
 
         ## Shuffle and batch the training data
-        # new_data = new_data.shuffle(buffer_size=new_data.cardinality())
-        new_data = new_data.batch(batch_size=batch_size, drop_remainder=True).cache()
+        shuffle_buffer = min(new_data.cardinality(), batch_size*100)
+        new_data = new_data.shuffle(buffer_size=shuffle_buffer)
+        new_data = new_data.batch(batch_size=batch_size, drop_remainder=False).repeat().cache()
         if validation_data is not None:     # Only batch the validation data
 
             # Find the cardinality of the validation data
