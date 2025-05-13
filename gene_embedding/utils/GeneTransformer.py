@@ -231,8 +231,7 @@ class GeneTransformer(models.Model):
                 val_batch_size = new_val_card
             else:
                 val_batch_size = batch_size
-            new_val_data = new_val_data.batch(batch_size=val_batch_size, drop_remainder=True)
-            new_val_data = new_val_data.shuffle(buffer_size=new_val_data.cardinality()).repeat().cache()
+            new_val_data = new_val_data.batch(batch_size=val_batch_size, drop_remainder=True).cache()
             return new_data, new_val_data
         else:
             return new_data
