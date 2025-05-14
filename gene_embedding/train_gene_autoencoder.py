@@ -235,9 +235,12 @@ if __name__ == "__main__":
                                                                           batch_size=args.batch_size, 
                                                                           validation_data=_validation_fold)
             
-            # Cache the training data
+            # Cache the training and validation data
             print("caching training data...")
             for _ in tqdm(_training_fold):
+                pass
+            print("caching validation data...")
+            for _ in tqdm(_validation_fold):
                 pass
 
             ## Train the model
