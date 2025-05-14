@@ -47,6 +47,7 @@ if __name__ == "__main__":
     ## System parameters
     parser.add_argument("--platform", default="local", type=str, help="Hardware platform used for job training.", required=False)
     parser.add_argument("--dataset", default="full", choices=["dev","full"], type=str, help="Which datset to use.", required=False)
+    parser.add_argument("--wandb-run", default=None, help="ID for a wandb run to continue.", required=False)
 
     ## Model architecture hyperparameters
     parser.add_argument("--tokenization", default="nucleotide", choices=["nucleotide","codon"], type=str, help="Units to tokenize for processing. One of ['nucleotide','codon'].", required=False)
@@ -112,11 +113,20 @@ if __name__ == "__main__":
 
     ## Initialize wandb
     wandb_config = sys_config | model_config | training_config
-    wandb.init(
-        project="gene-encoder",
-        config=wandb_config,
-        sync_tensorboard=True
-    )
+    if args.wandb_run is None:
+        wandb.init(
+            project="gene-encoder",
+            config=wandb_config,
+            sync_tensorboard=True
+        )
+    else:
+        wandb.init(
+            project="gene-encoder",
+            config=wandb_config,
+            sync_tensorboard=True,
+            id=args.wandb_run,
+            resume="must"
+        )
 
 
     '''
@@ -180,6 +190,11 @@ if __name__ == "__main__":
     for k in range(args.cross_folds):
         print()
 
+        ## Define the checkpoint callback
+        checkpoint_path = f"models/checkpoints/{wandb.run.name}_fold{k}/{{epoch:04d}}.checkpoint.keras"
+        chkpt_callback = wandb.keras.ModelCheckpoint(filepath=checkpoint_path)
+        # chkpt_callback = keras.callbacks.ModelCheckpoint()
+
         ## Define the training and test datsets
         validation_fold = dataset_cuts[k]
         training_fold = dataset_cuts[:k] + dataset_cuts[k+1:]
@@ -188,8 +203,17 @@ if __name__ == "__main__":
         ## Initialize the model
         # with strategy.scope():
         #     gene_ae = GeneTransformer(**model_config)
-        gene_ae = GeneTransformer(**model_config)
+        
+        # Load a previously saved model if continuing a run
+        if args.wandb_run is not None:
+            latest_checkpoint = tf.train.latest_checkpoint(f"models/checkpoints/{wandb.run.name}_fold{k}")
+            gene_ae = keras.models.load_model(latest_checkpoint)
+        # Initialize a new model otherwise
+        else:
+            os.mkdir(f"models/checkpoints/{wandb.run.name}_fold{k}")
+            gene_ae = GeneTransformer(**model_config)
         print(gene_ae.summary())
+
         
 
         ## Initialize a training history
@@ -219,7 +243,7 @@ if __name__ == "__main__":
             ## Train the model
             _last_epoch = _epoch_count + _epochs_per_length
             _hist = gene_ae.fit(_training_fold, validation_data=_validation_fold, epochs=_last_epoch, 
-                                callbacks=callbacks, verbose=1, initial_epoch=_epoch_count,
+                                callbacks=callbacks+[chkpt_callback], verbose=1, initial_epoch=_epoch_count,
                                 steps_per_epoch=100, validation_freq=5)
             _epoch_count += len( _hist.history["loss"] )
             
