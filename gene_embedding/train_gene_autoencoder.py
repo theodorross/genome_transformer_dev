@@ -7,6 +7,7 @@ import keras
 import wandb
 import argparse
 import json
+from tqdm import tqdm
 # import datetime
 # import pickle
 # from tensorflow.keras import Layers
@@ -209,6 +210,11 @@ if __name__ == "__main__":
             _training_fold, _validation_fold = gene_ae.preprocess_dataset(_training_fold, 
                                                                           batch_size=args.batch_size, 
                                                                           validation_data=_validation_fold)
+            
+            # Cache the training data
+            print("caching training data...")
+            for _ in tqdm(_training_fold):
+                pass
 
             ## Train the model
             _last_epoch = _epoch_count + _epochs_per_length
