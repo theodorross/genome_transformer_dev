@@ -312,14 +312,14 @@ class MaskedBinaryAccuracy(tf.keras.metrics.Metric):
         cat_sum = tf.reduce_sum(y_true, axis=-1, keepdims=True)
         mask = tf.not_equal(cat_sum, 0)
         matches = tf.logical_and(matches, mask)
+        matches = tf.reduce_all(matches, axis=-1)
 
         ## Compute the accuracy
         matches = tf.cast(matches, tf.float32)
         mask = tf.cast(mask, tf.float32)
 
         ## Normalize the accuracy by the number of replicas
-        n_categs = tf.cast(tf.shape(y_true)[-1], tf.float32)
-        acc = tf.math.divide(tf.reduce_sum(matches), tf.reduce_sum(mask)*n_categs)
+        acc = tf.math.divide(tf.reduce_sum(matches), tf.reduce_sum(mask))
         self.acc.assign( acc )
 
     def reset_state(self):
@@ -350,10 +350,10 @@ if __name__=="__main__":
     testloss = MaskedBinaryCrossentropy()
     testacc = MaskedBinaryAccuracy()
 
-    test_pred = tf.convert_to_tensor([[0.01,0.05,0.9, 0.4, 0.75],[0.4,0.02,0.13,0.58,0.92]])
-    test_true = tf.convert_to_tensor([[0,0,1,0,1], [0,0,1,0,0]])
-    # test_pred = tf.convert_to_tensor([[0.01,0.05,0.9, 0.4, 0.75]])
-    # test_true = tf.convert_to_tensor([[0,0,1,0,1]])
+    # test_pred = tf.convert_to_tensor([[0.01,0.05,0.9, 0.4, 0.75],[0.4,0.02,0.13,0.58,0.92]])
+    # test_true = tf.convert_to_tensor([[0,0,1,0,1], [0,0,0,0,0]])
+    test_pred = tf.convert_to_tensor([[0.01,0.05,0.9, 0.4, 0.75]])
+    test_true = tf.convert_to_tensor([[0,0,1,0,1]])
 
     print("loss:    ", testloss(test_true, test_pred).numpy())
     print("accuracy:", testacc(test_true, test_pred).numpy())
