@@ -106,10 +106,10 @@ if __name__ == "__main__":
     
 
     ## Instantiate the multi-device training strategy
-    strategy = tf.distribute.MirroredStrategy()
+    # strategy = tf.distribute.MirroredStrategy()
     # if args.batch_size % strategy.num_replicas_in_sync != 0:
     #     raise ValueError(f"batch_size must be evenly divisible by the number of devices in use:\n\tbatch_size: {args.batch_size}\n\tnumber of devices: {strategy.num_replicas_in_sync}")
-    print(f"\nNumber of devices: {strategy.num_replicas_in_sync}\n")
+    # print(f"\nNumber of devices: {strategy.num_replicas_in_sync}\n")
 
     ## Initialize wandb
     wandb_config = sys_config | model_config | training_config
@@ -205,15 +205,15 @@ if __name__ == "__main__":
         # Load a previously saved model if continuing a run
         if args.wandb_run is not None:
             latest_checkpoint = tf.train.latest_checkpoint(f"models/checkpoints/{wandb.run.name}_fold{k}")
-            with strategy.scope():
-                gene_ae = keras.models.load_model(latest_checkpoint)
-            # gene_ae = keras.models.load_model(latest_checkpoint)
+            # with strategy.scope():
+            #     gene_ae = keras.models.load_model(latest_checkpoint)
+            gene_ae = keras.models.load_model(latest_checkpoint)
         # Initialize a new model otherwise
         else:
             os.mkdir(f"models/checkpoints/{wandb.run.name}_fold{k}")
-            with strategy.scope():
-                gene_ae = GeneTransformer(**model_config)
-            # gene_ae = GeneTransformer(**model_config)
+            # with strategy.scope():
+            #     gene_ae = GeneTransformer(**model_config)
+            gene_ae = GeneTransformer(**model_config)
         print(gene_ae.summary())
 
         
