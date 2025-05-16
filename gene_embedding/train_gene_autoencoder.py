@@ -192,7 +192,7 @@ if __name__ == "__main__":
 
         ## Define the checkpoint callback
         checkpoint_path = f"models/checkpoints/{wandb.run.name}_fold{k}/{{epoch:04d}}.checkpoint.keras"
-        chkpt_callback = wandb.keras.ModelCheckpoint(filepath=checkpoint_path)
+        chkpt_callback = keras.callbacks.ModelCheckpoint(filepath=checkpoint_path)
         # chkpt_callback = keras.callbacks.ModelCheckpoint()
 
         ## Define the training and test datsets
