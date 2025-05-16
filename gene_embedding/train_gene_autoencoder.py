@@ -245,6 +245,8 @@ if __name__ == "__main__":
             for _ in tqdm(_validation_fold):
                 pass
 
+            exit()
+
             ## Train the model
             _last_epoch = _epoch_count + _epochs_per_length
             _hist = gene_ae.fit(_training_fold, validation_data=_validation_fold, epochs=_last_epoch, 
