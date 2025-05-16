@@ -8,6 +8,7 @@
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-task=1
 #SBATCH --cpus-per-task=7
+#SBATCH --mem-per-task=128G
 #SBATCH --partition=dev-g
 
 ## Load the needed LUMI bindings
