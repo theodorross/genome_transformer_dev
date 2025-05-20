@@ -47,7 +47,7 @@ if __name__ == "__main__":
     ## System parameters
     parser.add_argument("--platform", default="local", type=str, help="Hardware platform used for job training.", required=False)
     parser.add_argument("--dataset", default="full", choices=["dev","full"], type=str, help="Which datset to use.", required=False)
-    parser.add_argument("--wandb-run", default=None, help="ID for a wandb run to continue.", required=False)
+    parser.add_argument("--wandb-run", default="t401siao", help="ID for a wandb run to continue.", required=False)
 
     ## Model architecture hyperparameters
     parser.add_argument("--tokenization", default="nucleotide", choices=["nucleotide","codon"], type=str, help="Units to tokenize for processing. One of ['nucleotide','codon'].", required=False)
@@ -204,25 +204,27 @@ if __name__ == "__main__":
         
         # Load a previously saved model if continuing a run
         if args.wandb_run is not None:
-            latest_checkpoint = tf.train.latest_checkpoint(f"models/checkpoints/{wandb.run.name}_fold{k}")
+            checkpoint_path = f"models/checkpoints/{wandb.run.name}_fold{k}/"
+            checkpoint_files = os.listdir(checkpoint_path)
+            latest_checkpoint = sorted(checkpoint_files)[-1]
             # with strategy.scope():
             #     gene_ae = keras.models.load_model(latest_checkpoint)
-            gene_ae = keras.models.load_model(latest_checkpoint)
+            gene_ae = keras.models.load_model(f"{checkpoint_path}/{latest_checkpoint}")
+            _epoch_count = int(latest_checkpoint.split(".")[0])
         # Initialize a new model otherwise
         else:
             os.mkdir(f"models/checkpoints/{wandb.run.name}_fold{k}")
             # with strategy.scope():
             #     gene_ae = GeneTransformer(**model_config)
             gene_ae = GeneTransformer(**model_config)
+            _epoch_count = 0
         print(gene_ae.summary())
-
         
 
         ## Initialize a training history
         fold_history = {}
 
         ## Loop through the desired gene lengths
-        _epoch_count = 0
         _epochs_per_length = args.epochs // len(decode_lengths)
         for ix,gene_length in enumerate(decode_lengths):
             print(f"\nTraining on genes of {gene_length} tokens and smaller, starting at epoch {_epoch_count}")

@@ -239,7 +239,7 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
     
     @classmethod
     def from_config(cls, config):
-        margin = config.pop("mask_category")
+        margin = config.pop("margin")
         p_norm = config.pop("p_norm")
         name = config.pop("name")
         return cls(margin, p_norm, name, **config)
