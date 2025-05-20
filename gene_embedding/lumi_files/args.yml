@@ -1,3 +1,4 @@
+--wandb-run=t401siao
 --batch-size=128
 --decode-length=5000
 --decoder-layers=2
