@@ -100,9 +100,9 @@ if __name__ == "__main__":
                     "learning_rate":args.learning_rate,
                     "n_sequence_tokens":args.n_sequence_tokens,
                     "decode_length":args.decode_length,
-                    "reconstruction_loss_weight":args.reconstruction_loss,
-                    "clustering_loss_weight":args.clustering_loss,
-                    "functional_loss_weight":args.functional_loss}
+                    "reconstruction_loss_weight":args.reconstruction_loss_weight,
+                    "clustering_loss_weight":args.clustering_loss_weight,
+                    "functional_loss_weight":args.functional_loss_weight}
     
     training_config = {"patience":args.patience,
                        "cross_folds":args.cross_folds,

@@ -165,7 +165,7 @@ class GeneTransformer(models.Model):
             y = self.decoder(z, **kwargs)
             return z,z_cat,y
         else:
-            return z,z_cat,x
+            return z,z_cat,None
 
 
     def encode(self, x, **kwargs):
