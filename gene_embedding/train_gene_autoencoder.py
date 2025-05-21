@@ -47,7 +47,7 @@ if __name__ == "__main__":
     ## System parameters
     parser.add_argument("--platform", default="local", type=str, help="Hardware platform used for job training.", required=False)
     parser.add_argument("--dataset", default="full", choices=["dev","full"], type=str, help="Which datset to use.", required=False)
-    parser.add_argument("--wandb-run", default="t401siao", help="ID for a wandb run to continue.", required=False)
+    parser.add_argument("--wandb-run", default=None, help="ID for a wandb run to continue.", required=False)
 
     ## Model architecture hyperparameters
     parser.add_argument("--tokenization", default="nucleotide", choices=["nucleotide","codon"], type=str, help="Units to tokenize for processing. One of ['nucleotide','codon'].", required=False)
