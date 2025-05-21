@@ -8,15 +8,15 @@ cd /scratch/project_465001915/rosstheo/genome_transformer_dev/gene_embedding
 git pull origin working
 
 ## Submit the batch job(s)
-export ARGS_YAML=lumi_files/args_FRC.yml
-sbatch lumi_files/LUMI_batch_job.sh
+# export ARGS_YAML=lumi_files/args_FRC.yml
+# sbatch lumi_files/LUMI_batch_job.sh
 
 export ARGS_YAML=lumi_files/args_FR.yml
 sbatch lumi_files/LUMI_batch_job.sh
 
-export ARGS_YAML=lumi_files/args_FC.yml
-sbatch lumi_files/LUMI_batch_job.sh
+# export ARGS_YAML=lumi_files/args_FC.yml
+# sbatch lumi_files/LUMI_batch_job.sh
 
-export ARGS_YAML=lumi_files/args_F.yml
-sbatch lumi_files/LUMI_batch_job.sh
+# export ARGS_YAML=lumi_files/args_F.yml
+# sbatch lumi_files/LUMI_batch_job.sh
 

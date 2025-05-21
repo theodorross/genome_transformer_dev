@@ -1,5 +1,5 @@
 --functional-loss-weight=1
---reconstruction-los-weights=1
+--reconstruction-loss-weights=1
 --clustering-loss-weight=0
 --batch-size=128
 --decode-length=5000
