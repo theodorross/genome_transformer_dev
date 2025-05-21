@@ -3,13 +3,13 @@
 #SBATCH --output=lumi_files/logs/gene_embedding.o%j # Name of stdout output file
 #SBATCH --error=lumi_files/logs/gene_embedding.e%j  # Name of stderr error file
 #SBATCH --account=project_465001915
-#SBATCH --time=00:05:00
+#SBATCH --time=72:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-task=1
 #SBATCH --cpus-per-task=7
 #SBATCH --mem=60G
-#SBATCH --partition=dev-g
+#SBATCH --partition=small-g
 
 ## Load the needed LUMI bindings
 module use /appl/local/containers/ai-modules
