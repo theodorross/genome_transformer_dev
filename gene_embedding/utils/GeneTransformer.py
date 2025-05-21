@@ -184,7 +184,8 @@ class GeneTransformer(models.Model):
 
         ## Set sub-objects to have the new decoding length
         self.encoder._update_decode_length(self.decode_length)
-        self.decoder._update_decode_length(self.decode_length)
+        if self.reconstruction_loss_weight != 0:
+            self.decoder._update_decode_length(self.decode_length)
 
 
     def tokenize(self, x, one_hot=False):
