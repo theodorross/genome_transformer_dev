@@ -16,4 +16,5 @@ cat $ARGS_YAML
 
 ## Run the python script
 # python train_gene_autoencoder.py `cat lumi_files/args_FRC.yml`
+# python train_gene_autoencoder.py `cat $ARGS_YAML`
 
