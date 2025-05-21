@@ -35,6 +35,9 @@ class GeneTransformer(models.Model):
                        masking_rate:float=0.05,
                        learning_rate:float=1e-6,
                        n_sequence_tokens:int=2,
+                       functional_loss:float=1.0,
+                       reconstruction_loss:float=1.0,
+                       clustering_loss:float=1.0,
                        **kwargs):
         super(GeneTransformer, self).__init__(**kwargs)
 
@@ -122,7 +125,9 @@ class GeneTransformer(models.Model):
                          levenshtein_metric]
         latent_metrics = []
         classifier_metrics = [category_accuracy]
-        loss_weights = [0, 1, 1]
+        loss_weights = [clustering_loss, 
+                        functional_loss,
+                        reconstruction_loss]
         metrics = [latent_metrics, classifier_metrics, recon_metrics]
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])

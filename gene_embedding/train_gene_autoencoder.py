@@ -65,6 +65,11 @@ if __name__ == "__main__":
     parser.add_argument("--learning-rate", default=1e-6, type=float, help="Learning rate for the optimizer.", required=False)
     parser.add_argument("--max-seq-length", default=600, type=int, help="Maximum sequence length to use during training.")
 
+    ## Loss hyperparameters
+    parser.add_argument("--clustering-loss", default=1, type=float, help="Weight of the triplet loss for clustering.")
+    parser.add_argument("--reconstruction-loss", default=1, type=float, help="Weight of the reconstruction loss.")
+    parser.add_argument("--functional-loss", default=1, type=float, help="Weight of the COG functional category classification loss.")
+
     ## Training hyperparameters
     parser.add_argument("--learning-rate-decay", default=None, type=float, help="Decay rate for learning rate schedule.")
     parser.add_argument("--learning-rate-decay-start", default=None, type=float, help="Epoch to begin learning rate decay.")
@@ -94,7 +99,10 @@ if __name__ == "__main__":
                     "masking_rate":args.masking_rate,
                     "learning_rate":args.learning_rate,
                     "n_sequence_tokens":args.n_sequence_tokens,
-                    "decode_length":args.decode_length}
+                    "decode_length":args.decode_length,
+                    "reconstruction_loss":args.reconstruction_loss,
+                    "clustering_loss":args.clustering_loss,
+                    "functional_loss":args.functional_loss}
     
     training_config = {"patience":args.patience,
                        "cross_folds":args.cross_folds,
