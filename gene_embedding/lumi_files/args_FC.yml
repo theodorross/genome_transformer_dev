@@ -1,6 +1,6 @@
---functional-loss=1
---reconstruction-loss=0
---clustering-loss=1
+--functional-loss-weight=1
+--reconstruction-loss-weight=0
+--clustering-loss-weight=1
 --batch-size=128
 --decode-length=5000
 --decoder-layers=2

@@ -35,9 +35,9 @@ class GeneTransformer(models.Model):
                        masking_rate:float=0.05,
                        learning_rate:float=1e-6,
                        n_sequence_tokens:int=2,
-                       functional_loss:float=1.0,
-                       reconstruction_loss:float=1.0,
-                       clustering_loss:float=1.0,
+                       functional_loss_weight:float=1.0,
+                       reconstruction_loss_weight:float=1.0,
+                       clustering_loss_weight:float=1.0,
                        **kwargs):
         super(GeneTransformer, self).__init__(**kwargs)
 
@@ -55,6 +55,9 @@ class GeneTransformer(models.Model):
         self.masking_rate = masking_rate
         self.learning_rate = learning_rate
         self.n_sequence_tokens = n_sequence_tokens
+        self.functional_loss_weight = functional_loss_weight
+        self.reconstruction_loss_weight = reconstruction_loss_weight
+        self.clustering_loss_weight = clustering_loss_weight
 
         if tokenization_method.lower() == "nucleotide":
             self.max_length = max_length
@@ -81,17 +84,18 @@ class GeneTransformer(models.Model):
         self.vocabulary = self.encoder.vocabulary
 
         # Decoder
-        self.decoder = SequenceDecoder(decoder_layers=self.decoder_layers, 
-                                       embedding_dim=self.embedding_dim, 
-                                       latent_dim=self.latent_dim, 
-                                       key_dim=self.key_dim, 
-                                       num_heads=self.num_heads,
-                                       dropout_rate=self.dropout_rate, 
-                                       ff_dim=self.ff_dim, 
-                                       vocab_size=self.vocab_size, 
-                                       n_sequence_tokens=self.n_sequence_tokens,
-                                       max_length=self.max_length,
-                                       decode_length=self.decode_length)
+        if self.reconstruction_loss_weight != 0:
+            self.decoder = SequenceDecoder(decoder_layers=self.decoder_layers, 
+                                        embedding_dim=self.embedding_dim, 
+                                        latent_dim=self.latent_dim, 
+                                        key_dim=self.key_dim, 
+                                        num_heads=self.num_heads,
+                                        dropout_rate=self.dropout_rate, 
+                                        ff_dim=self.ff_dim, 
+                                        vocab_size=self.vocab_size, 
+                                        n_sequence_tokens=self.n_sequence_tokens,
+                                        max_length=self.max_length,
+                                        decode_length=self.decode_length)
         
         # Linear Classifier head
         self.classifier = models.Sequential(name="category_classifier")
@@ -100,8 +104,8 @@ class GeneTransformer(models.Model):
         
         ## Run a dummy input through the model
         dummy_in = layers.Input((), dtype=tf.string)
-        dummy_mid = self.encoder(dummy_in)
-        self.decoder(dummy_mid)
+        # dummy_mid = self.encoder(dummy_in)
+        # self.decoder(dummy_mid)
         self(dummy_in)
 
         ## Compile the model
@@ -112,7 +116,10 @@ class GeneTransformer(models.Model):
         # opt3 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Define the objective function
-        self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0, name="reconstruction")
+        if self.reconstruction_loss_weight != 0:
+            self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0, name="reconstruction")
+        else:
+            self.reconstruction_loss = None
         self.triplet_loss = OnlineMarginTripletLoss(margin=15, name="clustering")
         self.category_loss = MaskedBinaryCrossentropy(name="COG_category")
         # self.reconstruction_loss = "sparse_categorical_crossentropy"
@@ -125,9 +132,9 @@ class GeneTransformer(models.Model):
                          levenshtein_metric]
         latent_metrics = []
         classifier_metrics = [category_accuracy]
-        loss_weights = [clustering_loss, 
-                        functional_loss,
-                        reconstruction_loss]
+        loss_weights = [self.clustering_loss_weight, 
+                        self.functional_loss_weight,
+                        self.reconstruction_loss_weight]
         metrics = [latent_metrics, classifier_metrics, recon_metrics]
 
         # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
@@ -153,10 +160,12 @@ class GeneTransformer(models.Model):
         z = self.encoder(x, **kwargs)
         ## Classify the category
         z_cat = self.classifier(z)
-        ## Pass through the decoder
-        y = self.decoder(z, **kwargs)
-        return z,z_cat,y
-        # return y
+        if self.reconstruction_loss_weight != 0:
+            ## Pass through the decoder
+            y = self.decoder(z, **kwargs)
+            return z,z_cat,y
+        else:
+            return z,z_cat,x
 
 
     def encode(self, x, **kwargs):
