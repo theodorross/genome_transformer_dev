@@ -117,20 +117,24 @@ class GeneTransformer(models.Model):
         if self.reconstruction_loss_weight != 0:
             self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0, name="reconstruction")
             losses.append(self.reconstruction_loss)
+        else:
+            losses.append(None)
 
         # Define performance metrics to track
         latent_metrics = []
         classifier_metrics = [MaskedBinaryAccuracy(name="COG_category_accuracy")]
         loss_weights = [self.clustering_loss_weight, 
-                        self.functional_loss_weight]
+                        self.functional_loss_weight,
+                        self.reconstruction_loss_weight]
         metrics = [latent_metrics, classifier_metrics]
         if self.reconstruction_loss_weight != 0:
             levenshtein_metric = LevenshteinDistance(self.vocabulary)
             masked_accuracy = MaskedAccuracy(mask_category=0, name="reconstruction_accuracy")
             recon_metrics = [masked_accuracy,
                             levenshtein_metric]
-            loss_weights.append(self.reconstruction_loss_weight)
             metrics.append(recon_metrics)
+        else:
+            losses.append([])
         
         self.compile(optimizer=opt, loss=losses, loss_weights=loss_weights, metrics=metrics)
 
@@ -150,7 +154,7 @@ class GeneTransformer(models.Model):
             y = self.decoder(z, **kwargs)
             return z,z_cat,y
         else:
-            return z,z_cat
+            return z,z_cat,z
 
 
     def encode(self, x, **kwargs):
