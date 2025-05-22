@@ -210,16 +210,12 @@ class GeneTransformer(models.Model):
                 new_val_y = tf.data.Dataset.zip(val_domains, val_categs)
 
         # If token class weights are to be used
-        if weighted:
-            if self.reconstruction_loss_weight != 0:
-                _,weights = self._compute_token_weights(train_genes)
-                w = train_y.map(weights.lookup)
-                new_data = tf.data.Dataset.zip(train_genes, new_train_y, w)
-                if validation_data is not None:
-                    new_val_data = tf.data.Dataset.zip(val_genes, new_val_y, w)
-            else:
-                print("No reconstruction objective, ignoring token weighting.")
-                pass
+        if weighted and self.reconstruction_loss_weight != 0:
+            _,weights = self._compute_token_weights(train_genes)
+            w = train_y.map(weights.lookup)
+            new_data = tf.data.Dataset.zip(train_genes, new_train_y, w)
+            if validation_data is not None:
+                new_val_data = tf.data.Dataset.zip(val_genes, new_val_y, w)
 
         # If no class weights will be used
         else:
