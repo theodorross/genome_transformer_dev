@@ -104,50 +104,35 @@ class GeneTransformer(models.Model):
         
         ## Run a dummy input through the model
         dummy_in = layers.Input((), dtype=tf.string)
-        # dummy_mid = self.encoder(dummy_in)
-        # self.decoder(dummy_mid)
         self(dummy_in)
 
         ## Compile the model
         # Define the optimizer
         opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        # opt = "adam"
-        # opt2 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        # opt3 = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
-        # Define the objective function
+        # Define the objective functions
+        self.triplet_loss = OnlineMarginTripletLoss(margin=1.0, name="clustering")
+        self.category_loss = MaskedBinaryCrossentropy(name="COG_category")
+        losses = [self.triplet_loss, self.category_loss]
         if self.reconstruction_loss_weight != 0:
             self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0, name="reconstruction")
-        else:
-            self.reconstruction_loss = None
-        self.triplet_loss = OnlineMarginTripletLoss(margin=15, name="clustering")
-        self.category_loss = MaskedBinaryCrossentropy(name="COG_category")
-        # self.reconstruction_loss = "sparse_categorical_crossentropy"
+            losses.append(self.reconstruction_loss)
 
         # Define performance metrics to track
-        levenshtein_metric = LevenshteinDistance(self.vocabulary)
-        masked_accuracy = MaskedAccuracy(mask_category=0, name="reconstruction_accuracy")
-        category_accuracy = MaskedBinaryAccuracy(name="COG_category_accuracy")
-        recon_metrics = [masked_accuracy,
-                         levenshtein_metric]
         latent_metrics = []
-        classifier_metrics = [category_accuracy]
+        classifier_metrics = [MaskedBinaryAccuracy(name="COG_category_accuracy")]
         loss_weights = [self.clustering_loss_weight, 
-                        self.functional_loss_weight,
-                        self.reconstruction_loss_weight]
-        metrics = [latent_metrics, classifier_metrics, recon_metrics]
-
-        # self.encoder.compile(optimizer=opt2, loss=loss, metrics=track_metrics, weighted_metrics=[])
-        # self.decoder.compile(optimizer=opt3, loss=loss, metrics=track_metrics, weighted_metrics=[])
-        # self.compile(optimizer=opt, loss=self.loss, metrics=[MaskedAccuracy(mask_category=0)])
-        # self.compile(optimizer=opt, loss=self.loss, metrics=['accuracy'], weighted_metrics=[])
-        self.compile(optimizer=opt, 
-                     loss=[self.triplet_loss, self.category_loss, self.reconstruction_loss],
-                     loss_weights=loss_weights,
-                     metrics=metrics)
-        # self.compile(optimizer=opt, 
-        #              loss=self.reconstruction_loss, 
-        #              metrics=recon_metrics)
+                        self.functional_loss_weight]
+        metrics = [latent_metrics, classifier_metrics]
+        if self.reconstruction_loss_weight != 0:
+            levenshtein_metric = LevenshteinDistance(self.vocabulary)
+            masked_accuracy = MaskedAccuracy(mask_category=0, name="reconstruction_accuracy")
+            recon_metrics = [masked_accuracy,
+                            levenshtein_metric]
+            loss_weights.append(self.reconstruction_loss_weight)
+            metrics.append(recon_metrics)
+        
+        self.compile(optimizer=opt, loss=losses, loss_weights=loss_weights, metrics=metrics)
 
 
     def build(self, input_shape):
@@ -165,7 +150,7 @@ class GeneTransformer(models.Model):
             y = self.decoder(z, **kwargs)
             return z,z_cat,y
         else:
-            return z,z_cat,x
+            return z,z_cat
 
 
     def encode(self, x, **kwargs):
@@ -284,20 +269,7 @@ class GeneTransformer(models.Model):
             ),
             default_value=1
         )
-        return weight_dict, weight_table
-    
-
-    # def fit(self, x=None, y=None, batch=None, epochs=1, verbose='auto', callbacks=None, validation_split=0.0, validation_data=None,
-    #         shuffle=True, class_weight=None, sample_weight=None, initial_epoch=0, steps_per_epoch=None, validation_steps=None, validation_batch_size=None, validation_freq=1):
-    # def fit(self, x:tf.data.Dataset, validation_data:tf.data.Dataset=None, callbacks=None, steps_per_epoch:int=None, initial_epoch:int=0):
-    #     '''
-    #     Custom training loop for triplet loss
-    #     '''
-        
-
-
-    #     return
-    
+        return weight_dict, weight_table   
 
     
     def get_config(self):
@@ -315,7 +287,10 @@ class GeneTransformer(models.Model):
             "max_length":self.max_length,
             "masking_rate":self.masking_rate,
             "learning_rate":self.learning_rate,
-            "n_sequence_tokens":self.n_sequence_tokens
+            "n_sequence_tokens":self.n_sequence_tokens,
+            "functional_loss_weight":self.functional_loss_weight,
+            "reconstruction_loss_weight":self.reconstruction_loss_weight,
+            "clustering_loss_weight":self.clustering_loss_weight
         }
         return {**base_config, **config}
     
