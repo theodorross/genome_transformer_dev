@@ -117,24 +117,20 @@ class GeneTransformer(models.Model):
         if self.reconstruction_loss_weight != 0:
             self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0, name="reconstruction")
             losses.append(self.reconstruction_loss)
-        else:
-            losses.append(None)
 
         # Define performance metrics to track
         latent_metrics = []
         classifier_metrics = [MaskedBinaryAccuracy(name="COG_category_accuracy")]
         loss_weights = [self.clustering_loss_weight, 
-                        self.functional_loss_weight,
-                        self.reconstruction_loss_weight]
+                        self.functional_loss_weight]
         metrics = [latent_metrics, classifier_metrics]
         if self.reconstruction_loss_weight != 0:
             levenshtein_metric = LevenshteinDistance(self.vocabulary)
             masked_accuracy = MaskedAccuracy(mask_category=0, name="reconstruction_accuracy")
             recon_metrics = [masked_accuracy,
                             levenshtein_metric]
+            loss_weights.append(self.reconstruction_loss_weight)
             metrics.append(recon_metrics)
-        else:
-            losses.append([])
         
         self.compile(optimizer=opt, loss=losses, loss_weights=loss_weights, metrics=metrics)
 
@@ -154,7 +150,7 @@ class GeneTransformer(models.Model):
             y = self.decoder(z, **kwargs)
             return z,z_cat,y
         else:
-            return z,z_cat,z
+            return z,z_cat
 
 
     def encode(self, x, **kwargs):
@@ -193,26 +189,37 @@ class GeneTransformer(models.Model):
 
 
     def preprocess_dataset(self, data:tf.data.Dataset, batch_size:int, validation_data:tf.data.Dataset=None, weighted:bool=True) -> tf.data.Dataset:
-        ## Map the dataset to a label dataset and randomly mask the inputs
+        ## Map the dataset to a label
         train_genes = data.map(lambda g,d,c: g)
         train_domains = data.map(lambda g,d,c: d)
         train_categs = data.map(lambda g,d,c:c)
-        train_y = train_genes.map(self.tokenize)
-        new_train_y = tf.data.Dataset.zip(train_domains, train_categs, train_y)
+        if self.reconstruction_loss_weight != 0:
+            train_y = train_genes.map(self.tokenize)
+            new_train_y = tf.data.Dataset.zip(train_domains, train_categs, train_y)
+        else:
+            new_train_y = tf.data.Dataset.zip(train_domains, train_categs)
+
         if validation_data is not None:
             val_genes = validation_data.map(lambda g,d,c: g)
             val_domains = validation_data.map(lambda g,d,c: d)
             val_categs = validation_data.map(lambda g,d,c: c)
-            val_y = val_genes.map(self.tokenize)
-            new_val_y = tf.data.Dataset.zip(val_domains, val_categs, val_y)
+            if self.reconstruction_loss_weight != 0:
+                val_y = val_genes.map(self.tokenize)
+                new_val_y = tf.data.Dataset.zip(val_domains, val_categs, val_y)
+            else:
+                new_val_y = tf.data.Dataset.zip(val_domains, val_categs)
 
-        # If class weighs are to be used
+        # If token class weights are to be used
         if weighted:
-            _,weights = self._compute_token_weights(train_genes)
-            w = train_y.map(weights.lookup)
-            new_data = tf.data.Dataset.zip(train_genes, new_train_y, w)
-            if validation_data is not None:
-                new_val_data = tf.data.Dataset.zip(val_genes, new_val_y, w)
+            if self.reconstruction_loss_weight != 0:
+                _,weights = self._compute_token_weights(train_genes)
+                w = train_y.map(weights.lookup)
+                new_data = tf.data.Dataset.zip(train_genes, new_train_y, w)
+                if validation_data is not None:
+                    new_val_data = tf.data.Dataset.zip(val_genes, new_val_y, w)
+            else:
+                print("No reconstruction objective, ignoring token weighting.")
+                pass
 
         # If no class weights will be used
         else:
