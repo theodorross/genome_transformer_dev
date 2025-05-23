@@ -1,7 +1,6 @@
 import tensorflow as tf
 import sklearn as sk
 import numpy as np
-import matplotlib.pyplot as plt
 
 @tf.keras.utils.register_keras_serializable()
 class LevenshteinDistance(tf.keras.metrics.Metric):
