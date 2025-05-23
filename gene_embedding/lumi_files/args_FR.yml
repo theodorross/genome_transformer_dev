@@ -8,7 +8,7 @@
 --embedding-dim=64
 --encoder-layers=40
 --epochs=2000
---ff-dim=32
+--ff-dim=128
 --key-dim=16
 --latent-dim=128
 --learning-rate=3e-4

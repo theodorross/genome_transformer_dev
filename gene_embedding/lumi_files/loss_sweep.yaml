@@ -4,52 +4,60 @@ entity: theodor-a-ross
 project: gene-encoder
 method: bayes
 metric:
-  goal: minimize
-  name: epoch/val_COG_category_loss
+  goal: maximize
+  name: epoch/val_COG_category_accuracy
 parameters:
-  embedding-dim:
-    values: [4, 8, 16, 32, 64, 128]
-  latent-dim:
-    values: [16, 32, 64, 128]
-  encoder-layers:
-    values: [4, 8, 10, 20, 30, 40]
-  decoder-layers:
-    values: [1, 2, 4, 6, 8]
-  dropout-rate:
+  functional_loss_weight:
     min: 0.0
-    max: 0.05
-  masking-rate:
+    max: 1.0
+  reconstruction_loss_weight:
     min: 0.0
-    max: 0.05
-  learning-rate:
-    min: 0.00001
-    max: 0.0001
-  n-sequence-tokens:
-    values: [8, 16, 32]
-  learning-rate-decay:
-    values: [0.95,0.99]
-  seq-length-steps:
-    values: [2,3,5]
+    max: 1.0
+  clustering_loss_weight:
+    min: 0.0
+    max: 1.0
 command:
   - ${env}
   - ${interpreter}
   - ${program}
-  - "--platform"
-  - "LUMI"
-  - "--key-dim" 
+  - "--batch-size"
+  - "128"
+  - "--decode-length"
+  - "5000"
+  - "--decoder-layers"
+  - "2"
+  - "--dropout-rate"
+  - "0.025"
+  - "--embedding-dim"
+  - "64"
+  - "--encoder-layers"
+  - "40"
+  - "--epochs"
+  - "2000"
+  - "--ff-dim"
+  - "32"
+  - "--key-dim"
+  - "16"
+  - "--latent-dim"
+  - "128"
+  - "--learning-rate"
+  - "3e-4"
+  - "--learning-rate-decay"
+  - "0.99"
+  - "--learning-rate-decay-start"
+  - "200"
+  - "--masking-rate"
+  - "0.03"
+  - "--max-seq-length"
+  - "5000"
+  - "--n-sequence-tokens"
   - "16"
   - "--num-heads"
   - "8"
-  - "--decode-length"
-  - "300"
-  - "--max-seq-length"
-  - "5000"
   - "--patience"
-  - "150"
-  - "--batch-size"
-  - "256"
-  - "--epochs"
-  - "2000"
-  - "--learning-rate-decay-start"
-  - "200"
+  - "250"
+  - "--platform"
+  - "LUMI"
+  - "--seq-length-steps"
+  - "1"
   - ${args}

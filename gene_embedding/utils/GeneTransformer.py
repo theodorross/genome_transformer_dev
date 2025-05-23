@@ -98,40 +98,61 @@ class GeneTransformer(models.Model):
                                         decode_length=self.decode_length)
         
         # Linear Classifier head
-        self.classifier = models.Sequential(name="category_classifier")
-        self.classifier.add(layers.Input(shape=(latent_dim*n_sequence_tokens,)))
-        self.classifier.add(layers.Dense(23, activation="sigmoid"))
+        if self.functional_loss_weight != 0:
+            self.classifier = models.Sequential(name="category_classifier")
+            self.classifier.add(layers.Input(shape=(latent_dim*n_sequence_tokens,)))
+            self.classifier.add(layers.Dense(23, activation="sigmoid"))
         
         ## Run a dummy input through the model
         dummy_in = layers.Input((), dtype=tf.string)
-        self(dummy_in)
+        dummy_mid = self.encoder(dummy_in)
+        dummy_out = self(dummy_in)
 
-        ## Compile the model
-        # Define the optimizer
+
+        ## Define the optimizer
         opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
-        # Define the objective functions
+        ## Define the objective functions
+        # Add the clustering loss to track
         self.triplet_loss = OnlineMarginTripletLoss(margin=1.0, name="clustering")
-        self.category_loss = MaskedBinaryCrossentropy(name="COG_category")
-        losses = [self.triplet_loss, self.category_loss]
+        losses = [self.triplet_loss]
+        loss_weights = [self.clustering_loss_weight]
+
+        # Define the loss if COG category classification is included
+        if self.functional_loss_weight != 0:
+            self.category_loss = MaskedBinaryCrossentropy(name="COG_category")
+            losses.append(self.category_loss)
+        else:
+            losses.append(None)
+        loss_weights.append(self.functional_loss_weight)
+
+        # Define the reconstruction loss if included
         if self.reconstruction_loss_weight != 0:
             self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0, name="reconstruction")
             losses.append(self.reconstruction_loss)
+            loss_weights.append(self.reconstruction_loss_weight)
 
-        # Define performance metrics to track
+        ## Define performance metrics to track
+        # No specific metrics for the latent space
         latent_metrics = []
-        classifier_metrics = [MaskedBinaryAccuracy(name="COG_category_accuracy")]
-        loss_weights = [self.clustering_loss_weight, 
-                        self.functional_loss_weight]
-        metrics = [latent_metrics, classifier_metrics]
+        metrics = [latent_metrics]
+
+        # Masked Binary Accuracy metric for functional predictions
+        if self.functional_loss_weight != 0:
+            classifier_metrics = [MaskedBinaryAccuracy(name="COG_category_accuracy")]
+            metrics.append(classifier_metrics)
+        else:
+            metrics.append([])
+
+        # Levenshtein distance and masked token accuracy for reconstructions
         if self.reconstruction_loss_weight != 0:
             levenshtein_metric = LevenshteinDistance(self.vocabulary)
             masked_accuracy = MaskedAccuracy(mask_category=0, name="reconstruction_accuracy")
             recon_metrics = [masked_accuracy,
                             levenshtein_metric]
-            loss_weights.append(self.reconstruction_loss_weight)
             metrics.append(recon_metrics)
         
+        ## Compile the model
         self.compile(optimizer=opt, loss=losses, loss_weights=loss_weights, metrics=metrics)
 
 
@@ -143,14 +164,21 @@ class GeneTransformer(models.Model):
     def call(self, x, **kwargs):
         ## Pass through the encoder
         z = self.encoder(x, **kwargs)
+        outputs = [z]
+
         ## Classify the category
-        z_cat = self.classifier(z)
-        if self.reconstruction_loss_weight != 0:
-            ## Pass through the decoder
-            y = self.decoder(z, **kwargs)
-            return z,z_cat,y
+        if self.functional_loss_weight != 0:
+            z_cat = self.classifier(z)
+            outputs.append(z_cat)
         else:
-            return z,z_cat
+            outputs.append(z)      # Dummy output if there's no classifier
+
+        ## Pass through the decoder
+        if self.reconstruction_loss_weight != 0:
+            y = self.decoder(z, **kwargs)
+            outputs.append(y)
+
+        return outputs
 
 
     def encode(self, x, **kwargs):

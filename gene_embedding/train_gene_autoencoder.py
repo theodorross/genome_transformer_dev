@@ -13,8 +13,9 @@ from tqdm import tqdm
 # from tensorflow.keras import Layers
 
 from utils.GeneTransformer import GeneTransformer
-from utils.TrainingUtils import MaskedSparseCategoricalCrossentropy, MaskedAccuracy, OnlineMarginTripletLoss
+from utils.TrainingUtils import MaskedSparseCategoricalCrossentropy, MaskedAccuracy, OnlineMarginTripletLoss, LinearEvaluationProtocol
 # from utils import *
+
 
 print("tensorflow version:", tf.__version__)
 print("keras version:", keras.__version__, tf.keras.__version__)
@@ -63,10 +64,10 @@ if __name__ == "__main__":
     parser.add_argument("--decode-length", default=300, type=int, help="Number of sequence tokens to use during reconstruction at the beginning of training.")
     parser.add_argument("--masking-rate", default=0.05, type=float, help="Probability of masking each input token during training.")
     parser.add_argument("--learning-rate", default=1e-6, type=float, help="Learning rate for the optimizer.", required=False)
-    parser.add_argument("--max-seq-length", default=600, type=int, help="Maximum sequence length to use during training.")
+    parser.add_argument("--max-seq-length", default=300, type=int, help="Maximum sequence length to use during training.")
 
     ## Loss hyperparameters
-    parser.add_argument("--clustering-loss-weight", default=1, type=float, help="Weight of the triplet loss for clustering.")
+    parser.add_argument("--clustering-loss-weight", default=0, type=float, help="Weight of the triplet loss for clustering.")
     parser.add_argument("--reconstruction-loss-weight", default=1, type=float, help="Weight of the reconstruction loss.")
     parser.add_argument("--functional-loss-weight", default=1, type=float, help="Weight of the COG functional category classification loss.")
 
@@ -74,10 +75,10 @@ if __name__ == "__main__":
     parser.add_argument("--learning-rate-decay", default=None, type=float, help="Decay rate for learning rate schedule.")
     parser.add_argument("--learning-rate-decay-start", default=None, type=float, help="Epoch to begin learning rate decay.")
     parser.add_argument("--batch-size", "-b", default=64, type=int, help="Batch size for training.", required=False)
-    parser.add_argument("--epochs", default=6, type=int, help="Maximum number of training epochs to perform.", required=False)
+    parser.add_argument("--epochs", default=5, type=int, help="Maximum number of training epochs to perform.", required=False)
     parser.add_argument("--patience", default=25, type=int, help="Patience for early stopping.", required=False)
     parser.add_argument("--cross-folds", default=5, type=int, help="Number of cross-folds for validation of training.", required=False)
-    parser.add_argument("--seq-length-steps", default=2, type=int, help="Number of linear steps for increasing the sequence length from decode-length to max-seq-length.")
+    parser.add_argument("--seq-length-steps", default=1, type=int, help="Number of linear steps for increasing the sequence length from decode-length to max-seq-length.")
     args = parser.parse_args()
 
     '''
@@ -185,6 +186,9 @@ if __name__ == "__main__":
         lr_scheduler = keras.callbacks.LearningRateScheduler(schedule_func)
         callbacks.append(lr_scheduler)
 
+    if args.functional_loss_weight == 0:
+        callbacks.append(LinearEvaluationProtocol(validation_freq=5))
+
     '''
     Define a new model to train for each cross-validation fold
     '''
@@ -201,7 +205,7 @@ if __name__ == "__main__":
         ## Define the checkpoint callback
         checkpoint_path = f"models/checkpoints/{wandb.run.name}_fold{k}/{{epoch:04d}}.checkpoint.keras"
         chkpt_callback = keras.callbacks.ModelCheckpoint(filepath=checkpoint_path)
-        # chkpt_callback = keras.callbacks.ModelCheckpoint()
+        chkpt_callback = keras.callbacks.ModelCheckpoint()
 
         ## Define the training and test datsets
         validation_fold = dataset_cuts[k]
@@ -226,6 +230,8 @@ if __name__ == "__main__":
             #     gene_ae = GeneTransformer(**model_config)
             gene_ae = GeneTransformer(**model_config)
             _epoch_count = 0
+        # gene_ae = GeneTransformer(**model_config)
+        # _epoch_count = 0
         print(gene_ae.summary())
         
 
@@ -248,9 +254,12 @@ if __name__ == "__main__":
                                                                           validation_data=_validation_fold)
 
             ## Train the model
+            if args.functional_loss_weight == 0:
+                callbacks[-1].set_validation_data(_validation_fold)
+
             _last_epoch = _epoch_count + _epochs_per_length
             _hist = gene_ae.fit(_training_fold, validation_data=_validation_fold, epochs=_last_epoch, 
-                                callbacks=callbacks+[chkpt_callback], verbose=1, initial_epoch=_epoch_count,
+                                callbacks=callbacks, verbose=1, initial_epoch=_epoch_count,
                                 steps_per_epoch=100, validation_freq=5)
             _epoch_count += len( _hist.history["loss"] )
             
@@ -261,54 +270,49 @@ if __name__ == "__main__":
                 else:
                     fold_history[key] = _hist.history[key]
 
-            ## Save the interstitial model after each step up in size
-            if not os.path.exists(f"models/geneAE_{wandb.run.name}_fold{k}"):
-                os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
-            # os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}/{gene_length}_tokens")
-            gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}/{gene_length}_tokens.keras")
-
 
         ## Print a sample reconstruction
-        print("Training reconstructions")
-        sample_genes = next(training_fold.batch(5).as_numpy_iterator())
-        sample_preds = gene_ae.predict(sample_genes)
-        recon_tokens = np.argmax(sample_preds, axis=-1)
-        recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
-        recon_genes = ["".join(recon_chars[ix]).upper() for ix in range(sample_genes.shape[0])]
+        # print("Training reconstructions")
+        # sample_genes = tf.convert_to_tensor(next(training_fold.batch(5).as_numpy_iterator())[0])
+        # sample_preds = gene_ae.predict(sample_genes)
+        # recon_tokens = np.argmax(sample_preds, axis=-1)
+        # recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
+        # recon_genes = ["".join(recon_chars[ix]).upper() for ix in range(sample_genes.shape[0])]
 
-        for ix in range(5):
-            print()
-            recon_str = ""
-            for t,r in zip(sample_genes[ix].decode("ASCII"), recon_genes[ix]):
-                if t != r: recon_str += f"\033[0;31m{r}\033[0m"
-                else: recon_str += f"\033[0;32m{r}\033[0m"
-            print(sample_genes[ix].decode("ASCII"))
-            print(recon_str)
+        # for ix in range(5):
+        #     print()
+        #     recon_str = ""
+        #     for t,r in zip(sample_genes[ix].decode("ASCII"), recon_genes[ix]):
+        #         if t != r: recon_str += f"\033[0;31m{r}\033[0m"
+        #         else: recon_str += f"\033[0;32m{r}\033[0m"
+        #     print(sample_genes[ix].decode("ASCII"))
+        #     print(recon_str)
 
 
 
-        print("\nValidation reconstructions")
-        sample_genes = next(validation_fold.batch(5).as_numpy_iterator())
-        sample_preds = gene_ae.predict(sample_genes)
-        recon_tokens = np.argmax(sample_preds, axis=-1)
-        recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
-        recon_genes = ["".join(recon_chars[ix]).upper() for ix in range(sample_genes.shape[0])]
+        # print("\nValidation reconstructions")
+        # # sample_genes = next(validation_fold.batch(5))[0]
+        # sample_genes = validation_fold.take(5)
+        # sample_preds = gene_ae.predict(sample_genes)
+        # recon_tokens = np.argmax(sample_preds, axis=-1)
+        # recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
+        # recon_genes = ["".join(recon_chars[ix]).upper() for ix in range(sample_genes.shape[0])]
 
-        for ix in range(5):
-            print()
-            recon_str = ""
-            for t,r in zip(sample_genes[ix].decode("ASCII"), recon_genes[ix]):
-                if t != r: recon_str += f"\033[0;31m{r}\033[0m"
-                else: recon_str += f"\033[0;32m{r}\033[0m"
-            print(sample_genes[ix].decode("ASCII"))
-            print(recon_str)
+        # for ix in range(5):
+        #     print()
+        #     recon_str = ""
+        #     for t,r in zip(sample_genes[ix].decode("ASCII"), recon_genes[ix]):
+        #         if t != r: recon_str += f"\033[0;31m{r}\033[0m"
+        #         else: recon_str += f"\033[0;32m{r}\033[0m"
+        #     print(sample_genes[ix].decode("ASCII"))
+        #     print(recon_str)
 
         ## Store the training history
         training_histories[f"Fold {k}"] = fold_history
 
         ## Save the model
-        # if not os.path.exists(f"models/geneAE_{wandb.run.name}_fold{k}"):
-        #     os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
+        if not os.path.exists(f"models/geneAE_{wandb.run.name}_fold{k}"):
+            os.mkdir(f"models/geneAE_{wandb.run.name}_fold{k}")
         gene_ae.save(f"models/geneAE_{wandb.run.name}_fold{k}.keras")
 
         
@@ -317,7 +321,7 @@ if __name__ == "__main__":
     print()
     wandb.finish()
 
-    ## Save the histories
+    # ## Save the histories
     with open(f"training_histories/geneAE_{wandb.run.name}.json","w") as f:
         json.dump(training_histories, f)
 
