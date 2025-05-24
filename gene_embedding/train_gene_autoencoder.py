@@ -69,7 +69,7 @@ if __name__ == "__main__":
     ## Loss hyperparameters
     parser.add_argument("--clustering-loss-weight", default=0, type=float, help="Weight of the triplet loss for clustering.")
     parser.add_argument("--reconstruction-loss-weight", default=1, type=float, help="Weight of the reconstruction loss.")
-    parser.add_argument("--functional-loss-weight", default=1, type=float, help="Weight of the COG functional category classification loss.")
+    parser.add_argument("--functional-loss-weight", default=0, type=float, help="Weight of the COG functional category classification loss.")
 
     ## Training hyperparameters
     parser.add_argument("--learning-rate-decay", default=None, type=float, help="Decay rate for learning rate schedule.")
@@ -317,10 +317,11 @@ if __name__ == "__main__":
         
         break
 
+    ## Save the histories
+    with open(f"training_histories/geneAE_{wandb.run.name}.json","w") as f:
+        json.dump(training_histories, f)
+
     print()
     wandb.finish()
 
-    # ## Save the histories
-    with open(f"training_histories/geneAE_{wandb.run.name}.json","w") as f:
-        json.dump(training_histories, f)
 

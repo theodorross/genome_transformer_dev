@@ -1,6 +1,7 @@
 import tensorflow as tf
 import sklearn as sk
 import numpy as np
+import wandb
 
 @tf.keras.utils.register_keras_serializable()
 class LevenshteinDistance(tf.keras.metrics.Metric):
@@ -381,37 +382,24 @@ class LinearEvaluationProtocol(tf.keras.callbacks.Callback):
             z = self.model.encoder.predict(self.data, verbose=0)
             y = np.concatenate([_y[1][1] for _y in self.data], axis=0)
             pred_y = np.zeros(y.shape)
-            # print("z:", z.shape)
-            # print("y:", y.shape)
 
             ## Get linear classification predictions for each category
             for categ in range(y.shape[1]):
                 categ_y = y[:,categ]
-                # print(f"category {categ}: {categ_y.sum()} / {len(categ_y)}")
                 if categ_y.sum() != 0:
                     categ_preds = sk.linear_model.LogisticRegression().fit(z,categ_y).predict(z)
                     pred_y[:,categ] = categ_preds
 
             ## Compute the accuracy following the protocol in MaskedBinaryAccuracy above
             matches = np.all(pred_y == y, axis=1)   # All predictions for a sample match labels
-            # print("matches:", matches.shape, matches.sum())
             mask = y.sum(axis=1) != 0       # Mask out samples that have no functional predictions
-            # print("mask:", mask.shape, mask.sum())
             matches = np.logical_and(matches, mask)
-            # print("matches masked:", matches.shape, matches.sum())
             accuracy = np.mean(matches)
-            # print("accuracy:", accuracy)
-            # print(logs)
+
+            # Store and log the accuracy
             logs["val_COG_category_accuracy"] = accuracy
-
-
-            # exit()
-        # print("DEBUGGING CALLBACK:", list(logs.keys()))
-        # if self.validation_data is not None:
-        #     preds = self.model.predict(self.validation_data)
-        #     Z = preds[0]
-        #     print("\nZ:", Z.shape)
-        #     pass
-        # else:
-        #     pass
+            try:
+                wandb.log({"val_COG_category_accuracy": accuracy}, step=epoch)
+            except:
+                pass
 
