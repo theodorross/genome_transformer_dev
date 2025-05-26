@@ -258,7 +258,7 @@ if __name__ == "__main__":
 
             _last_epoch = _epoch_count + _epochs_per_length
             _hist = gene_ae.fit(_training_fold, validation_data=_validation_fold, epochs=_last_epoch, 
-                                callbacks=callbacks, verbose=1, initial_epoch=_epoch_count,
+                                callbacks=callbacks+[chkpt_callback], verbose=1, initial_epoch=_epoch_count,
                                 steps_per_epoch=100, validation_freq=5)
             _epoch_count += len( _hist.history["loss"] )
             
