@@ -13,7 +13,7 @@ from tqdm import tqdm
 # from tensorflow.keras import Layers
 
 from utils.GeneTransformer import GeneTransformer
-from utils.TrainingUtils import MaskedSparseCategoricalCrossentropy, MaskedAccuracy, OnlineMarginTripletLoss, LinearEvaluationProtocol
+from utils.TrainingUtils import LinearEvaluationProtocol
 # from utils import *
 
 
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     ## Loss hyperparameters
     parser.add_argument("--clustering-loss-weight", default=0, type=float, help="Weight of the triplet loss for clustering.")
     parser.add_argument("--reconstruction-loss-weight", default=1, type=float, help="Weight of the reconstruction loss.")
-    parser.add_argument("--functional-loss-weight", default=0, type=float, help="Weight of the COG functional category classification loss.")
+    parser.add_argument("--functional-loss-weight", default=1, type=float, help="Weight of the COG functional category classification loss.")
 
     ## Training hyperparameters
     parser.add_argument("--learning-rate-decay", default=None, type=float, help="Decay rate for learning rate schedule.")
@@ -141,19 +141,6 @@ if __name__ == "__main__":
     '''
     Load the unique gene sequences and get rid of genes longer than 5 kb
     '''
-    ## Define the data path depending ont the dataset and platform
-    # if args.platform.lower() == "local":
-    #     data_dir = "../data/gene_sequences"
-    # if args.platform.lower() == "springfield":
-    #     data_dir = "/storage/data/e_faecium/gene_embedding"
-    # if args.platform.upper() == "LUMI":
-    #     data_dir = "/project/project_465001381/rosstheo/genome_transformer_dev/data/gene_sequences"
-    
-    # if args.dataset.lower() == "dev":   
-    #     datapath = f"{data_dir}/unique_dna_seqs_dev.txt"
-    # elif args.dataset.lower() == "full":
-    #     datapath = f"{data_dir}/train_unique_gene_seqs.txt"
-
 
     ## Load the dataset and remove genes over the max sequence length
     # gene_dataset = tf.data.TextLineDataset(datapath)
@@ -187,7 +174,7 @@ if __name__ == "__main__":
         callbacks.append(lr_scheduler)
 
     if args.functional_loss_weight == 0:
-        callbacks.append(LinearEvaluationProtocol(validation_freq=5))
+        callbacks.append(LinearEvaluationProtocol(validation_freq=1))
 
     '''
     Define a new model to train for each cross-validation fold
@@ -270,42 +257,6 @@ if __name__ == "__main__":
                     fold_history[key] = _hist.history[key]
 
 
-        ## Print a sample reconstruction
-        # print("Training reconstructions")
-        # sample_genes = tf.convert_to_tensor(next(training_fold.batch(5).as_numpy_iterator())[0])
-        # sample_preds = gene_ae.predict(sample_genes)
-        # recon_tokens = np.argmax(sample_preds, axis=-1)
-        # recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
-        # recon_genes = ["".join(recon_chars[ix]).upper() for ix in range(sample_genes.shape[0])]
-
-        # for ix in range(5):
-        #     print()
-        #     recon_str = ""
-        #     for t,r in zip(sample_genes[ix].decode("ASCII"), recon_genes[ix]):
-        #         if t != r: recon_str += f"\033[0;31m{r}\033[0m"
-        #         else: recon_str += f"\033[0;32m{r}\033[0m"
-        #     print(sample_genes[ix].decode("ASCII"))
-        #     print(recon_str)
-
-
-
-        # print("\nValidation reconstructions")
-        # # sample_genes = next(validation_fold.batch(5))[0]
-        # sample_genes = validation_fold.take(5)
-        # sample_preds = gene_ae.predict(sample_genes)
-        # recon_tokens = np.argmax(sample_preds, axis=-1)
-        # recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
-        # recon_genes = ["".join(recon_chars[ix]).upper() for ix in range(sample_genes.shape[0])]
-
-        # for ix in range(5):
-        #     print()
-        #     recon_str = ""
-        #     for t,r in zip(sample_genes[ix].decode("ASCII"), recon_genes[ix]):
-        #         if t != r: recon_str += f"\033[0;31m{r}\033[0m"
-        #         else: recon_str += f"\033[0;32m{r}\033[0m"
-        #     print(sample_genes[ix].decode("ASCII"))
-        #     print(recon_str)
-
         ## Store the training history
         training_histories[f"Fold {k}"] = fold_history
 
@@ -317,9 +268,6 @@ if __name__ == "__main__":
         
         break
 
-    ## Save the histories
-    with open(f"training_histories/geneAE_{wandb.run.name}.json","w") as f:
-        json.dump(training_histories, f)
 
     print()
     wandb.finish()

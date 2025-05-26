@@ -344,7 +344,57 @@ class MaskedBinaryAccuracy(tf.keras.metrics.Metric):
         threshold = config.pop("threshold")
         name = config.pop("name")
         return cls(threshold, name, **config)
-    
+
+
+
+class LinearEvaluationProtocol(tf.keras.callbacks.Callback):
+
+    def __init__(self, validation_freq=1, validation_data=None):
+        super().__init__()
+        self.data = validation_data
+        self.validation_freq = validation_freq
+        self.acc_metric = MaskedBinaryAccuracy(name=None)
+        self.loss_metric = MaskedBinaryCrossentropy(name=None)
+
+    def set_validation_data(self, validation_data):
+        self.data = validation_data
+
+    def on_epoch_end(self, epoch, logs=None):
+        ## Only perform on validation frequency
+        if (epoch+1) % self.validation_freq == 0:
+
+            ## Get embeddings and labels for the entire validation dataset
+            z = self.model.encoder.predict(self.data, verbose=0)
+            y = np.concatenate([_y[1][1] for _y in self.data], axis=0)
+            pred_y = np.zeros(y.shape)
+
+            ## Get linear classification prediction probabilities for each category
+            for categ in range(y.shape[1]):
+                categ_y = y[:,categ]
+                if categ_y.sum() != 0:
+                    categ_preds = sk.linear_model.LogisticRegression().fit(z,categ_y).predict_proba(z)[:,1]
+                    pred_y[:,categ] = categ_preds
+
+            ## Compute the accuracy and loss following the protocol in MaskedBinaryAccuracy above
+            # matches = np.all(pred_y == y, axis=1)   # All predictions for a sample match labels
+            # mask = y.sum(axis=1) != 0       # Mask out samples that have no functional predictions
+            # matches = np.logical_and(matches, mask)
+            # accuracy = np.mean(matches)
+            accuracy = self.acc_metric(y, pred_y)
+            loss = self.loss_metric(y, pred_y)
+            print("DEBUG LINEVAL:", accuracy, loss)
+
+            # Store and log the accuracy
+            logs["val_COG_category_accuracy"] = accuracy
+            logs["val_COG_category_loss"] = loss
+            try:
+                wandb.log({"epoch/val_COG_category_accuracy": accuracy}, step=epoch)
+                wandb.log({"epoch/val_COG_category_loss": loss}, step=epoch)
+            except:
+                pass
+
+
+
 
 
 
@@ -352,6 +402,8 @@ if __name__=="__main__":
     
     testloss = MaskedBinaryCrossentropy()
     testacc = MaskedBinaryAccuracy()
+
+    testprot = LinearEvaluationProtocol()
 
     # test_pred = tf.convert_to_tensor([[0.01,0.05,0.9, 0.4, 0.75],[0.4,0.02,0.13,0.58,0.92]])
     # test_true = tf.convert_to_tensor([[0,0,1,0,1], [0,0,0,0,0]])
@@ -362,44 +414,3 @@ if __name__=="__main__":
     print("accuracy:", testacc(test_true, test_pred).numpy())
     
     pass
-
-
-
-class LinearEvaluationProtocol(tf.keras.callbacks.Callback):
-
-    def __init__(self, validation_freq=1, validation_data=None):
-        super().__init__()
-        self.data = validation_data
-        self.validation_freq = validation_freq
-
-    def set_validation_data(self, validation_data):
-        self.data = validation_data
-
-    def on_epoch_end(self, epoch, logs=None):
-        # print(f"\nDEBUG EVALUATION PROTOCOL, epoch {epoch+1}")
-        if (epoch+1) % self.validation_freq == 0:
-            ## Get embeddings and labels for the entire validation dataset
-            z = self.model.encoder.predict(self.data, verbose=0)
-            y = np.concatenate([_y[1][1] for _y in self.data], axis=0)
-            pred_y = np.zeros(y.shape)
-
-            ## Get linear classification predictions for each category
-            for categ in range(y.shape[1]):
-                categ_y = y[:,categ]
-                if categ_y.sum() != 0:
-                    categ_preds = sk.linear_model.LogisticRegression().fit(z,categ_y).predict(z)
-                    pred_y[:,categ] = categ_preds
-
-            ## Compute the accuracy following the protocol in MaskedBinaryAccuracy above
-            matches = np.all(pred_y == y, axis=1)   # All predictions for a sample match labels
-            mask = y.sum(axis=1) != 0       # Mask out samples that have no functional predictions
-            matches = np.logical_and(matches, mask)
-            accuracy = np.mean(matches)
-
-            # Store and log the accuracy
-            logs["val_COG_category_accuracy"] = accuracy
-            try:
-                wandb.log({"val_COG_category_accuracy": accuracy})
-            except:
-                pass
-
