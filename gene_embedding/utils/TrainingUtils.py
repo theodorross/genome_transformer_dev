@@ -399,7 +399,7 @@ class LinearEvaluationProtocol(tf.keras.callbacks.Callback):
             # Store and log the accuracy
             logs["val_COG_category_accuracy"] = accuracy
             try:
-                wandb.log({"val_COG_category_accuracy": accuracy}, step=epoch)
+                wandb.log({"val_COG_category_accuracy": accuracy})
             except:
                 pass
 
