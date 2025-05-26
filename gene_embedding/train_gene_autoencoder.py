@@ -212,7 +212,6 @@ if __name__ == "__main__":
         training_fold = concatenate_datasets(*training_fold)
 
         ## Initialize the model
-        
         # Load a previously saved model if continuing a run
         if args.wandb_run is not None:
             checkpoint_path = f"models/checkpoints/{wandb.run.name}_fold{k}/"
