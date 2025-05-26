@@ -174,7 +174,7 @@ if __name__ == "__main__":
         callbacks.append(lr_scheduler)
 
     if args.functional_loss_weight == 0:
-        callbacks.append(LinearEvaluationProtocol(validation_freq=1))
+        callbacks.append(LinearEvaluationProtocol(validation_freq=5))
 
     '''
     Define a new model to train for each cross-validation fold
