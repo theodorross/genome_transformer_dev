@@ -35,6 +35,7 @@ class GeneTransformer(models.Model):
                        masking_rate:float=0.05,
                        learning_rate:float=1e-6,
                        n_sequence_tokens:int=2,
+                       hypersphere_norm:bool=False,
                        functional_loss_weight:float=1.0,
                        reconstruction_loss_weight:float=1.0,
                        clustering_loss_weight:float=1.0,
@@ -55,6 +56,7 @@ class GeneTransformer(models.Model):
         self.masking_rate = masking_rate
         self.learning_rate = learning_rate
         self.n_sequence_tokens = n_sequence_tokens
+        self.hypersphere_norm = hypersphere_norm
         self.functional_loss_weight = functional_loss_weight
         self.reconstruction_loss_weight = reconstruction_loss_weight
         self.clustering_loss_weight = clustering_loss_weight
@@ -79,7 +81,8 @@ class GeneTransformer(models.Model):
                                        masking_rate=self.masking_rate, 
                                        n_sequence_tokens=self.n_sequence_tokens, 
                                        max_length=self.max_length,
-                                       decode_length=self.decode_length)
+                                       decode_length=self.decode_length,
+                                       hypersphere_norm=self.hypersphere_norm)
         self.vocab_size = self.encoder.vocab_size
         self.vocabulary = self.encoder.vocabulary
 
@@ -323,6 +326,7 @@ class GeneTransformer(models.Model):
             "masking_rate":self.masking_rate,
             "learning_rate":self.learning_rate,
             "n_sequence_tokens":self.n_sequence_tokens,
+            "hypersphere_norm":self.hypersphere_norm,
             "functional_loss_weight":self.functional_loss_weight,
             "reconstruction_loss_weight":self.reconstruction_loss_weight,
             "clustering_loss_weight":self.clustering_loss_weight

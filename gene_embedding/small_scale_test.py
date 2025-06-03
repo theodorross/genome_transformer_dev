@@ -55,7 +55,9 @@ if __name__ == "__main__":
               'max_length':300,
               'decode_length':300,
               'masking_rate':0.00,
-              'learning_rate':5e-3}
+              'learning_rate':5e-3,
+              'reconstruction_loss_weight':0,
+              'functional_loss_weight':0}
     
     ## Instantiate the multi-GPU training strategy
     strategy = tf.distribute.MirroredStrategy()
@@ -134,10 +136,21 @@ if __name__ == "__main__":
             train_genes = _train_genes.filter(lambda g,d,c: tf.strings.length(g) <= gene_len)
 
             ## Preprocess the datasets
-            train_genes, val_genes = gene_ae.preprocess_dataset(train_genes, 64, validation_data=val_genes, weighted=True)
+            train_genes, val_genes = gene_ae.preprocess_dataset(train_genes, 128, validation_data=val_genes, weighted=True)
 
             # for tup in train_genes:
             #     print(tup[0].shape, (tup[1][0].shape, tup[1][1].shape), tup[2].shape)
+
+            testloss = OnlineMarginTripletLoss(margin=1)
+            for x,y in val_genes:
+
+                z = gene_ae.encoder.predict(x)
+                print("z:", z.shape)
+                testloss(y[0],z)
+
+                print("\n\nEXITING EARLY AT HERE")
+                exit()
+
 
             ## Train the model            
             epochs = 3

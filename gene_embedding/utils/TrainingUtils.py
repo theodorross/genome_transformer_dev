@@ -3,6 +3,53 @@ import sklearn as sk
 import numpy as np
 import wandb
 
+
+
+def _masked_maximum(data, mask, dim=1):
+    """Computes the axis wise maximum over chosen elements.
+
+    Args:
+      data: 2-D float `Tensor` of shape `[n, m]`.
+      mask: 2-D Boolean `Tensor` of shape `[n, m]`.
+      dim: The dimension over which to compute the maximum.
+
+    Returns:
+      masked_maximums: N-D `Tensor`.
+        The maximized dimension is of size 1 after the operation.
+    """
+    axis_minimums = tf.math.reduce_min(data, dim, keepdims=True)
+    masked_maximums = (
+        tf.math.reduce_max(
+            tf.math.multiply(data - axis_minimums, tf.cast(mask, data.dtype)), dim, keepdims=True
+        )
+        + axis_minimums
+    )
+    return masked_maximums
+
+
+def _masked_minimum(data, mask, dim=1):
+    """Computes the axis wise minimum over chosen elements.
+
+    Args:
+      data: 2-D float `Tensor` of shape `[n, m]`.
+      mask: 2-D Boolean `Tensor` of shape `[n, m]`.
+      dim: The dimension over which to compute the minimum.
+
+    Returns:
+      masked_minimums: N-D `Tensor`.
+        The minimized dimension is of size 1 after the operation.
+    """
+    axis_maximums = tf.math.reduce_max(data, dim, keepdims=True)
+    masked_minimums = (
+        tf.math.reduce_min(
+            tf.math.multiply(data - axis_maximums, tf.cast(mask, data.dtype)), dim, keepdims=True
+        )
+        + axis_maximums
+    )
+    return masked_minimums
+
+
+
 @tf.keras.utils.register_keras_serializable()
 class LevenshteinDistance(tf.keras.metrics.Metric):
 
@@ -201,7 +248,8 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
 
     def call(self, y_true, y_pred):
         ## Assume a decently large batch size of y_pred
-        
+        print("\nDEBUGGING TRIPLET LOSS:")
+      
         # Compute pairwise distances
         z0 = tf.expand_dims(y_pred, axis=0)
         z1 = tf.expand_dims(y_pred, axis=1)
@@ -213,20 +261,22 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
         pos_matches = tf.greater( tf.reduce_sum( tf.multiply(b0, b1), axis=-1), 0 )
         neg_matches = tf.logical_not(pos_matches)
 
-        # Force the lower triangle and diagonal of the mask matrices to be FALSE
-        upper_mask = tf.linalg.band_part( tf.ones(tf.shape(pos_matches), bool) , -1,0)
-        upper_mask = tf.logical_not(upper_mask)
-        pos_matches = tf.logical_and(pos_matches, upper_mask)
-        neg_matches = tf.logical_and(neg_matches, upper_mask)
+        # Force the diagonal to be zero for the positive match mask
+        eye = tf.eye(tf.shape(y_true)[0], dtype=bool)
+        inv_eye = tf.logical_not(eye)
+        pos_matches = tf.logical_and(pos_matches, inv_eye)
 
-        # Isolate positive and negative pair distances
-        pos_idx = tf.where(pos_matches)
-        neg_idx = tf.where(neg_matches)
-        pos_distances = tf.gather_nd(z_dif, pos_idx)
-        neg_distances = tf.gather_nd(z_dif, neg_idx)
+        # Compute the hard positive and negative distances for each anchor
+        hard_pos_dists = _masked_maximum(z_dif, pos_matches)
+        hard_neg_dists = _masked_minimum(z_dif, neg_matches)
+
+        # Only use anchors with a positive match
+        pos_idx = tf.where( tf.greater(hard_pos_dists, 0) )
+        hard_pos_dists = tf.gather_nd(hard_pos_dists, pos_idx)
+        hard_neg_dists = tf.gather_nd(hard_neg_dists, pos_idx)
         
         # Compute the margined difference between the mean postive-pair and negative-pair distances
-        loss = tf.reduce_mean(pos_distances) - tf.reduce_mean(neg_distances) + self.margin
+        loss = tf.reduce_mean(hard_pos_dists - hard_neg_dists + self.margin)
         loss = tf.maximum(loss, 0)
         loss = tf.keras.ops.nan_to_num(loss, nan=0.0)   # just in case there are no positive distances, force the value to 0
         return loss

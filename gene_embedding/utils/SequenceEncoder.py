@@ -27,6 +27,7 @@ class SequenceEncoder(models.Model):
                        n_sequence_tokens:int=1,
                        max_length:int=5000,
                        decode_length:int=5000,
+                       hypersphere_norm:bool=False,
                        **kwargs):
         super(SequenceEncoder, self).__init__(**kwargs)
 
@@ -42,6 +43,7 @@ class SequenceEncoder(models.Model):
         self.n_sequence_tokens = n_sequence_tokens
         self.max_length = max_length
         self.decode_length = decode_length
+        self.hypersphere_norm = hypersphere_norm
 
 
         ## Define the tokenizing and positional embedding
@@ -102,12 +104,12 @@ class SequenceEncoder(models.Model):
         ## Pass through the transformer blocks
         for enc_layer in self.transformer_layers:
             latent_seq = enc_layer(query=latent_seq, value=enc_z, use_residuals=True, **kwargs)
-        return self.flatten(latent_seq)
-        # return self.test_out(latent_seq)
-
-
-    # def compute_output_shape(self, input_shape):
-    #     return tf.convert_to_tensor([input_shape[0], self.n_sequence_tokens, self.latent_dim])
+        
+        ## Flatten the embedding into a single vector
+        latent_vec = self.flatten(latent_seq)
+        if self.hypersphere_norm:
+            latent_vec = tf.math.l2_normalize(latent_vec, axis=-1)
+        return latent_vec
     
     
     def _update_decode_length(self, new_length):
@@ -131,7 +133,10 @@ class SequenceEncoder(models.Model):
             'dropout_rate' : self.dropout_rate,
             'ff_dim' : self.ff_dim,
             'masking_rate' : self. masking_rate,
-            'max_length' : self.max_length
+            'n_sequence_tokens' : self.n_sequence_tokens,
+            'max_length' : self.max_length,
+            'decode_length' : self.decode_length,
+            'hypersphere_norm' : self.hypersphere_norm
         }
         return {**base_config, **config}
         
