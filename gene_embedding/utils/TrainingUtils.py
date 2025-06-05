@@ -49,6 +49,32 @@ def _masked_minimum(data, mask, dim=1):
     return masked_minimums
 
 
+def _masked_random(data, mask, dim=1):
+
+    # Split the mask in to row vectors
+    vecs = tf.split(mask, 5, axis=0)
+
+    # Define a linear coordinate vector for each row
+    row_idx = tf.linspace(0, tf.shape(mask)[1]-1, tf.shape(mask)[1])
+    row_idx = tf.expand_dims( tf.cast(row_idx, dtype=tf.int32), axis=1)
+
+    # Randomly choose a masked entry in each row
+    col_idx = []
+    for v in vecs:
+        logits = tf.cast(v, tf.float32) / tf.reduce_sum(tf.cast(v, tf.float32))
+        logits = tf.math.log(logits + 1e-10)
+        col_idx.append( tf.random.categorical(logits=logits, num_samples=1, dtype=tf.int32) )
+    col_idx = tf.concat(col_idx, axis=0)
+
+    # Concatenate them into a row/column coordiante array
+    coords = tf.concat([row_idx, col_idx], axis=1)
+
+    # Gather the defined indices
+    out = tf.gather_nd(data, coords)
+
+    return out
+
+
 
 @tf.keras.utils.register_keras_serializable()
 class LevenshteinDistance(tf.keras.metrics.Metric):
@@ -248,7 +274,6 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
 
     def call(self, y_true, y_pred):
         ## Assume a decently large batch size of y_pred
-        print("\nDEBUGGING TRIPLET LOSS:")
       
         # Compute pairwise distances
         z0 = tf.expand_dims(y_pred, axis=0)
@@ -268,15 +293,18 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
 
         # Compute the hard positive and negative distances for each anchor
         hard_pos_dists = _masked_maximum(z_dif, pos_matches)
-        hard_neg_dists = _masked_minimum(z_dif, neg_matches)
+        # hard_neg_dists = _masked_minimum(z_dif, neg_matches)
+        rand_neg_dists = _masked_random(z_dif, neg_matches)
 
         # Only use anchors with a positive match
         pos_idx = tf.where( tf.greater(hard_pos_dists, 0) )
         hard_pos_dists = tf.gather_nd(hard_pos_dists, pos_idx)
-        hard_neg_dists = tf.gather_nd(hard_neg_dists, pos_idx)
+        # hard_neg_dists = tf.gather_nd(hard_neg_dists, pos_idx)
+        rand_neg_dists = tf.gather_nd(rand_neg_dists, pos_idx)
         
         # Compute the margined difference between the mean postive-pair and negative-pair distances
-        loss = tf.reduce_mean(hard_pos_dists - hard_neg_dists + self.margin)
+        # loss = tf.reduce_mean(hard_pos_dists - hard_neg_dists + self.margin)
+        loss = tf.reduce_mean(hard_pos_dists - rand_neg_dists + self.margin)
         loss = tf.maximum(loss, 0)
         loss = tf.keras.ops.nan_to_num(loss, nan=0.0)   # just in case there are no positive distances, force the value to 0
         return loss
@@ -432,7 +460,6 @@ class LinearEvaluationProtocol(tf.keras.callbacks.Callback):
             # accuracy = np.mean(matches)
             accuracy = self.acc_metric(y, pred_y)
             loss = self.loss_metric(y, pred_y)
-            print("DEBUG LINEVAL:", accuracy, loss)
 
             # Store and log the accuracy
             logs["val_COG_category_accuracy"] = accuracy
@@ -450,17 +477,48 @@ class LinearEvaluationProtocol(tf.keras.callbacks.Callback):
 
 if __name__=="__main__":
     
-    testloss = MaskedBinaryCrossentropy()
-    testacc = MaskedBinaryAccuracy()
+    # testloss = MaskedBinaryCrossentropy()
+    # testacc = MaskedBinaryAccuracy()
 
-    testprot = LinearEvaluationProtocol()
+    # testprot = LinearEvaluationProtocol()
 
-    # test_pred = tf.convert_to_tensor([[0.01,0.05,0.9, 0.4, 0.75],[0.4,0.02,0.13,0.58,0.92]])
-    # test_true = tf.convert_to_tensor([[0,0,1,0,1], [0,0,0,0,0]])
-    test_pred = tf.convert_to_tensor([[0.01,0.05,0.9, 0.4, 0.75]])
-    test_true = tf.convert_to_tensor([[0,0,1,0,1]])
+    # # test_pred = tf.convert_to_tensor([[0.01,0.05,0.9, 0.4, 0.75],[0.4,0.02,0.13,0.58,0.92]])
+    # # test_true = tf.convert_to_tensor([[0,0,1,0,1], [0,0,0,0,0]])
+    # test_pred = tf.convert_to_tensor([[0.01,0.05,0.9, 0.4, 0.75]])
+    # test_true = tf.convert_to_tensor([[0,0,1,0,1]])
 
-    print("loss:    ", testloss(test_true, test_pred).numpy())
-    print("accuracy:", testacc(test_true, test_pred).numpy())
+    # print("loss:    ", testloss(test_true, test_pred).numpy())
+    # print("accuracy:", testacc(test_true, test_pred).numpy())
+
+
+    
+    # print(testmat)
+    # print(mask)
+    # print(testmat * tf.cast(mask, testmat.dtype))
+    # print(_masked_maximum(testmat, mask))
+    # print(_masked_minimum(testmat, mask))
+    # print(_masked_random(testmat, notmask))
+
+    # test gradients
+    with tf.GradientTape() as tape:
+        testmat = tf.random.uniform((5,5))
+        mask = tf.convert_to_tensor([[2,1,1,2,3]])
+        mask = tf.equal(mask, tf.transpose(mask))
+        notmask = tf.logical_not(mask)
+        mask = tf.logical_and(mask, tf.logical_not(tf.eye(5, dtype=bool)))
+
+        # rnd_choice = _masked_random(testmat, notmask)
+        rnd_choice = _masked_minimum(testmat, notmask)
+
+        rnd_choice_sum = tf.reduce_sum(rnd_choice)
+
+        print(testmat)
+        print(rnd_choice)
+        print(rnd_choice_sum)
+        grad = tape.gradient(rnd_choice_sum, testmat)
+        print("gradient debug:")
+        print(grad)
+
+        pass
     
     pass

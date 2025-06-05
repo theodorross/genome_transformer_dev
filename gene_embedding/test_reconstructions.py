@@ -30,7 +30,10 @@ if __name__ == "__main__":
                    "SequenceEncoder":SequenceEncoder,
                    "SequenceDecoder":SequenceDecoder}
   
-    gene_ae = keras.models.load_model("models/geneAE_lemon-fog-260_fold0", custom_objects=custom_objs)
+    # model_path = "models/checkpoints/rare-sunset-4761_fold0/0562.checkpoint.keras"
+    model_path = "models/checkpoints/worldly-elevator-5104_fold0/0199.checkpoint.keras"
+    gene_ae = keras.models.load_model(model_path, custom_objects=custom_objs)
+    print(gene_ae.summary())
 
     vocab_arr = np.array(gene_ae.vocabulary)
 
@@ -38,12 +41,14 @@ if __name__ == "__main__":
     '''
     Load the desired dataset to test
     '''
-    gene_dataset = tf.data.TextLineDataset("../data/gene_sequences/train_unique_gene_seqs.txt")
+    # gene_dataset = tf.data.TextLineDataset("../data/gene_sequences/train_unique_gene_seqs.txt")
+    gene_dataset = tf.data.Dataset.load("../data/gene_sequences/training_dataset")
 
     ## Filter by gene length
-    gene_length = 300
-    gene_dataset = gene_dataset.filter(lambda x: tf.strings.length(x) < gene_length).cache()
-    # gene_dataset = gene_ae._preprocess_dataset(gene_dataset)
+    gene_length = 5000
+    # gene_dataset = gene_dataset.filter(lambda x: tf.strings.length(x) < gene_length).cache()
+    gene_dataset = gene_dataset.filter(lambda g,d,c: tf.strings.length(g) < gene_length)
+    gene_dataset = gene_ae.preprocess_dataset(gene_dataset, batch_size=5, weighted=False, shuffle=True)
 
     # df = pd.DataFrame(columns=["distance","length"])
 
@@ -55,51 +60,54 @@ if __name__ == "__main__":
 
 
     # for ix,x in tqdm(gene_dataset.padded_batch(5).enumerate()):
-    for ix,x in gene_dataset.padded_batch(5).enumerate():
+    for ix,_x in gene_dataset.enumerate():
 
         # print()
-        
-        ## Parse the input
-        inp = x.numpy()[0].decode('ASCII')
+        x,_ = _x
 
-        ## Compute model predictions
-        z = gene_ae.encode(x)
-        
-        # noise = tf.random.normal(shape=z.shape)
-        # n_mask = np.ones((1,z.shape[1],1))
-        # n_mask[:,0,:] = 0
-        # # _z = z*(1-n_mask) + n_mask*noise
-        # _z = z + n_mask * noise
-
-        # _z = z * np.cos(np.arange(z.shape[1])[None,:,None])
-        # _z = z + np.sin(np.arange(z.shape[1])[None,:,None])
-        # _z = z + np.arange(z.shape[1])[None,:,None]
-
+        out = gene_ae.predict(x)
+        z = out[0]
+        y = out[2]
         # print(z.shape)
-        # print(tf.reduce_mean(_z - z, axis=2).numpy()[0,:10])
+        print("L2 norms:", np.linalg.norm(z, ord=2, axis=1))
+        print("z maxs:", np.max(z, axis=1))
+        print("z mins:", np.min(z, axis=1))
+        print('z means:', np.mean(z, axis=0))
+        print('z std:', np.std(z, axis=0).max())
+        # print(z@z.T)
 
-        y = gene_ae.decode(z)
-        
-
-        ## Store embeddings
-        # embedding_arr[ix,:] = z[0,0,:]
-        # gene_lens[ix] = len(inp)
+        plt.imshow(y[0,:30,:])
+        plt.show()
 
         ## Reconstruct the predicted sequences
-        # sample_genes = next(validation_fold.batch(5).as_numpy_iterator())
-        # sample_preds = gene_ae.predict(x)
         recon_tokens = np.argmax(y, axis=-1)
+        print("recon_tokens", recon_tokens.shape)
         recon_chars = np.asarray(gene_ae.encoder.vocabulary)[recon_tokens]
         recon_genes = ["".join(recon_chars[ix]).upper() for ix in range(x.numpy().shape[0])]
 
+        # in_str = x.numpy()[0].decode("ASCII")
+        # print(x.numpy()[0].decode("ASCII")[:30])
+        # # print(recon_tokens[0][:30])
+        # # print(recon_tokens[0][-30:])
+        # print(np.unique(list(in_str), return_counts=True))
+        # print(np.unique(recon_tokens[0], return_counts=True))
+        # print(vocab_arr)
+        # exit()
+
         for ix in range(5):
             print()
+            codon_pos_errs = np.array([0,0,0])
             recon_str = ""
+            p_count = 0
             for t,r in zip(x.numpy()[ix].decode("ASCII"), recon_genes[ix]):
                 if t != r: recon_str += f"\033[0;31m{r}\033[0m"
-                else: recon_str += f"\033[0;32m{r}\033[0m"
+                else: 
+                    recon_str += f"\033[0;32m{r}\033[0m"
+                    codon_pos_errs[p_count%3] += 1
+                p_count += 1
             print(x.numpy()[ix].decode("ASCII"))
             print(recon_str)
+            print("codon position errors:", codon_pos_errs)
 
         exit()
 

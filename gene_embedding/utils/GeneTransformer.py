@@ -219,7 +219,7 @@ class GeneTransformer(models.Model):
     
 
 
-    def preprocess_dataset(self, data:tf.data.Dataset, batch_size:int, validation_data:tf.data.Dataset=None, weighted:bool=True) -> tf.data.Dataset:
+    def preprocess_dataset(self, data:tf.data.Dataset, batch_size:int, validation_data:tf.data.Dataset=None, weighted:bool=True, shuffle:bool=True) -> tf.data.Dataset:
         ## Map the dataset to a label
         train_genes = data.map(lambda g,d,c: g)
         train_domains = data.map(lambda g,d,c: d)
@@ -255,8 +255,9 @@ class GeneTransformer(models.Model):
                 new_val_data = tf.data.Dataset.zip(val_genes, new_val_y)
 
         ## Shuffle and batch the training data
-        shuffle_buffer = min(new_data.cardinality(), batch_size*1000)
-        new_data = new_data.shuffle(buffer_size=shuffle_buffer)
+        if shuffle:
+            shuffle_buffer = min(new_data.cardinality(), batch_size*1000)
+            new_data = new_data.shuffle(buffer_size=shuffle_buffer)
         new_data = new_data.batch(batch_size=batch_size, drop_remainder=False).repeat()
         if validation_data is not None:     # Only batch the validation data
 
