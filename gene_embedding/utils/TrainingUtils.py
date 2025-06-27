@@ -72,7 +72,7 @@ def _masked_random(data, mask, dim=1):
     # Gather the defined indices
     out = tf.gather_nd(data, coords)
 
-    return out
+    return tf.expand_dims(out, axis=1)
 
 
 
@@ -490,7 +490,7 @@ if __name__=="__main__":
     # print("loss:    ", testloss(test_true, test_pred).numpy())
     # print("accuracy:", testacc(test_true, test_pred).numpy())
 
-
+    # 11581137
     
     # print(testmat)
     # print(mask)
@@ -509,6 +509,8 @@ if __name__=="__main__":
 
         # rnd_choice = _masked_random(testmat, notmask)
         rnd_choice = _masked_minimum(testmat, notmask)
+        print(rnd_choice.shape)
+        exit()
 
         rnd_choice_sum = tf.reduce_sum(rnd_choice)
 
