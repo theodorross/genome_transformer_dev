@@ -52,7 +52,7 @@ def _masked_minimum(data, mask, dim=1):
 def _masked_random(data, mask, dim=1):
 
     # Split the mask in to row vectors
-    vecs = tf.split(mask, 5, axis=0)
+    vecs = tf.split(mask, tf.shape(mask)[0], axis=0)
 
     # Define a linear coordinate vector for each row
     row_idx = tf.linspace(0, tf.shape(mask)[1]-1, tf.shape(mask)[1])
