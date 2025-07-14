@@ -292,6 +292,8 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
         pos_matches = tf.logical_and(pos_matches, inv_eye)
 
         # Compute the hard positive and negative distances for each anchor
+        print("z_dif shape:", z_dif.shape)
+        print("neg_matches shape:", neg_matches.shape)
         hard_pos_dists = _masked_maximum(z_dif, pos_matches)
         # hard_neg_dists = _masked_minimum(z_dif, neg_matches)
         rand_neg_dists = _masked_random(z_dif, neg_matches)
