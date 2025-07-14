@@ -51,22 +51,9 @@ def _masked_minimum(data, mask, dim=1):
 
 def _masked_random(data, mask, dim=1):
 
-    # Split the mask in to row vectors
-    # vecs = tf.split(mask, tf.shape(mask)[0], axis=0)
-    # vecs = tf.split(mask, mask.shape[0], axis=0)
-    # vecs = mask[::1,]
-
     # Define a linear coordinate vector for each row
     row_idx = tf.linspace(0, tf.shape(mask)[1]-1, tf.shape(mask)[1])
     row_idx = tf.expand_dims( tf.cast(row_idx, dtype=tf.int32), axis=1)
-
-    # # Randomly choose a masked entry in each row
-    # col_idx = []
-    # for v in vecs:
-    #     logits = tf.cast(v, tf.float32) / tf.reduce_sum(tf.cast(v, tf.float32))
-    #     logits = tf.math.log(logits + 1e-10)
-    #     col_idx.append( tf.random.categorical(logits=logits, num_samples=1, dtype=tf.int32) )
-    # col_idx = tf.concat(col_idx, axis=0)
 
     ## Define a function to randomly choose a masked element from a vector
     def choose_fn(vec):
