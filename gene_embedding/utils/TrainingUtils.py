@@ -52,7 +52,8 @@ def _masked_minimum(data, mask, dim=1):
 def _masked_random(data, mask, dim=1):
 
     # Split the mask in to row vectors
-    vecs = tf.split(mask, tf.shape(mask)[0], axis=0)
+    # vecs = tf.split(mask, tf.shape(mask)[0], axis=0)
+    vecs = tf.split(mask, mask.shape[0], axis=0)
 
     # Define a linear coordinate vector for each row
     row_idx = tf.linspace(0, tf.shape(mask)[1]-1, tf.shape(mask)[1])
@@ -292,8 +293,6 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
         pos_matches = tf.logical_and(pos_matches, inv_eye)
 
         # Compute the hard positive and negative distances for each anchor
-        print("z_dif shape:", z_dif.shape)
-        print("neg_matches shape:", neg_matches.shape)
         hard_pos_dists = _masked_maximum(z_dif, pos_matches)
         # hard_neg_dists = _masked_minimum(z_dif, neg_matches)
         rand_neg_dists = _masked_random(z_dif, neg_matches)
