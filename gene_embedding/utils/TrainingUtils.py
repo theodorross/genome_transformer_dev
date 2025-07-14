@@ -53,19 +53,31 @@ def _masked_random(data, mask, dim=1):
 
     # Split the mask in to row vectors
     # vecs = tf.split(mask, tf.shape(mask)[0], axis=0)
-    vecs = tf.split(mask, mask.shape[0], axis=0)
+    # vecs = tf.split(mask, mask.shape[0], axis=0)
+    # vecs = mask[::1,]
 
     # Define a linear coordinate vector for each row
     row_idx = tf.linspace(0, tf.shape(mask)[1]-1, tf.shape(mask)[1])
     row_idx = tf.expand_dims( tf.cast(row_idx, dtype=tf.int32), axis=1)
 
-    # Randomly choose a masked entry in each row
-    col_idx = []
-    for v in vecs:
-        logits = tf.cast(v, tf.float32) / tf.reduce_sum(tf.cast(v, tf.float32))
-        logits = tf.math.log(logits + 1e-10)
-        col_idx.append( tf.random.categorical(logits=logits, num_samples=1, dtype=tf.int32) )
-    col_idx = tf.concat(col_idx, axis=0)
+    # # Randomly choose a masked entry in each row
+    # col_idx = []
+    # for v in vecs:
+    #     logits = tf.cast(v, tf.float32) / tf.reduce_sum(tf.cast(v, tf.float32))
+    #     logits = tf.math.log(logits + 1e-10)
+    #     col_idx.append( tf.random.categorical(logits=logits, num_samples=1, dtype=tf.int32) )
+    # col_idx = tf.concat(col_idx, axis=0)
+
+    ## Define a function to randomly choose a masked element from a vector
+    def choose_fn(vec):
+        logits = tf.cast(vec, tf.float32) / tf.reduce_sum(tf.cast(vec, tf.float32))
+        logits = tf.expand_dims(tf.math.log(logits + 1e-10), axis=0)
+        choice = tf.random.categorical(logits=logits, num_samples=1, dtype=tf.int32)
+        return tf.squeeze(choice)
+    
+    ## Apply choose_fn to each row of the mask matrix
+    col_idx = tf.map_fn(choose_fn, tf.cast(mask, tf.int32))
+    col_idx = tf.expand_dims(col_idx, axis=1)
 
     # Concatenate them into a row/column coordiante array
     coords = tf.concat([row_idx, col_idx], axis=1)
@@ -508,8 +520,8 @@ if __name__=="__main__":
         notmask = tf.logical_not(mask)
         mask = tf.logical_and(mask, tf.logical_not(tf.eye(5, dtype=bool)))
 
-        # rnd_choice = _masked_random(testmat, notmask)
-        rnd_choice = _masked_minimum(testmat, notmask)
+        rnd_choice = _masked_random(testmat, notmask)
+        # rnd_choice = _masked_minimum(testmat, notmask)
         print(rnd_choice.shape)
         exit()
 
