@@ -293,18 +293,18 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
 
         # Compute the hard positive and negative distances for each anchor
         hard_pos_dists = _masked_maximum(z_dif, pos_matches)
-        # hard_neg_dists = _masked_minimum(z_dif, neg_matches)
-        rand_neg_dists = _masked_random(z_dif, neg_matches)
+        hard_neg_dists = _masked_minimum(z_dif, neg_matches)
+        # rand_neg_dists = _masked_random(z_dif, neg_matches)
 
         # Only use anchors with a positive match
         pos_idx = tf.where( tf.greater(hard_pos_dists, 0) )
         hard_pos_dists = tf.gather_nd(hard_pos_dists, pos_idx)
-        # hard_neg_dists = tf.gather_nd(hard_neg_dists, pos_idx)
-        rand_neg_dists = tf.gather_nd(rand_neg_dists, pos_idx)
+        hard_neg_dists = tf.gather_nd(hard_neg_dists, pos_idx)
+        # rand_neg_dists = tf.gather_nd(rand_neg_dists, pos_idx)
         
         # Compute the margined difference between the mean postive-pair and negative-pair distances
-        # loss = tf.reduce_mean(hard_pos_dists - hard_neg_dists + self.margin)
-        loss = tf.reduce_mean(hard_pos_dists - rand_neg_dists + self.margin)
+        loss = tf.reduce_mean(hard_pos_dists - hard_neg_dists + self.margin)
+        # loss = tf.reduce_mean(hard_pos_dists - rand_neg_dists + self.margin)
         loss = tf.maximum(loss, 0)
         loss = tf.keras.ops.nan_to_num(loss, nan=0.0)   # just in case there are no positive distances, force the value to 0
         return loss
