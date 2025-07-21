@@ -275,36 +275,70 @@ class OnlineMarginTripletLoss(tf.keras.losses.Loss):
     def call(self, y_true, y_pred):
         ## Assume a decently large batch size of y_pred
       
-        # Compute pairwise distances
+        ## Compute pairwise distances
         z0 = tf.expand_dims(y_pred, axis=0)
         z1 = tf.expand_dims(y_pred, axis=1)
         z_dif = tf.square( tf.norm(z0-z1, ord=self.p_norm, axis=-1) )
 
-        # Compute masks for samples with shared features
+        ## Compute masks for samples with shared features
         b0 = tf.expand_dims(y_true, axis=0)
         b1 = tf.expand_dims(y_true, axis=1)
         pos_matches = tf.greater( tf.reduce_sum( tf.multiply(b0, b1), axis=-1), 0 )
         neg_matches = tf.logical_not(pos_matches)
 
-        # Force the diagonal to be zero for the positive match mask
+        ## Force the diagonal to be zero for the positive match mask
         eye = tf.eye(tf.shape(y_true)[0], dtype=bool)
         inv_eye = tf.logical_not(eye)
         pos_matches = tf.logical_and(pos_matches, inv_eye)
 
-        # Compute the hard positive and negative distances for each anchor
+        ## Compute the hard positive distances for each anchor
         hard_pos_dists = _masked_maximum(z_dif, pos_matches)
-        hard_neg_dists = _masked_minimum(z_dif, neg_matches)
+        # hard_neg_dists = _masked_minimum(z_dif, neg_matches)
         # rand_neg_dists = _masked_random(z_dif, neg_matches)
 
-        # Only use anchors with a positive match
+        ## Compute the semi-hard negative distances for each anchor
+        # Tile the distance matrix
+        batch_size = tf.shape(y_true)[0]
+        neg_matches_tile = tf.tile(neg_matches, [batch_size, 1])
+        z_dif_tile = tf.tile(z_dif, [batch_size, 1])
+        mask = tf.math.logical_and(
+            neg_matches_tile,
+            tf.math.greater(z_dif_tile, tf.reshape(tf.transpose(z_dif), [-1, 1]))
+        )
+        mask_final = tf.reshape(
+            tf.math.greater(
+                tf.math.reduce_sum(
+                    tf.cast(mask, dtype=tf.dtypes.float32), 1, keepdims=True
+                ),
+                0.0,
+            ),
+            [batch_size, batch_size],
+        )
+        mask_final = tf.transpose(mask_final)
+
+        # negatives_outside: smallest D_an where D_an > D_ap.
+        negatives_outside = tf.reshape(
+            _masked_minimum(z_dif_tile, mask), [batch_size, batch_size]
+        )
+        negatives_outside = tf.transpose(negatives_outside)
+
+        # negatives_inside: largest D_an.
+        negatives_inside = tf.tile(
+            _masked_maximum(z_dif, neg_matches), [1, batch_size]
+        )
+        semi_hard_negatives = tf.where(mask_final, negatives_outside, negatives_inside)
+
+        ## Only use anchors with a positive match
         pos_idx = tf.where( tf.greater(hard_pos_dists, 0) )
         hard_pos_dists = tf.gather_nd(hard_pos_dists, pos_idx)
-        hard_neg_dists = tf.gather_nd(hard_neg_dists, pos_idx)
+        # hard_neg_dists = tf.gather_nd(hard_neg_dists, pos_idx)
         # rand_neg_dists = tf.gather_nd(rand_neg_dists, pos_idx)
+        semi_hard_negative_dists = tf.gather_nd(semi_hard_negatives, pos_idx)
         
-        # Compute the margined difference between the mean postive-pair and negative-pair distances
-        loss = tf.reduce_mean(hard_pos_dists - hard_neg_dists + self.margin)
+        ## Compute the margined difference between the mean postive-pair and negative-pair distances
+        # loss = tf.reduce_mean(hard_pos_dists - hard_neg_dists + self.margin)
         # loss = tf.reduce_mean(hard_pos_dists - rand_neg_dists + self.margin)
+        loss = tf.reduce_mean(hard_pos_dists - semi_hard_negative_dists + self.margin)
         loss = tf.maximum(loss, 0)
         loss = tf.keras.ops.nan_to_num(loss, nan=0.0)   # just in case there are no positive distances, force the value to 0
         return loss
@@ -499,27 +533,44 @@ if __name__=="__main__":
     # print(_masked_minimum(testmat, mask))
     # print(_masked_random(testmat, notmask))
 
+    testloss = OnlineMarginTripletLoss(1.0)
+    y_true = tf.convert_to_tensor([[1,0,0,1,0,0],
+                                   [0,0,0,1,0,1],
+                                   [0,1,0,0,0,1],
+                                   [1,1,0,0,0,0]])
+    y_pred = tf.convert_to_tensor(np.random.random((4,6)))
+
+    print("y_true")
+    print(y_true)
+
     # test gradients
     with tf.GradientTape() as tape:
-        testmat = tf.random.uniform((5,5))
-        mask = tf.convert_to_tensor([[2,1,1,2,3]])
-        mask = tf.equal(mask, tf.transpose(mask))
-        notmask = tf.logical_not(mask)
-        mask = tf.logical_and(mask, tf.logical_not(tf.eye(5, dtype=bool)))
+        # testmat = tf.random.uniform((5,5))
+        # mask = tf.convert_to_tensor([[2,1,1,2,3]])
+        # mask = tf.equal(mask, tf.transpose(mask))
+        # notmask = tf.logical_not(mask)
+        # mask = tf.logical_and(mask, tf.logical_not(tf.eye(5, dtype=bool)))
 
-        rnd_choice = _masked_random(testmat, notmask)
+        # rnd_choice = _masked_random(testmat, notmask)
         # rnd_choice = _masked_minimum(testmat, notmask)
-        print(rnd_choice.shape)
-        exit()
+        # print(rnd_choice.shape)
+        # exit()
 
-        rnd_choice_sum = tf.reduce_sum(rnd_choice)
+        # rnd_choice_sum = tf.reduce_sum(rnd_choice)
 
-        print(testmat)
-        print(rnd_choice)
-        print(rnd_choice_sum)
-        grad = tape.gradient(rnd_choice_sum, testmat)
-        print("gradient debug:")
-        print(grad)
+        # print(testmat)
+        # print(rnd_choice)
+        # print(rnd_choice_sum)
+        # grad = tape.gradient(rnd_choice_sum, testmat)
+        # loss = t
+        # print("gradient debug:")
+        # print(grad)
+
+        ## Test triplet loss gradient
+        tape.watch(y_pred)
+        l = testloss.call(y_true, y_pred)
+        print("loss:", l)
+        print("grad:", tape.gradient(l, y_pred))
 
         pass
     
