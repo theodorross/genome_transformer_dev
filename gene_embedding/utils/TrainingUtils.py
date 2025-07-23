@@ -381,8 +381,9 @@ class MaskedBinaryCrossentropy(tf.keras.losses.Loss):
         loss = tf.multiply(loss, mask)
 
         ## Compute the mean of the loss across the masked values
-        n_categs = tf.cast(tf.shape(y_true)[-1], tf.float32)
-        loss = tf.divide( tf.reduce_sum(loss), tf.reduce_sum(mask)*n_categs )
+        # n_categs = tf.cast(tf.shape(y_true)[-1], tf.float32)
+        # loss = tf.divide( tf.reduce_sum(loss), tf.reduce_sum(mask)*n_categs )
+        loss = tf.divide( tf.reduce_sum(loss), tf.reduce_sum(mask) )
         return loss
     
     def get_config(self):
