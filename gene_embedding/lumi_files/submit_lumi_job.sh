@@ -26,6 +26,6 @@ sbatch lumi_files/LUMI_batch_job.sh
 export ARGS_YAML=lumi_files/args_R.yml
 sbatch lumi_files/LUMI_batch_job.sh
 
-export ARGS_YAML=lumi_files/args_C.yml
-sbatch lumi_files/LUMI_batch_job.sh
+# export ARGS_YAML=lumi_files/args_C.yml
+# sbatch lumi_files/LUMI_batch_job.sh
 
