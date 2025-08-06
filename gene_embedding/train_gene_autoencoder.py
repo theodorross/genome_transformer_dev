@@ -167,9 +167,10 @@ if __name__ == "__main__":
 
     if (args.learning_rate_decay is not None) and (args.learning_rate_decay_start is not None):
         if args.dataset.lower() == "dev":
-            schedule_func = lambda e,lr: lr*0.95 if (e%50==49 and e>args.learning_rate_decay_start) else lr*1.0
+            print("'dev' dataset is depreciated.")
+            exit()
         else:
-            schedule_func = lambda e,lr: lr*0.95 if (e%50==49 and e>args.learning_rate_decay_start) else lr*1.0
+            schedule_func = lambda e,lr: lr*args.learning_rate_decay if (e%100==99 and e>args.learning_rate_decay_start) else lr*1.0
         lr_scheduler = keras.callbacks.LearningRateScheduler(schedule_func)
         callbacks.append(lr_scheduler)
 
