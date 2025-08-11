@@ -1,3 +1,4 @@
+--wandb-run=jgzl7d1e
 --functional-loss-weight=0
 --reconstruction-loss-weight=1
 --clustering-loss-weight=1
