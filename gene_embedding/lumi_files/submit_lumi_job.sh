@@ -11,11 +11,11 @@ git pull origin working
 # export ARGS_YAML=lumi_files/args_FRC.yml
 # sbatch lumi_files/LUMI_batch_job.sh
 
-export ARGS_YAML=lumi_files/args_FR.yml
-sbatch lumi_files/LUMI_batch_job.sh
+# export ARGS_YAML=lumi_files/args_FR.yml
+# sbatch lumi_files/LUMI_batch_job.sh
 
-export ARGS_YAML=lumi_files/args_FC.yml
-sbatch lumi_files/LUMI_batch_job.sh
+# export ARGS_YAML=lumi_files/args_FC.yml
+# sbatch lumi_files/LUMI_batch_job.sh
 
 # export ARGS_YAML=lumi_files/args_RC.yml
 # sbatch lumi_files/LUMI_batch_job.sh
@@ -29,3 +29,5 @@ sbatch lumi_files/LUMI_batch_job.sh
 # export ARGS_YAML=lumi_files/args_C.yml
 # sbatch lumi_files/LUMI_batch_job.sh
 
+export ARGS_YAML=lumi_files/args_frac.yml
+sbatch lumi_files/LUMI_batch_job.sh
