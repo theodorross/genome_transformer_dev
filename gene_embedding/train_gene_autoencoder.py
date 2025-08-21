@@ -244,7 +244,7 @@ if __name__ == "__main__":
             if args.functional_loss_weight == 0:
                 callbacks[-1].set_validation_data(_validation_fold)
 
-            _last_epoch = _epoch_count + _epochs_per_length
+            _last_epoch = min(_epoch_count + _epochs_per_length, args.epochs)
             _hist = gene_ae.fit(_training_fold, validation_data=_validation_fold, epochs=_last_epoch, 
                                 callbacks=callbacks+[chkpt_callback], verbose=1, initial_epoch=_epoch_count,
                                 steps_per_epoch=100, validation_freq=5)
