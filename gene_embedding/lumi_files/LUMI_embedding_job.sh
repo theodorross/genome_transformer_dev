@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=GeneAE
-#SBATCH --output=lumi_files/logs/gene_embedding.o%j # Name of stdout output file
-#SBATCH --error=lumi_files/logs/gene_embedding.e%j  # Name of stderr error file
+#SBATCH --output=lumi_files/logs/save_embeddings.o%j # Name of stdout output file
+#SBATCH --error=lumi_files/logs/save_embeddings.e%j  # Name of stderr error file
 #SBATCH --account=project_465001915
 #SBATCH --time=01:00:00
 #SBATCH --nodes=1
