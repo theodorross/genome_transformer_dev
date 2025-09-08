@@ -69,8 +69,12 @@ if __name__ == "__main__":
     gene_dataset = tf.data.Dataset.load("../data/gene_sequences/training_dataset")
     gene_dataset = gene_dataset.filter(lambda g,d,c: tf.strings.length(g) <= 5000)
     dataset_cuts = [gene_dataset.shard(5, k) for k in range(5)]
-    # train_set = concatenate_datasets(*dataset_cuts[:-1])
+    train_set = concatenate_datasets(*dataset_cuts[:-1])
     val_set = dataset_cuts[-1]
+
+    ## Preprocess the dataset
+    _gene_ae = keras.models.load_model(model_paths['c'])
+    train_set, val_set = _gene_ae.preprocess_dataset(train_set, 128, validation_data=val_set, weighted=False, shuffle=False)
 
 
     '''
