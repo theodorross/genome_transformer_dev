@@ -1,4 +1,5 @@
 import os
+import sys
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
 
 import numpy as np
@@ -148,8 +149,7 @@ if __name__ == "__main__":
     if args.dataset == "full":
         gene_dataset = gene_dataset.filter(lambda g,d,c: tf.strings.length(g) <= args.max_seq_length).cache()
     elif args.dataset == "dev":
-        print("'dev' dataset is depreciated.")
-        exit()
+        sys.exit("'dev' dataset is depreciated.")
         gene_dataset = gene_dataset.map(clip_gene(args.max_seq_length))
 
     ## Cut the dataset into k cross-folds
@@ -167,8 +167,7 @@ if __name__ == "__main__":
 
     if (args.learning_rate_decay is not None) and (args.learning_rate_decay_start is not None):
         if args.dataset.lower() == "dev":
-            print("'dev' dataset is depreciated.")
-            exit()
+            sys.exit("'dev' dataset is depreciated.")
         else:
             schedule_func = lambda e,lr: lr*args.learning_rate_decay if (e%100==99 and e>args.learning_rate_decay_start) else lr*1.0
         lr_scheduler = keras.callbacks.LearningRateScheduler(schedule_func)
@@ -248,7 +247,12 @@ if __name__ == "__main__":
             _hist = gene_ae.fit(_training_fold, validation_data=_validation_fold, epochs=_last_epoch, 
                                 callbacks=callbacks+[chkpt_callback], verbose=1, initial_epoch=_epoch_count,
                                 steps_per_epoch=100, validation_freq=5)
-            _epoch_count += len( _hist.history["loss"] )
+            if 'loss' in _hist.history.keys():
+                _epoch_count += len( _hist.history["loss"] )
+            else:
+                print(list(_hist.history.keys()))
+                sys.exit("'loss' key not in training history.")
+                
             
             ## Store the training history
             for key,val in _hist.history.items():
