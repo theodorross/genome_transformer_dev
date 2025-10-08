@@ -2,7 +2,7 @@
 #SBATCH --job-name=GeneAE
 #SBATCH --output=lumi_files/logs/gene_embedding.o%j # Name of stdout output file
 #SBATCH --error=lumi_files/logs/gene_embedding.e%j  # Name of stderr error file
-#SBATCH --account=project_465001915
+#SBATCH --account=project_465002309
 #SBATCH --time=72:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -30,12 +30,12 @@ export NCLL_DEBUG=WARN
 # CPU_BIND_MASKS="0x00fe000000000000,0xfe00000000000000,0x0000000000fe0000,0x00000000fe000000,0x00000000000000fe,0x000000000000fe00,0x000000fe00000000,0x0000fe0000000000"
 
 ## Define directories of interest
-GITDIR=/scratch/project_465001915/rosstheo/genome_transformer_dev
-export SIF=/scratch/project_465001915/rosstheo/genome_transformer_dev/container/lumi-tensorflow-rocm-6.2.0-python-3.10-tensorflow-2.16.1-horovod-0.28.1.sif
+GITDIR=/scratch/project_465002309/rosstheo/genome_transformer_dev
+export SIF=/scratch/project_465002309/rosstheo/genome_transformer_dev/container/lumi-tensorflow-rocm-6.2.0-python-3.10-tensorflow-2.16.1-horovod-0.28.1.sif
 
 ## Run the training script
 srun singularity exec \
-    -B /scratch/project_465001915/rosstheo \
+    -B /scratch/project_465002309/rosstheo \
     $SIF /bin/bash \
     lumi_files/login_and_train.sh
 
