@@ -2,7 +2,7 @@
 #SBATCH --job-name=GeneAE
 #SBATCH --output=lumi_files/logs/save_embeddings.o%j # Name of stdout output file
 #SBATCH --error=lumi_files/logs/save_embeddings.e%j  # Name of stderr error file
-#SBATCH --account=project_465001915
+#SBATCH --account=project_465002309
 #SBATCH --time=01:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -17,12 +17,12 @@ module load singularity-AI-bindings
 
 
 ## Define directories of interest
-GITDIR=/scratch/project_465001915/rosstheo/genome_transformer_dev
-export SIF=/scratch/project_465001915/rosstheo/genome_transformer_dev/container/lumi-tensorflow-rocm-6.2.0-python-3.10-tensorflow-2.16.1-horovod-0.28.1.sif
+GITDIR=/scratch/project_465002309/rosstheo/genome_transformer_dev
+export SIF=/scratch/project_465002309/rosstheo/genome_transformer_dev/container/lumi-tensorflow-rocm-6.2.0-python-3.10-tensorflow-2.16.1-horovod-0.28.1.sif
 
 ## Run the training script
 srun singularity exec \
-    -B /scratch/project_465001915/rosstheo \
+    -B /scratch/project_465002309/rosstheo \
     $SIF /bin/bash \
     lumi_files/login_and_compute_embeddings.sh
 
