@@ -61,6 +61,9 @@ def zip_hmmer_and_fasta(fasta_file, hmmer_table, eggnog_table):
     '''Build the Tensorflow dataset''' 
     ## Create a template for the one-hot encodings
     _template = pd.Series(0, index=hmmer_df["query name"].unique())
+    # print("saving...")
+    # _template.to_csv("hmmer_template.csv")
+    # exit()
 
     ## Initialize lists of sequence and domain data
     seq_list = []
@@ -105,11 +108,11 @@ def zip_hmmer_and_fasta(fasta_file, hmmer_table, eggnog_table):
 
 if __name__=="__main__":
     ## Build and save the test data
-    test_data = zip_hmmer_and_fasta("gene_sequences/test_genes.fna", 
-                                    "hmmer/dom_test_hmmsearch_Pfam-A.tab", 
-                                    "eggnog/output_test.emapper.annotations")
-    test_data.save("gene_sequences/test_dataset")
-    del test_data
+    # test_data = zip_hmmer_and_fasta("gene_sequences/test_genes.fna", 
+    #                                 "hmmer/dom_test_hmmsearch_Pfam-A.tab", 
+    #                                 "eggnog/output_test.emapper.annotations")
+    # test_data.save("gene_sequences/test_dataset")
+    # del test_data
 
     ## Build and save the training data
     train_data = zip_hmmer_and_fasta("gene_sequences/training_genes.fna", 
