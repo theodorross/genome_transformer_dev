@@ -45,12 +45,16 @@ def eval_cog_preds(preds, labels):
     labelled_no_pred = labeled_preds.sum(axis=1) == 0
 
     ## Create a csv for saving summary information
-    csv_str = ",total,percent\n"
+    csv_str = "metric,total,percent\n"
     csv_str += f"total genes,{len(preds)},\n"
+
+    csv_str += "genes completely correct,"
+    csv_str += f"{full_correct.sum()},"
+    csv_str += f"{full_correct.mean()*100}\n"
 
     csv_str += "genes with labels,"
     csv_str += f"{(labels.sum(axis=1)!=0).sum()},"
-    csv_str += f"{(labels.sum(axis=1)!=0).mean()*100}%\n"
+    csv_str += f"{(labels.sum(axis=1)!=0).mean()*100}\n"
 
     csv_str += "genes with no prediction,"
     csv_str += f"{(preds.sum(axis=1)==0).sum()},"
@@ -58,7 +62,7 @@ def eval_cog_preds(preds, labels):
 
     csv_str += "genes with labels and no prediction,"
     csv_str += f"{labelled_no_pred.sum()},"
-    csv_str += f"{labelled_no_pred.mean()*100}"
+    csv_str += f"{labelled_no_pred.mean()*100}\n"
 
     ## Find all unique combination of COG category
     categs = np.asarray([c for c in 'ABCDEFGHIJKLMNOPQTUVWYZ'])
