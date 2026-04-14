@@ -5,3 +5,4 @@ from utils.TransformerBlock import TransformerEncoderBlock, TransformerDecoderBl
 from utils.SequenceDecoder import SequenceDecoder
 from utils.SequenceEncoder import SequenceEncoder
 from utils.RotaryPositionEmbedding import RotaryPositionEncoding
+from utils.Omega import Omega
