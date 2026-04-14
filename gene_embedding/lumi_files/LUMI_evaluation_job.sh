@@ -8,7 +8,7 @@
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-task=1
 #SBATCH --cpus-per-task=7
-#SBATCH --mem=120G
+#SBATCH --mem=240G
 #SBATCH --partition=small-g
 
 
