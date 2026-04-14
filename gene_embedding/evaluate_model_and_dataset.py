@@ -54,7 +54,7 @@ def eval_cog_preds(preds, labels):
 
     csv_str += "genes with no prediction,"
     csv_str += f"{(preds.sum(axis=1)==0).sum()},"
-    csv_str += f"{(preds.sum(axis=1)==0).mean()*100}%"
+    csv_str += f"{(preds.sum(axis=1)==0).mean()*100}\n"
 
     csv_str += "genes with labels and no prediction,"
     csv_str += f"{labelled_no_pred.sum()},"
