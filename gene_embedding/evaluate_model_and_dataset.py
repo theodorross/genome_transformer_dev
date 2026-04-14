@@ -286,7 +286,7 @@ if __name__ == "__main__":
     '''
     Evaluate the model performance
     '''
-    cog_summary,categ_df = eval_reconstructions(reconstructions, reconstruction_targets, gene_ae.encoder.vocabulary)
+    cog_summary,categ_df = eval_cog_preds(cog_preds, cog_labels)
     reconstruction_df, recon_chart = eval_reconstructions(reconstructions, reconstruction_targets, gene_ae.encoder.vocabulary)
     domain_df, domain_chart = eval_domains(embeddings, domain_labels)
 
