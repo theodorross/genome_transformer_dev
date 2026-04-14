@@ -296,7 +296,7 @@ if __name__ == "__main__":
     '''
     ## Define the save path and ensure it exists
     model_name = args.model_path.split("/")[-1].split("_")[1]
-    dataset_name = args.dataset_path.split("/")[-1].rstrip("_dataset")
+    dataset_name = args.dataset_path.split("/")[-1].replace("_dataset", "")
     savepath = f"evaluation/{model_name}/{dataset_name}"
 
     if not os.path.exists(savepath):
