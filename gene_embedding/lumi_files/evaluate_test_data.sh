@@ -8,7 +8,7 @@ source wandb-env/bin/activate
 modelpath="models/geneAE_curious-totem-5139_fold0.keras"
 
 ## Define the datasets to use
-datafolder="/scratch/project_465002309/rosstheo/genome_transformer_dev/data"
+datafolder="/scratch/project_465002861/rosstheo/genome_transformer_dev/data"
 test_set="$datafolder/gene_sequences/test_dataset"
 vfluvialis_set="$datafolder/test-species/tensorflow_datasets/vagococcus-fluvialis_dataset"
 spneumoniae_set="$datafolder/test-species/tensorflow_datasets/streptococcus-pneumoniae_dataset"
