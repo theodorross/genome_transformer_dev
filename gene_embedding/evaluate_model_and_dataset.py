@@ -200,7 +200,7 @@ def eval_domains(z, y):
     # Format the final chart
     chart = top_bar & (points | right_bar)
 
-    return nearest_neighbor_matching_fracs, chart
+    return df, chart
 
 
 
