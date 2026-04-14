@@ -221,6 +221,8 @@ if __name__ == "__main__":
     # defdir = "/scratch/project_465002309/rosstheo/genome_transformer_dev/data/gene_sequences/test_dataset"
     # parser.add_argument("--dataset-path", default=defdir, type=str, help="Dataset to evalueate on.", required=False)
     args = parser.parse_args()
+    print("Model:", args.model_path)
+    print("Dataset:", args.dataset_path)
 
 
     '''
@@ -299,6 +301,8 @@ if __name__ == "__main__":
 
     if not os.path.exists(savepath):
         os.mkdir(savepath)
+
+    print(f"Saving to {savepath}")
 
     ## Save the COG prediction information
     with open(f"{savepath}/cog_summary.csv","w") as f:
