@@ -250,8 +250,7 @@ if __name__ == "__main__":
 
     # Take the last fifth of the data if using the training set
     if "test" in args.dataset_path:
-        gene_dataset = gene_dataset.shard(5, 5)
-
+        gene_dataset = gene_dataset.shard(5, 4)
 
     # Preprocess the dataset
     print("preprocessing...", end=" ")
