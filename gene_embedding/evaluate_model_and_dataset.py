@@ -225,7 +225,7 @@ if __name__ == "__main__":
     # defdir = "/scratch/project_465002309/rosstheo/genome_transformer_dev/data/gene_sequences/test_dataset"
     # parser.add_argument("--dataset-path", default=defdir, type=str, help="Dataset to evalueate on.", required=False)
     args = parser.parse_args()
-    print("Model:", args.model_path)
+    print("\nModel:", args.model_path)
     print("Dataset:", args.dataset_path)
 
 
@@ -247,6 +247,10 @@ if __name__ == "__main__":
 
     # Filter the dataset to only keep genes up to 5000 nucleotides long and 
     gene_dataset = ds.filter(lambda g,d,c: tf.strings.length(g) <= 5000)
+
+    # Take the last fifth of the data if using the training set
+    if "test" in args.dataset_path:
+        gene_dataset = gene_dataset.shard(5, 5)
 
 
     # Preprocess the dataset
@@ -288,15 +292,7 @@ if __name__ == "__main__":
 
     
     '''
-    Evaluate the model performance
-    '''
-    cog_summary,categ_df = eval_cog_preds(cog_preds, cog_labels)
-    reconstruction_df, recon_chart = eval_reconstructions(reconstructions, reconstruction_targets, gene_ae.encoder.vocabulary)
-    domain_df, domain_chart = eval_domains(embeddings, domain_labels)
-
-
-    '''
-    Save the outputs
+    Evaluate and save the model performance
     '''
     ## Define the save path and ensure it exists
     model_name = args.model_path.split("/")[-1].split("_")[1]
@@ -305,21 +301,32 @@ if __name__ == "__main__":
 
     if not os.path.exists(savepath):
         os.mkdir(savepath)
-
     print(f"Saving to {savepath}")
 
-    ## Save the COG prediction information
-    with open(f"{savepath}/cog_summary.csv","w") as f:
-        f.write(cog_summary)
-    categ_df.to_csv(f"{savepath}/cog_categories_scores.csv")
+    ## Evaluate the COG category predictions
+    try:
+        cog_summary,categ_df = eval_cog_preds(cog_preds, cog_labels)
+        with open(f"{savepath}/cog_summary.csv","w") as f:
+            f.write(cog_summary)
+        categ_df.to_csv(f"{savepath}/cog_categories_scores.csv")
+    except:
+        print("Failed at COG evaluation.")
 
-    ## Save domain reconstruction performance information
-    reconstruction_df.to_csv(f"{savepath}/reconstruction_data.csv")
-    recon_chart.save(f"{savepath}/reconstruction_fig.png")
+    ## Evaluate the reconstruction performance
+    try:
+        reconstruction_df, recon_chart = eval_reconstructions(reconstructions, reconstruction_targets, gene_ae.encoder.vocabulary)
+        reconstruction_df.to_csv(f"{savepath}/reconstruction_data.csv")
+        recon_chart.save(f"{savepath}/reconstruction_fig.png")
+    except:
+        print("Failed at reconstruction evaluation.")
 
-    ## Save the domain clustering performance
-    domain_chart.save(f"{savepath}/domain_clustering_fig.png")
-    domain_df.to_csv(f"{savepath}/domain_clustering_summary.csv")
+    ## Evaluate the domain clustering performance
+    try:
+        domain_df, domain_chart = eval_domains(embeddings, domain_labels)
+        domain_chart.save(f"{savepath}/domain_clustering_fig.png")
+        domain_df.to_csv(f"{savepath}/domain_clustering_summary.csv")
+    except:
+        print("Failed at domain evaluation.")
 
 
     
