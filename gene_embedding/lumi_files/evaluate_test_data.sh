@@ -25,6 +25,6 @@ eavium_set="$datafolder/test-species/tensorflow_datasets/enterococcus-avium_data
 # python evaluate_model_and_dataset.py --model-path $modelpath --dataset-path $eavium_set
 # python evaluate_model_and_dataset.py --model-path $modelpath --dataset-path $spneumoniae_set
 # python evaluate_model_and_dataset.py --model-path $modelpath --dataset-path $test_set
-# python evaluate_model_and_dataset.py --model-path $modelpath --dataset-path $efaecalis_set
+python evaluate_model_and_dataset.py --model-path $modelpath --dataset-path $efaecalis_set
 python evaluate_model_and_dataset.py --model-path $modelpath --dataset-path $training_set
 
