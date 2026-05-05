@@ -97,7 +97,8 @@ def eval_reconstructions(preds, labels, vocab):
     ## Compute the gene lengths and the reconstruction accuracies per gene
     true_tokens = pred_idx == labels
     mask = labels != 0
-    gene_lens = mask.sum(axis=1)
+    true_tokens = true_tokens * mask       # Mask the token predictions
+    gene_lens = mask.sum(axis=1, keepdims=True)
     gene_accs = true_tokens.sum(axis=1) / gene_lens
 
     # fig,ax = plt.subplots(1,1)

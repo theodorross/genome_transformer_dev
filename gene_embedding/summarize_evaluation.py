@@ -26,19 +26,19 @@ if __name__ == "__main__":
     '''
     Summarize model performance for plotting
     '''
-    # eval_folders = ["test",
-    #                 "enterococcus-durans",
-    #                 "enterococcus-hirae",
-    #                 "enterococcus-avium",
-    #                 "enterococcus-faecalis",
-    #                 "vagococcus-fluvialis",
-    #                 "streptococcus-pneumoniae"]
     eval_folders = ["test",
                     "enterococcus-durans",
                     "enterococcus-hirae",
                     "enterococcus-avium",
                     "enterococcus-faecalis",
-                    "vagococcus-fluvialis"]
+                    "vagococcus-fluvialis",
+                    "streptococcus-pneumoniae"]
+    # eval_folders = ["test",
+    #                 "enterococcus-durans",
+    #                 "enterococcus-hirae",
+    #                 "enterococcus-avium",
+    #                 "enterococcus-faecalis",
+    #                 "vagococcus-fluvialis"]
 
   
     ## Initialize a dictionary for storing data to plot
@@ -170,6 +170,15 @@ if __name__ == "__main__":
         y="independent"
     ).configure_legend(
         labelFontStyle="italic"
+    ).configure_legend(
+        labelFontStyle="italic",
+        labelFontSize=16,
+        titleFontSize=20
+    ).configure_axis(
+        titleFontSize=20,
+        labelFontSize=16
+    ).configure_header(
+        labelFontSize=20
     )
     gc_outplot = (gc_scatter + gc_hbars + gc_vbars).facet(
         column = alt.Column("task:N", title=None)
@@ -177,7 +186,14 @@ if __name__ == "__main__":
         x="independent",
         y="independent"
     ).configure_legend(
-        labelFontStyle="italic"
+        labelFontStyle="italic",
+        labelFontSize=16,
+        titleFontSize=20
+    ).configure_axis(
+        titleFontSize=20,
+        labelFontSize=16
+    ).configure_header(
+        labelFontSize=20
     )
 
     ani_outplot.save(f"evaluation/{MODEL_NAME}/ani_summary_plot.png")
