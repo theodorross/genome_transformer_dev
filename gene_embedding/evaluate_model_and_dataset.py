@@ -313,12 +313,12 @@ if __name__ == "__main__":
         print("Failed at COG evaluation.")
 
     ## Evaluate the reconstruction performance
-    try:
-        reconstruction_df, recon_chart = eval_reconstructions(reconstructions, reconstruction_targets, gene_ae.encoder.vocabulary)
-        reconstruction_df.to_csv(f"{savepath}/reconstruction_data.csv")
-        recon_chart.save(f"{savepath}/reconstruction_fig.png")
-    except:
-        print("Failed at reconstruction evaluation.")
+    # try:
+    reconstruction_df, recon_chart = eval_reconstructions(reconstructions, reconstruction_targets, gene_ae.encoder.vocabulary)
+    reconstruction_df.to_csv(f"{savepath}/reconstruction_data.csv")
+    recon_chart.save(f"{savepath}/reconstruction_fig.png")
+    # except:
+    #     print("Failed at reconstruction evaluation.")
 
     ## Evaluate the domain clustering performance
     try:
