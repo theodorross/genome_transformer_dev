@@ -3,7 +3,7 @@
 #SBATCH --output=lumi_files/logs/evaluate_ae.o%j # Name of stdout output file
 #SBATCH --error=lumi_files/logs/evaluate_ae.e%j  # Name of stderr error file
 #SBATCH --account=project_465002861
-#SBATCH --time=1:00:00
+#SBATCH --time=3:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-task=1

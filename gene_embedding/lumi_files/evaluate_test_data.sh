@@ -39,18 +39,9 @@ datasets=($test_set $training_dataset $vfluvialis_set $spneumoniae_set $efaecali
 # python evaluate_model_and_dataset.py --model-path $modelpath --dataset-path $training_set
 
 for modelpath in ${models[@]}; do
-    if [ -f $modelpath ]; then
-    echo "model found"
-    else
-    echo "$modelpath not found"
-    fi
+    for datasetpath in ${datasets[@]}; do 
+        python evaluate_model_and_dataset.py --model-path $modelpath --dataset-path $datasetpath
+    done
 done
 
-for datasetpath in ${datasets[@]}; do 
-    if [ -d $datasetpath ]; then
-    echo "model found"
-    else
-    echo "$datasetpath not found"
-    fi
-done
 
