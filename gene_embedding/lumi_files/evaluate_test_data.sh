@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ## Activate environments
-# $WITH_CONDA
-# source wandb-env/bin/activate
+$WITH_CONDA
+source wandb-env/bin/activate
 
 ## Define the model to use
 frac_model="models/geneAE_curious-totem-5139_fold0.keras"
