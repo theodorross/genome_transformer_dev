@@ -47,7 +47,7 @@ for modelpath in ${models[@]}; do
 done
 
 for datasetpath in ${datasets[@]}; do 
-    if [ -f $datasetpath ]; then
+    if [ -d $datasetpath ]; then
     echo "model found"
     else
     echo "$datasetpath not found"
