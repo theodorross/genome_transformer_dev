@@ -63,11 +63,22 @@ class SequenceEncoder(models.Model):
         self.transformer_layers = [
             TransformerEncoderBlock(output_dim=self.latent_dim, ff_dim=self.ff_dim, num_heads=self.num_heads, 
                                     key_dim=self.key_dim, dropout_rate=self.dropout_rate)
-            for _ in range(self.encoder_layers)
+        ] + [
+            TransformerDecoderBlock(output_dim=self.latent_dim, ff_dim=self.ff_dim, num_heads=self.num_heads, 
+                                    key_dim=self.key_dim, dropout_rate=self.dropout_rate)
+            for _ in range(self.encoder_layers-1)
         ]
+        # self.transformer_layers = [
+        #     TransformerEncoderBlock(output_dim=self.latent_dim, ff_dim=self.ff_dim, num_heads=self.num_heads, 
+        #                             key_dim=self.key_dim, dropout_rate=self.dropout_rate)
+        #     for _ in range(self.encoder_layers)
+        # ]
 
         ## Define the flattening layer
         self.flatten = layers.Flatten()
+
+        ## Define linear projectino layer
+        self.projector = layers.Dense(latent_dim, activation=None, use_bias=True)
 
         ## Define the querry token sequence
         self.latent_tokens = self.add_weight(
@@ -102,11 +113,17 @@ class SequenceEncoder(models.Model):
         latent_seq = self.latent_position_encoder(latent_seq)
 
         ## Pass through the transformer blocks
-        for enc_layer in self.transformer_layers:
-            latent_seq = enc_layer(query=latent_seq, value=enc_z, use_residuals=True, **kwargs)
-        
-        ## Flatten the embedding into a single vector
+        for ix,enc_layer in enumerate(self.transformer_layers):
+            if ix == 0:
+                latent_seq = enc_layer(query=latent_seq, value=enc_z, use_residuals=True, **kwargs)
+            else:
+                latent_seq = enc_layer(query=latent_seq, value=latent_seq, use_residuals=True, **kwargs)
+
+        ## Flatten the embedding into a single vector and project it to final dimensions
         latent_vec = self.flatten(latent_seq)
+        latent_vec = self.projector(latent_vec)
+
+        ## Optional hypersphere normalization
         if self.hypersphere_norm:
             latent_vec = tf.math.l2_normalize(latent_vec, axis=-1)
         return latent_vec

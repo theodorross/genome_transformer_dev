@@ -62,6 +62,10 @@ class SequenceDecoder(models.Model):
         # self.test_embed = layers.Embedding(input_dim=self.vocab_size, 
         #                               output_dim=embedding_dim, 
         #                               mask_zero=True)
+
+        ## Define a layer that projects the dimensions of the latent variable up to (batch_size, n_sequence_tokens*latent_dim)
+        self.projector = layers.Dense(n_sequence_tokens*latent_dim, activation=None, use_bias=True)
+
         ## Define the layer that reshapes the input into (batch_size, n_sequence_tokens, latent_dim)
         self.unflatten = layers.Reshape((n_sequence_tokens, latent_dim))
 
@@ -91,7 +95,7 @@ class SequenceDecoder(models.Model):
         )
 
         ## Run a dummy input through the model
-        dummy_in = tf.convert_to_tensor(np.random.random((1, n_sequence_tokens*latent_dim)))
+        dummy_in = tf.convert_to_tensor(np.random.random((1, latent_dim)))
         self(dummy_in)
 
 
@@ -101,6 +105,7 @@ class SequenceDecoder(models.Model):
         query_seq = tf.tile(self.query_tokens, [tf.shape(x)[0], self.decode_length, 1])
         query_seq = self.query_position_encoder(query_seq)
         ## Apply positional encoding to the key sequence
+        x = self.projector(x)
         x = self.unflatten(x)
         x = self.latent_position_encoder(x)
         ## Pass through the decoding layers

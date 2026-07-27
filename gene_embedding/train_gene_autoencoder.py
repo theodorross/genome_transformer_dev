@@ -218,8 +218,7 @@ if __name__ == "__main__":
             _epoch_count = 0
         # gene_ae = GeneTransformer(**model_config)
         # _epoch_count = 0
-        print(gene_ae.summary())
-        
+        print(gene_ae.summary())        
 
         ## Initialize a training history
         fold_history = {}
@@ -246,7 +245,7 @@ if __name__ == "__main__":
             _last_epoch = min(_epoch_count + _epochs_per_length, args.epochs)
             _hist = gene_ae.fit(_training_fold, validation_data=_validation_fold, epochs=_last_epoch, 
                                 callbacks=callbacks+[chkpt_callback], verbose=1, initial_epoch=_epoch_count,
-                                steps_per_epoch=100, validation_freq=5)
+                                steps_per_epoch=1000, validation_freq=5)
             if 'loss' in _hist.history.keys():
                 _epoch_count += len( _hist.history["loss"] )
             else:

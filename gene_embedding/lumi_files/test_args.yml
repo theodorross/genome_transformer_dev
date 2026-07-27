@@ -3,14 +3,14 @@
 --clustering-loss-weight=0.2
 --batch-size=128
 --decode-length=5000
---decoder-layers=3
+--decoder-layers=2
 --dropout-rate=0.025
 --embedding-dim=64
---encoder-layers=20
+--encoder-layers=40
 --epochs=2000
 --ff-dim=128
 --key-dim=16
---latent-dim=1024
+--latent-dim=128
 --learning-rate=3e-4
 --learning-rate-decay=0.99
 --learning-rate-decay-start=500

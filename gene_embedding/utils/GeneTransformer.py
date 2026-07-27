@@ -103,7 +103,7 @@ class GeneTransformer(models.Model):
         # Linear Classifier head
         if self.functional_loss_weight != 0:
             self.classifier = models.Sequential(name="category_classifier")
-            self.classifier.add(layers.Input(shape=(latent_dim*n_sequence_tokens,)))
+            self.classifier.add(layers.Input(shape=(latent_dim,)))
             self.classifier.add(layers.Dense(23, activation="sigmoid"))
         
         ## Run a dummy input through the model
@@ -131,7 +131,8 @@ class GeneTransformer(models.Model):
 
         # Define the reconstruction loss if included
         if self.reconstruction_loss_weight != 0:
-            self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0, name="reconstruction")
+            # self.reconstruction_loss = MaskedSparseCategoricalCrossentropy(mask_category=0, name="reconstruction")
+            self.reconstruction_loss = tf.keras.losses.SparseCategoricalCrossentropy(name="reconstruction")
             losses.append(self.reconstruction_loss)
             loss_weights.append(self.reconstruction_loss_weight)
 
